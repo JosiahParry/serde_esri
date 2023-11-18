@@ -2,7 +2,7 @@
 
 Esri JSON parsing library.
 
-This crate provides representations of Esri JSON objects with [`serde::Deserialize`]() and [`serde::Serialize`]() trait implementations.
+This crate provides representations of Esri JSON objects with [`serde::Deserialize`](https://docs.rs/serde/1.0.192/serde/de/trait.Deserialize.html) and [`serde::Serialize`](https://docs.rs/serde/1.0.192/serde/de/trait.Serialize.html) trait implementations.
 
 ## Supported Esri JSON objects:
 
@@ -65,3 +65,23 @@ struct SpatialReference {
 }
 ```
 
+## Example usage: 
+
+This example reads a single feature from a feature service and returns a `FeatureSet` struct. 
+
+```rust
+use serde_esri::features::FeatureSet;
+use reqwest::Error;
+use std::io::Read;
+
+fn main() -> Result<(), Error> {
+    let flayer_url = "https://services.arcgis.com/P3ePLMYs2RVChkJx/ArcGIS/rest/services/USA_Counties_Generalized_Boundaries/FeatureServer/0/query?where=1%3D1&outFields=*&returnGeometry=true&resultRecordCount=1&f=json";
+    let mut res = reqwest::blocking::get(flayer_url)?;
+    let mut body = String::new();
+    res.read_to_string(&mut body).unwrap();
+
+    let fset: FeatureSet<2> = serde_json::from_str(&body).unwrap(); 
+    println!("{:#?}", fset);
+    Ok(())
+}
+```
