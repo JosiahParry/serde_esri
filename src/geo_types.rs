@@ -1,10 +1,8 @@
-/// Optional feature for converting Esri JSON objects into `geo-types` geometries. 
-///
-/// Z and M dimensions are dropped if present. 
 use crate::geometry::*;
 use geo_types::{Coord, Point, MultiPoint, MultiLineString, LineString, Polygon};
 
 
+/// Note that only x and y dimensions are captured
 impl<const N: usize> From<EsriCoord<N>> for Coord {
     fn from(value: EsriCoord<N>) -> Self {
         Coord { x: value.0[0], y: value.0[1] }
