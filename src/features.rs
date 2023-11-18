@@ -10,18 +10,22 @@ pub struct Feature<const N: usize> {
     pub geometry: Option<EsriGeometry<N>>,
     pub attributes: Option<Map<String, Value>>,
 }
+
+#[allow(non_snake_case)]
 #[derive(Debug, Deserialize, Serialize)]
 pub struct FeatureSet<const N: usize> {
     pub objectIdFieldName: Option<String>,
     pub globalIdFieldName: Option<String>,
     pub displayFieldName: Option<String>,
-    pub geometryType: String,
+    pub geometryType: Option<String>,
     pub features: Vec<Feature<N>>,
+    pub fields: Option<Vec<Field>>,
     pub spatialReference: SpatialReference,
-    pub fields: Vec<Field>
 }
 
 // esripbf has most of these defined via Prost
+// TODO sqlType, field_type need to be Enums
+#[allow(non_snake_case)]
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Field {
     pub name: String,

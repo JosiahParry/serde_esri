@@ -2,6 +2,12 @@
 name = "serde_esri"
 version = "0.1.0"
 edition = "2021"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/josiahparry/serde_esri"
+authors = ["Josiah Parry<josiah.parry@gmail.com>"]
+categories = ["science::geo", "parser-implementations", "encoding"]
+keywords = ["esri", "arcgis", "geo", "gis", "spatial"]
+
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -9,3 +15,6 @@ edition = "2021"
 serde = { version = "1.0.192", features = ["derive"] }
 serde_json = "1.0.108"
 serde_with = "3.4.0"
+
+[lib]
+crate-type = ["staticlib", "lib"]

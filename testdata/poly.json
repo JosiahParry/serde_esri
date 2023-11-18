@@ -1,0 +1,152 @@
+{
+  "objectIdFieldName" : "OBJECTID", 
+  "uniqueIdField" : 
+  {
+    "name" : "OBJECTID", 
+    "isSystemMaintained" : true
+  }, 
+  "globalIdFieldName" : "", 
+  "geometryProperties" : 
+  {
+    "shapeAreaFieldName" : "Shape__Area", 
+    "shapeLengthFieldName" : "Shape__Length", 
+    "units" : "esriDecimalDegrees"
+  }, 
+  "geometryType" : "esriGeometryPolygon", 
+  "spatialReference" : {
+    "wkid" : 4326, 
+    "latestWkid" : 4326
+  }, 
+  "fields" : [
+    {
+      "name" : "OBJECTID", 
+      "type" : "esriFieldTypeOID", 
+      "alias" : "OBJECTID", 
+      "sqlType" : "sqlTypeOther", 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "NAME", 
+      "type" : "esriFieldTypeString", 
+      "alias" : "Name", 
+      "sqlType" : "sqlTypeOther", 
+      "length" : 50, 
+      "domain" : null, 
+      "defaultValue" : null, 
+      "description" : "{\"value\":\"The name of the county.\",\"fieldValueType\":\"nameOrTitle\"}"
+    }, 
+    {
+      "name" : "STATE_NAME", 
+      "type" : "esriFieldTypeString", 
+      "alias" : "State Name", 
+      "sqlType" : "sqlTypeOther", 
+      "length" : 20, 
+      "domain" : null, 
+      "defaultValue" : null, 
+      "description" : "{\"value\":\"The name for the state in which the county is located.\",\"fieldValueType\":\"nameOrTitle\"}"
+    }, 
+    {
+      "name" : "STATE_FIPS", 
+      "type" : "esriFieldTypeString", 
+      "alias" : "State FIPS", 
+      "sqlType" : "sqlTypeOther", 
+      "length" : 2, 
+      "domain" : null, 
+      "defaultValue" : null, 
+      "description" : "{\"value\":\"The code (two-digit number) for the state in which the county is located.\",\"fieldValueType\":\"uniqueIdentifier\"}"
+    }, 
+    {
+      "name" : "FIPS", 
+      "type" : "esriFieldTypeString", 
+      "alias" : "FIPS", 
+      "sqlType" : "sqlTypeOther", 
+      "length" : 5, 
+      "domain" : null, 
+      "defaultValue" : null, 
+      "description" : "{\"value\":\"The combined state and county codes. County codes begin with 001 for each state; use the combined code (five-digit number) to uniquely identify a county in the country.\",\"fieldValueType\":\"uniqueIdentifier\"}"
+    }, 
+    {
+      "name" : "SQMI", 
+      "type" : "esriFieldTypeDouble", 
+      "alias" : "Area in square miles", 
+      "sqlType" : "sqlTypeOther", 
+      "domain" : null, 
+      "defaultValue" : null, 
+      "description" : "{\"value\":\"The area of the county in square miles using the North America Albers Equal Area Conic projection.\",\"fieldValueType\":\"measurement\"}"
+    }, 
+    {
+      "name" : "POPULATION", 
+      "type" : "esriFieldTypeInteger", 
+      "alias" : "2020 Total Population", 
+      "sqlType" : "sqlTypeOther", 
+      "domain" : null, 
+      "defaultValue" : null, 
+      "description" : "{\"value\":\"The 2020 population of the county.\",\"fieldValueType\":\"countOrAmount\"}"
+    }, 
+    {
+      "name" : "POP_SQMI", 
+      "type" : "esriFieldTypeDouble", 
+      "alias" : "People per square mile", 
+      "sqlType" : "sqlTypeOther", 
+      "domain" : null, 
+      "defaultValue" : null, 
+      "description" : "{\"value\":\"The 2020 population of the county per square mile.\",\"fieldValueType\":\"measurement\"}"
+    }, 
+    {
+      "name" : "STATE_ABBR", 
+      "type" : "esriFieldTypeString", 
+      "alias" : "State Abbreviation", 
+      "sqlType" : "sqlTypeOther", 
+      "length" : 2, 
+      "domain" : null, 
+      "defaultValue" : null, 
+      "description" : "{\"value\":\"The two-letter abbreviation for the state in which the county is located.\",\"fieldValueType\":\"uniqueIdentifier\"}"
+    }, 
+    {
+      "name" : "COUNTY_FIPS", 
+      "type" : "esriFieldTypeString", 
+      "alias" : "County FIPS", 
+      "sqlType" : "sqlTypeOther", 
+      "length" : 3, 
+      "domain" : null, 
+      "defaultValue" : null, 
+      "description" : "{\"value\":\"The code (three-digit number) for the county.\",\"fieldValueType\":\"uniqueIdentifier\"}"
+    }, 
+    {
+      "name" : "Shape__Area", 
+      "type" : "esriFieldTypeDouble", 
+      "alias" : "Shape__Area", 
+      "sqlType" : "sqlTypeDouble", 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "Shape__Length", 
+      "type" : "esriFieldTypeDouble", 
+      "alias" : "Shape__Length", 
+      "sqlType" : "sqlTypeDouble", 
+      "domain" : null, 
+      "defaultValue" : null
+    }
+  ], 
+  "exceededTransferLimit" : true, 
+  "features" : [
+    {
+      "attributes" : {
+        "OBJECTID" : 1, 
+        "NAME" : "Autauga County", 
+        "STATE_NAME" : "Alabama", 
+        "STATE_FIPS" : "01", 
+        "FIPS" : "01001", 
+        "SQMI" : 604.37, 
+        "POPULATION" : 58805, 
+        "POP_SQMI" : 97.3, 
+        "STATE_ABBR" : "AL", 
+        "COUNTY_FIPS" : "001", 
+        "Shape__Area" : 0.1489034246149, 
+        "Shape__Length" : 1.8841371139672
+      }
+    }
+  ]
+}
