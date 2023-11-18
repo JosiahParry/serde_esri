@@ -1,3 +1,6 @@
+use serde::{Deserialize, Serialize};
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum FieldType {
     EsriFieldTypeSmallInteger = 0,
     EsriFieldTypeInteger = 1,
@@ -13,6 +16,7 @@ pub enum FieldType {
     EsriFieldTypeGlobalId = 11,
     EsriFieldTypeXml = 12,
 }
+
 impl FieldType {
     /// String value of the enum field names used in the ProtoBuf definition.
     ///
@@ -52,6 +56,23 @@ impl FieldType {
             "esriFieldTypeGlobalID" => Some(Self::EsriFieldTypeGlobalId),
             "esriFieldTypeXML" => Some(Self::EsriFieldTypeXml),
             _ => None,
+        }
+    }
+}
+
+
+impl std::fmt::Display for FieldType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.as_str_name())
+    }
+}
+impl std::str::FromStr for FieldType {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match FieldType::from_str_name(s) {
+            Some(f) => Ok(f),
+            None => Err(String::from("Cannot determine `FieldType`")),
         }
     }
 }

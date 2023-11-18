@@ -12,9 +12,15 @@ keywords = ["esri", "arcgis", "geo", "gis", "spatial"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+# geo-types = { version = "0.7.12", optional = true }
+geo-types = { version = "0.7.12" }
 serde = { version = "1.0.192", features = ["derive"] }
 serde_json = "1.0.108"
 serde_with = "3.4.0"
 
 [lib]
 crate-type = ["staticlib", "lib"]
+
+[features]
+default = []
+# geo = ["dep:geo-types"]

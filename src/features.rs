@@ -1,6 +1,8 @@
-use crate::{geometry::EsriGeometry, spatial_reference::SpatialReference};
+use crate::{geometry::EsriGeometry, spatial_reference::SpatialReference, field_type::FieldType};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
+use serde_with::{serde_as, DisplayFromStr};
+
 
 // handy reference
 // https://github.com/Esri/arcgis-rest-js/blob/0e410dc16e0dd2961affb09ff7efbfb9b6c4999a/packages/arcgis-rest-request/src/types/feature.ts#L24
@@ -17,20 +19,22 @@ pub struct FeatureSet<const N: usize> {
     pub objectIdFieldName: Option<String>,
     pub globalIdFieldName: Option<String>,
     pub displayFieldName: Option<String>,
+    pub spatialReference: Option<SpatialReference>,
     pub geometryType: Option<String>,
     pub features: Vec<Feature<N>>,
     pub fields: Option<Vec<Field>>,
-    pub spatialReference: SpatialReference,
 }
 
 // esripbf has most of these defined via Prost
 // TODO sqlType, field_type need to be Enums
+#[serde_as]
 #[allow(non_snake_case)]
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Field {
     pub name: String,
     #[serde(rename = "type")]
-    pub field_type: String,
+    #[serde_as(as = "DisplayFromStr")]
+    pub field_type: FieldType,
     pub alias: String,
     pub sqlType: String,
     // unsure what this should be

@@ -33,7 +33,7 @@ pub struct EsriMultiPoint<const N: usize> {
 pub struct EsriPolyline<const N: usize> {
     pub hasZ: Option<bool>,
     pub hasM: Option<bool>,
-    pub paths: Vec<EsriCoord<N>>,
+    pub paths: Vec<Vec<EsriCoord<N>>>,
     pub spatialReference: Option<SpatialReference>,
 }
 
