@@ -1,32 +1,4 @@
-# name: Cargo Doc
-
-# on:
-#   push:
-#     branches:
-#       - main
-
-# jobs:
-#   docs:
-#     permissions:
-#       contents: write
-#     name: Deploy the dev version of documents to GitHub Pages
-#     runs-on: ubuntu-latest
-
-#     steps:
-#       - uses: actions/checkout@v4
-#       - uses: dtolnay/rust-toolchain@master
-#         with:
-#           toolchain: nightly
-#       - name: Docs
-#         run: cargo doc --all-features --no-deps
-#         env:
-#           RUSTDOCFLAGS: ""
-#       - name: Deploy
-#         uses: peaceiris/actions-gh-pages@v3
-#         with:
-#           github_token: ${{ secrets.GITHUB_TOKEN }}
-#           publish_dir: ./target/doc/
-# Simple workflow for deploying static content to GitHub Pages
+# 
 name: Deploy static content to Pages
 
 on:
@@ -64,7 +36,7 @@ jobs:
         if: matrix.config.rust == 'nightly'
 
       - name: Docs
-        run: cargo doc --no-deps
+        run: cargo doc --no-deps --all-features
         env:
           RUSTDOCFLAGS: "--enable-index-page -Zunstable-options"
 
