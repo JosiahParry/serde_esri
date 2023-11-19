@@ -60,7 +60,6 @@ impl FieldType {
     }
 }
 
-
 impl std::fmt::Display for FieldType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.as_str_name())

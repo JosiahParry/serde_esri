@@ -1,8 +1,7 @@
-use crate::{geometry::EsriGeometry, spatial_reference::SpatialReference, field_type::FieldType};
+use crate::{field_type::FieldType, geometry::EsriGeometry, spatial_reference::SpatialReference};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use serde_with::{serde_as, DisplayFromStr};
-
 
 // handy reference
 // https://github.com/Esri/arcgis-rest-js/blob/0e410dc16e0dd2961affb09ff7efbfb9b6c4999a/packages/arcgis-rest-request/src/types/feature.ts#L24
@@ -20,7 +19,7 @@ pub struct FeatureSet<const N: usize> {
     pub globalIdFieldName: Option<String>,
     pub displayFieldName: Option<String>,
     pub spatialReference: Option<SpatialReference>,
-    pub geometryType: Option<String>,
+    pub geometryType: Option<String>, // TODO should this be an enum?
     pub features: Vec<Feature<N>>,
     pub fields: Option<Vec<Field>>,
 }

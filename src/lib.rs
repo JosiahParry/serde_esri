@@ -6,10 +6,7 @@ pub mod spatial_reference;
 
 // feature flag: geo-types
 #[cfg(feature = "geo")]
-/// Optional feature for converting Esri JSON objects into `geo-types` geometries. 
+/// Optional feature for converting Esri JSON objects into `geo-types` geometries.
 ///
-/// Z and M dimensions are dropped if present. 
+/// Z and M dimensions are dropped if present.
 pub mod geo_types;
-
-
-
