@@ -1,0 +1,1 @@
+window.ALL_CRATES = ["darling","darling_core","darling_macro","fnv","geo_types","ident_case","itoa","libm","num_traits","proc_macro2","quote","ryu","serde","serde_derive","serde_esri","serde_json","serde_with","serde_with_macros","strsim","syn","unicode_ident"];

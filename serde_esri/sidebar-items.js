@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["features","field_type","geo_types","geometry","spatial_reference"]};

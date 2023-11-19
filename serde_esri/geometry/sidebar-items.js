@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["EsriGeometry"],"struct":["EsriCoord","EsriMultiPoint","EsriPoint","EsriPolygon","EsriPolyline"]};
