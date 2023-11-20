@@ -1,28 +1,26 @@
+use crate::{
+    features::{Feature, Field, FeatureSet},
+    field_type::FieldType,
+};
+
+use serde_json::Value;
 use std::collections::HashMap;
 
-use arrow::array::Array;
 use arrow::{
     array::{
+        // Array,
         make_builder, ArrayBuilder, BooleanBuilder, Float32Builder, Float64Builder,
         Int16Builder, Int32Builder, Int64Builder, Int8Builder, NullBuilder, StringBuilder,
         UInt16Builder, UInt32Builder, UInt64Builder, UInt8Builder,
     },
     datatypes::{
+        Schema,
         DataType,
         Field as AField,
-        // Schema,
-        Fields,
+        // Fields,
         SchemaBuilder,
-    }
-};
-use serde_json::Value;
-
-// use arrow::array::builder::StructBuilder;
-
-use crate::features::FeatureSet;
-use crate::{
-    features::{Feature, Field},
-    field_type::FieldType,
+    },
+    record_batch::RecordBatch,
 };
 
 // convert a field to a new field
@@ -50,24 +48,27 @@ impl From<Field> for AField {
 
 // Takes a vector or Esri Fields and creates a Fields
 // of arrow field types
-fn field_to_schema(fields: Vec<Field>) -> Fields {
+fn field_to_schema(fields: Vec<Field>) -> Schema {
     let mut sbuilder = SchemaBuilder::with_capacity(fields.len());
 
     for field in fields.into_iter() {
         let arrow_field = AField::from(field);
         sbuilder.push(arrow_field);
     }
-    sbuilder.finish().fields
+    sbuilder.finish()
 }
 
 fn create_array_vecs<const N: usize>(
-    fields: &Fields,
+    //fields: &Fields,
+    schema: &Schema,
     feats: Vec<Feature<N>>,
-) -> Vec<std::sync::Arc<dyn Array>> {
+) -> HashMap<&String, (&AField, Box<dyn ArrayBuilder>)>  {
     let n = feats.len();
-    let mut map: HashMap<&String, (&AField, Box<dyn ArrayBuilder>)> = HashMap::new();
 
-    fields.iter().for_each(|f| {
+    let mut map: HashMap<&String, (&AField, Box<dyn ArrayBuilder>)> = HashMap::new();
+    // let mut map: BTreeMap<&String, (&AField, Box<dyn ArrayBuilder>)> = BTreeMap::new();
+
+    schema.fields.iter().for_each(|f| {
         let b = make_builder(f.data_type(), n);
         map.insert(f.name(), (&f, b));
     });
@@ -83,20 +84,31 @@ fn create_array_vecs<const N: usize>(
         });
     });
 
-    let res = map
-        .into_iter()
-        .map(|mut bi| {
-            let arr = bi.1 .1.finish();
-            arr
+    // let res = map
+    //     .into_iter()
+    //     .map(|mut bi| {
+    //         let arr = bi.1 .1.finish();
+    //         arr
+    //     })
+    //     .collect::<Vec<_>>();
+
+    // res
+    map
+}
+
+pub fn featureset_to_arrow<const N: usize>(x: FeatureSet<N>) -> Result<RecordBatch, arrow::error::ArrowError>  {
+    let schema = field_to_schema(x.fields.unwrap());
+    let mut arrays = create_array_vecs(&schema, x.features);
+
+    let res_arrs = schema.fields().iter()
+        .map(|fi| {
+            let arr = arrays.get_mut(fi.name()).unwrap();
+            arr.1.finish()
         })
         .collect::<Vec<_>>();
 
-    res
-}
+    RecordBatch::try_new(schema.into(), res_arrs)
 
-pub fn featureset_to_arrow<const N: usize>(x: FeatureSet<N>) -> Vec<std::sync::Arc<dyn Array>> {
-    let fields = field_to_schema(x.fields.unwrap());
-    create_array_vecs(&fields, x.features)
 }
 
 // take a field and a builder
