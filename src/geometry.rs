@@ -13,9 +13,13 @@ use serde_with::skip_serializing_none;
 /// It requires a valid `N` of values per coordinate. Should always be one of
 /// `2`, `3`, or `4` in the case of XY, XYZ, or XYZM coordinates.
 #[derive(Clone, Deserialize, Serialize, Debug)]
+// From discord: https://discord.com/channels/273534239310479360/273541522815713281/1175836081091006484
+// Motivation: converting from this to Arrow
+// "you could go from a Box<[f64; 4]> to a Vec<f64> without copying or reallocating,
+// because in that case the allocation already exists"
 pub struct EsriCoord<const N: usize>(#[serde(with = "arrays")] pub [f64; N]);
 
-/// An `esriGeometryPoint` with fields x, y, z, and m. x and y are both required. 
+/// An `esriGeometryPoint` with fields x, y, z, and m. x and y are both required.
 #[skip_serializing_none]
 #[allow(non_snake_case)]
 #[derive(Clone, Deserialize, Serialize, Debug)]
@@ -27,9 +31,9 @@ pub struct EsriPoint {
     pub spatialReference: Option<SpatialReference>,
 }
 
-/// An `esriGeometryMultipoint` defined by a vector of `EsriCoord`s. 
-/// 
-/// `<N>` parameter should be equal to `2 + hasZ + hasM`. There are no 
+/// An `esriGeometryMultipoint` defined by a vector of `EsriCoord`s.
+///
+/// `<N>` parameter should be equal to `2 + hasZ + hasM`. There are no
 /// checks on the const value. If an incorrect value is provided, expect
 /// a `panic!`.
 #[skip_serializing_none]
@@ -43,10 +47,10 @@ pub struct EsriMultiPoint<const N: usize> {
 }
 
 /// An `esriGeometryPolyline` defined by a vector of `Vec<EsriCoord<N>>`.
-/// 
-/// Each inner vector should be a single linestring. 
-/// 
-/// `<N>` parameter should be equal to `2 + hasZ + hasM`. There are no 
+///
+/// Each inner vector should be a single linestring.
+///
+/// `<N>` parameter should be equal to `2 + hasZ + hasM`. There are no
 /// checks on the const value. If an incorrect value is provided, expect
 /// a `panic!`.
 #[skip_serializing_none]
@@ -60,12 +64,12 @@ pub struct EsriPolyline<const N: usize> {
 }
 
 /// An `esriGeometryPolygon` defined by a `Vec<Vec<EsriCoord<N>>>`
-/// 
+///
 /// Each inner vector should be a single linear ring. The first `Vec<EsriCoord<N>>`
 /// represents the exterior ring. Subsequent ones are interior rings. No checking
-/// of widing occurs. 
-/// 
-/// `<N>` parameter should be equal to `2 + hasZ + hasM`. There are no 
+/// of widing occurs.
+///
+/// `<N>` parameter should be equal to `2 + hasZ + hasM`. There are no
 /// checks on the const value. If an incorrect value is provided, expect
 /// a `panic!`.
 #[skip_serializing_none]
