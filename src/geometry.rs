@@ -84,13 +84,11 @@ impl<'a, const N: usize> ExactSizeIterator for EsriMultiPointIterator<'a, N> {
     }
 }
 
-// impl Iterator for EsriMultiPoint {
-//     type Item;
-
-//     fn next(&mut self) -> Option<Self::Item> {
-//         todo!()
-//     }
-// }
+// I'm going to try creating an EsriLineString struct
+// which is going to be used for internally for polyline and polygon
+// this is so that i can implement linestring trait for geoarrow
+#[derive(Clone, Deserialize, Serialize, Debug)]
+pub struct EsriLineString<const N: usize>(Vec<EsriCoord<N>>);
 
 /// An `esriGeometryPolyline` defined by a vector of `Vec<EsriCoord<N>>`.
 ///
@@ -105,7 +103,7 @@ impl<'a, const N: usize> ExactSizeIterator for EsriMultiPointIterator<'a, N> {
 pub struct EsriPolyline<const N: usize> {
     pub hasZ: Option<bool>,
     pub hasM: Option<bool>,
-    pub paths: Vec<Vec<EsriCoord<N>>>,
+    pub paths: Vec<EsriLineString<N>>,
     pub spatialReference: Option<SpatialReference>,
 }
 
