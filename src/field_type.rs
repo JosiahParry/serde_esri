@@ -1,7 +1,6 @@
 //! Enumeration of valid esri field types
 use serde::{Deserialize, Serialize};
 
-
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum FieldType {
     EsriFieldTypeSmallInteger = 0,

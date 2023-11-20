@@ -1,12 +1,12 @@
 //! `Feature` and `FeatureSet` objects
-//! 
-//! Geometry objects are often accompanied by attributes that describe the point in space. 
+//!
+//! Geometry objects are often accompanied by attributes that describe the point in space.
 //! The Esri [`Feature`](https://developers.arcgis.com/documentation/common-data-types/feature-object.htm)  
-//! object enables us to represent geometries and attributes alongside each other. 
-//! 
+//! object enables us to represent geometries and attributes alongside each other.
+//!
 //! The Esri [`FeatureSet`](https://developers.arcgis.com/documentation/common-data-types/featureset-object.htm)
 //! object represents a collection of individual features. This is the most common representation that is encountered
-//! when working with a Feature Service via its rest API. 
+//! when working with a Feature Service via its rest API.
 use crate::{field_type::FieldType, geometry::EsriGeometry, spatial_reference::SpatialReference};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
@@ -15,12 +15,11 @@ use serde_with::{serde_as, DisplayFromStr};
 // handy reference
 // https://github.com/Esri/arcgis-rest-js/blob/0e410dc16e0dd2961affb09ff7efbfb9b6c4999a/packages/arcgis-rest-request/src/types/feature.ts#L24
 
-
 /// A single geometry and its attributes
-/// 
+///
 /// Note that both geometry and attributes are optional. This is because
 /// we can anticipate receiving _only_ geometries, or _only_ attributes
-/// or both together. 
+/// or both together.
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Feature<const N: usize> {
     pub geometry: Option<EsriGeometry<N>>,

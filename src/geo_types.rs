@@ -1,17 +1,16 @@
 //! Optional feature for converting Esri JSON objects into `geo-types` geometries.
 //!
-//! This feature enables conversion between `EsriGeometry` objects and geo_types obejcts. 
-//! Since geo_types presently only supports 2 dimensional coordinatees, 
+//! This feature enables conversion between `EsriGeometry` objects and geo_types obejcts.
+//! Since geo_types presently only supports 2 dimensional coordinatees,
 //! Z and M dimensions are dropped if present.
-//! 
+//!
 //! Provides conversions for:
-//! 
+//!
 //! - `EsriCoord` -> `Coord`
 //! - `EsriPoint` -> `Point`
 //! - `EsriMultiPoint` -> `MultiPoint`
 //! - `EsriPolyline` -> `MultiLineString`
 //! - `EsriPolygon` -> `Polygon`
-//! 
 use crate::geometry::*;
 use geo_types::{Coord, LineString, MultiLineString, MultiPoint, Point, Polygon};
 
