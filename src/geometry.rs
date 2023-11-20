@@ -50,7 +50,7 @@ pub struct EsriMultiPoint<const N: usize> {
 // this is mostly copy pasta from ChatGPT. Not _Too_ sure
 // what is happening in here
 pub struct EsriMultiPointIterator<'a, const N: usize> {
-    points_iter: std::slice::Iter<'a, EsriCoord<N>>
+    points_iter: std::slice::Iter<'a, EsriCoord<N>>,
 }
 
 impl<const N: usize> EsriMultiPoint<N> {
@@ -90,6 +90,41 @@ impl<'a, const N: usize> ExactSizeIterator for EsriMultiPointIterator<'a, N> {
 #[derive(Clone, Deserialize, Serialize, Debug)]
 pub struct EsriLineString<const N: usize>(Vec<EsriCoord<N>>);
 
+pub struct EsriLineStringIterator<'a, const N: usize> {
+    iter: std::slice::Iter<'a, EsriCoord<N>>,
+}
+
+impl<'a, const N: usize> Iterator for EsriLineStringIterator<'a, N> {
+    type Item = &'a EsriCoord<N>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next()
+    }
+}
+
+impl<'a, const N: usize> ExactSizeIterator for EsriLineStringIterator<'a, N> {
+    fn len(&self) -> usize {
+        self.iter.len()
+    }
+}
+
+impl<const N: usize> IntoIterator for EsriLineString<N> {
+    type Item = EsriCoord<N>;
+    type IntoIter = std::vec::IntoIter<EsriCoord<N>>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
+
+impl<const N: usize> EsriLineString<N> {
+    pub fn iter(&self) -> EsriLineStringIterator<N> {
+        EsriLineStringIterator {
+            iter: self.0.iter(),
+        }
+    }
+}
 /// An `esriGeometryPolyline` defined by a vector of `Vec<EsriCoord<N>>`.
 ///
 /// Each inner vector should be a single linestring.

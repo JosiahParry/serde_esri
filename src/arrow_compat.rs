@@ -1,5 +1,5 @@
 use crate::{
-    features::{Feature, Field, FeatureSet},
+    features::{Feature, FeatureSet, Field},
     field_type::FieldType,
 };
 
@@ -9,14 +9,26 @@ use std::collections::HashMap;
 use arrow::{
     array::{
         // Array,
-        make_builder, ArrayBuilder, BooleanBuilder, Float32Builder, Float64Builder,
-        Int16Builder, Int32Builder, Int64Builder, Int8Builder, NullBuilder, StringBuilder,
-        UInt16Builder, UInt32Builder, UInt64Builder, UInt8Builder,
+        make_builder,
+        ArrayBuilder,
+        BooleanBuilder,
+        Float32Builder,
+        Float64Builder,
+        Int16Builder,
+        Int32Builder,
+        Int64Builder,
+        Int8Builder,
+        NullBuilder,
+        StringBuilder,
+        UInt16Builder,
+        UInt32Builder,
+        UInt64Builder,
+        UInt8Builder,
     },
     datatypes::{
-        Schema,
         DataType,
         Field as AField,
+        Schema,
         // Fields,
         SchemaBuilder,
     },
@@ -62,7 +74,7 @@ fn create_array_vecs<const N: usize>(
     //fields: &Fields,
     schema: &Schema,
     feats: Vec<Feature<N>>,
-) -> HashMap<&String, (&AField, Box<dyn ArrayBuilder>)>  {
+) -> HashMap<&String, (&AField, Box<dyn ArrayBuilder>)> {
     let n = feats.len();
 
     let mut map: HashMap<&String, (&AField, Box<dyn ArrayBuilder>)> = HashMap::new();
@@ -96,11 +108,15 @@ fn create_array_vecs<const N: usize>(
     map
 }
 
-pub fn featureset_to_arrow<const N: usize>(x: FeatureSet<N>) -> Result<RecordBatch, arrow::error::ArrowError>  {
+pub fn featureset_to_arrow<const N: usize>(
+    x: FeatureSet<N>,
+) -> Result<RecordBatch, arrow::error::ArrowError> {
     let schema = field_to_schema(x.fields.unwrap());
     let mut arrays = create_array_vecs(&schema, x.features);
 
-    let res_arrs = schema.fields().iter()
+    let res_arrs = schema
+        .fields()
+        .iter()
         .map(|fi| {
             let arr = arrays.get_mut(fi.name()).unwrap();
             arr.1.finish()
@@ -108,7 +124,6 @@ pub fn featureset_to_arrow<const N: usize>(x: FeatureSet<N>) -> Result<RecordBat
         .collect::<Vec<_>>();
 
     RecordBatch::try_new(schema.into(), res_arrs)
-
 }
 
 // take a field and a builder
