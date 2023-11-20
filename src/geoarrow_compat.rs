@@ -1,8 +1,19 @@
 
 use geoarrow::geo_traits::{CoordTrait, PointTrait, MultiPointTrait};
-use geo_types::{CoordNum, CoordFloat};
 use crate::geometry::*;
 
+
+impl<const N: usize> CoordTrait for EsriCoord<N> {
+    type T = f64;
+
+    fn x(&self) -> Self::T {
+        self.0[0]
+    }
+
+    fn y(&self) -> Self::T {
+        self.0[1]
+    }
+}
 
 impl PointTrait for EsriPoint {
     type T = f64;
@@ -15,11 +26,27 @@ impl PointTrait for EsriPoint {
     }
 }
 
-impl<const N: usize> MultiPointTrait for EsriMultiPoint<N> {
+// required lifetime for multipoint trait
+impl<'a, const N: usize> PointTrait for &'a EsriCoord<N> {
     type T = f64;
 
+    fn x(&self) -> Self::T {
+        self.0[0]
+    }
+
+    fn y(&self) -> Self::T {
+        self.0[1]
+    }
+    
+}
+
+impl<const N: usize> MultiPointTrait for EsriMultiPoint<N> {
+    type T = f64;
+    type ItemType<'a> = &'a EsriCoord<N>;
+    type Iter<'a> = EsriMultiPointIterator<'a, N>;
+
     fn points(&self) -> Self::Iter<'_> {
-        self.points.iter()
+        self.iter()
     }
 
     fn num_points(&self) -> usize {
@@ -27,6 +54,6 @@ impl<const N: usize> MultiPointTrait for EsriMultiPoint<N> {
     }
 
     fn point(&self, i: usize) -> Option<Self::ItemType<'_>> {
-        self.points[i]
+        self.points.get(i)
     }
 }

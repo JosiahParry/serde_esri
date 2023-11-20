@@ -46,6 +46,52 @@ pub struct EsriMultiPoint<const N: usize> {
     pub spatialReference: Option<SpatialReference>,
 }
 
+// Implement iterators for EsriMultiPoint struct
+// this is mostly copy pasta from ChatGPT. Not _Too_ sure
+// what is happening in here
+pub struct EsriMultiPointIterator<'a, const N: usize> {
+    points_iter: std::slice::Iter<'a, EsriCoord<N>>
+}
+
+impl<const N: usize> EsriMultiPoint<N> {
+    pub fn iter(&self) -> EsriMultiPointIterator<N> {
+        EsriMultiPointIterator {
+            points_iter: self.points.iter(),
+        }
+    }
+}
+
+impl<'a, const N: usize> Iterator for EsriMultiPointIterator<'a, N> {
+    type Item = &'a EsriCoord<N>; // Define the associated type 'Item'
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.points_iter.next()
+    }
+}
+
+impl<'a, const N: usize> IntoIterator for &'a EsriMultiPoint<N> {
+    type Item = &'a EsriCoord<N>; // Define the associated type 'Item' for IntoIterator
+    type IntoIter = EsriMultiPointIterator<'a, N>; // Define the associated type 'IntoIter'
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
+impl<'a, const N: usize> ExactSizeIterator for EsriMultiPointIterator<'a, N> {
+    fn len(&self) -> usize {
+        self.points_iter.len()
+    }
+}
+
+// impl Iterator for EsriMultiPoint {
+//     type Item;
+
+//     fn next(&mut self) -> Option<Self::Item> {
+//         todo!()
+//     }
+// }
+
 /// An `esriGeometryPolyline` defined by a vector of `Vec<EsriCoord<N>>`.
 ///
 /// Each inner vector should be a single linestring.
