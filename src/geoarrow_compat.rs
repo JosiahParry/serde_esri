@@ -137,14 +137,15 @@ impl<const N: usize> MultiLineStringTrait for EsriPolyline<N> {
 impl<const N: usize> PolygonTrait for EsriPolygon<N> {
     type T = f64;
     type ItemType<'a> = &'a EsriLineString<N>;
-    type Iter<'a> = EsriPolygonIterator<'a, N>;
+    type Iter<'a> = std::iter::Skip<std::slice::Iter<'a, EsriLineString<N>>>;
+    // type Iter<'a> = EsriPolygonIterator<'a, N>;
 
     fn exterior(&self) -> Option<Self::ItemType<'_>> {
         self.rings.iter().nth(0)
     }
 
     fn interiors(&self) -> Self::Iter<'_> {
-        todo!()
+        self.rings.iter().skip(1)
     }
 
     fn num_interiors(&self) -> usize {
