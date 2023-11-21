@@ -1,3 +1,17 @@
+//! Compatibility with arrow-rs and geoarrow2
+//! 
+//! This module is enabled by the `geoarrow` feature. It provides a single function 
+//! `featureset_to_arrow()` which returns a `RecordBatch` containing arrays for each
+//! field in the original `FeatureSet` struct and an additional field for geometry
+//! if present. 
+//! 
+//! This feature implements the following geoarrow traits: 
+//! 
+//! - `EsriCoord<N>` implements `CoordTrait` and `PointTrait`
+//! - `EsriPoint` implements `PointTrait`
+//! - `EsriLineString<N>` implements `LineStringTrait`
+//! - `EsriPolyline<N>` implements `MultiLineStringTrait`
+//! - `EsriPolygon<N>` implements `PolygonTrait`
 use crate::{
     features::{Feature, FeatureSet, Field},
     field_type::FieldType,
@@ -12,7 +26,6 @@ use std::collections::HashMap;
 
 use arrow::{
     array::{
-        // Array,
         make_builder,
         ArrayBuilder,
         BooleanBuilder,
@@ -33,11 +46,50 @@ use arrow::{
         DataType,
         Field as AField,
         Schema,
-        // Fields,
         SchemaBuilder,
     },
     record_batch::RecordBatch,
 };
+
+/// Given a `FeatureSet`, create a `RecordBatch`
+pub fn featureset_to_arrow<const N: usize>(
+    x: FeatureSet<N>,
+) -> Result<RecordBatch, arrow::error::ArrowError> {
+    let schema = field_to_schema(x.fields.unwrap());
+
+    let (mut arrays, geometries) = create_array_vecs(&schema, x.features);
+
+    let mut res_arrs = schema
+        .fields()
+        .iter()
+        .map(|fi| {
+            let arr = arrays.get_mut(fi.name()).unwrap();
+            arr.1.finish()
+        })
+        .collect::<Vec<_>>();
+
+    if x.geometryType.is_some() {
+
+        // process geometries
+        let (geo_field, geo_arr) = as_geoarrow_array(x.geometryType.unwrap().as_str(), geometries);
+
+        // create a new schema builder
+        let mut sb = SchemaBuilder::from(schema);
+
+        // add the geometry field 
+        sb.push(geo_field);
+        let schema = sb.finish();
+
+        // extend res_arrs to include new geometry array
+        res_arrs.push(geo_arr);
+
+        RecordBatch::try_new(schema.into(), res_arrs)
+
+    } else {
+        RecordBatch::try_new(schema.into(), res_arrs)
+    }
+    
+}
 
 // convert an esri field to a new arrow field
 impl From<Field> for AField {
@@ -107,45 +159,6 @@ fn create_array_vecs<const N: usize>(
     });
 
     (map, geometries)
-}
-
-pub fn featureset_to_arrow<const N: usize>(
-    x: FeatureSet<N>,
-) -> Result<RecordBatch, arrow::error::ArrowError> {
-    let schema = field_to_schema(x.fields.unwrap());
-
-    let (mut arrays, geometries) = create_array_vecs(&schema, x.features);
-
-    let mut res_arrs = schema
-        .fields()
-        .iter()
-        .map(|fi| {
-            let arr = arrays.get_mut(fi.name()).unwrap();
-            arr.1.finish()
-        })
-        .collect::<Vec<_>>();
-
-    if x.geometryType.is_some() {
-
-        // process geometries
-        let (geo_field, geo_arr) = as_geoarrow_array(x.geometryType.unwrap().as_str(), geometries);
-
-        // create a new schema builder
-        let mut sb = SchemaBuilder::from(schema);
-
-        // add the geometry field 
-        sb.push(geo_field);
-        let schema = sb.finish();
-
-        // extend res_arrs to include new geometry array
-        res_arrs.push(geo_arr);
-
-        RecordBatch::try_new(schema.into(), res_arrs)
-
-    } else {
-        RecordBatch::try_new(schema.into(), res_arrs)
-    }
-    
 }
 
 fn as_geoarrow_array<const N: usize>(geom_type: &str, geoms: Vec<Option<EsriGeometry<N>>>) -> (Arc<AField>, Arc<dyn Array>)   {
@@ -259,7 +272,6 @@ fn append_value(v: Value, f: &AField, builder: &mut Box<dyn ArrayBuilder>) -> ()
         DataType::UInt16 => {
             let builder = bb.downcast_mut::<UInt16Builder>()
                 .unwrap();
-
             
             match v.as_u64() {
                 Some(v) => builder.append_value(v as u16),

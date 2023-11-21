@@ -40,4 +40,4 @@ pub mod geo_types;
 pub mod arrow_compat;
 
 #[cfg(feature = "geoarrow")]
-pub mod geoarrow_compat;
+mod geoarrow_compat;
