@@ -46,6 +46,88 @@ pub struct EsriMultiPoint<const N: usize> {
     pub spatialReference: Option<SpatialReference>,
 }
 
+// Implement iterators for EsriMultiPoint struct
+// this is mostly copy pasta from ChatGPT. Not _Too_ sure
+// what is happening in here
+pub struct EsriMultiPointIterator<'a, const N: usize> {
+    points_iter: std::slice::Iter<'a, EsriCoord<N>>,
+}
+
+impl<const N: usize> EsriMultiPoint<N> {
+    pub fn iter(&self) -> EsriMultiPointIterator<N> {
+        EsriMultiPointIterator {
+            points_iter: self.points.iter(),
+        }
+    }
+}
+
+impl<'a, const N: usize> Iterator for EsriMultiPointIterator<'a, N> {
+    type Item = &'a EsriCoord<N>; // Define the associated type 'Item'
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.points_iter.next()
+    }
+}
+
+impl<'a, const N: usize> IntoIterator for &'a EsriMultiPoint<N> {
+    type Item = &'a EsriCoord<N>; // Define the associated type 'Item' for IntoIterator
+    type IntoIter = EsriMultiPointIterator<'a, N>; // Define the associated type 'IntoIter'
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
+impl<'a, const N: usize> ExactSizeIterator for EsriMultiPointIterator<'a, N> {
+    fn len(&self) -> usize {
+        self.points_iter.len()
+    }
+}
+
+// I'm going to try creating an EsriLineString struct
+// which is going to be used for internally for polyline and polygon
+// this is so that i can implement linestring trait for geoarrow
+
+/// This struct is used strictly for representing the internal LineStrings
+/// for the `EsriPolygon` and `EsriPolyline` structs. They do not represent
+/// any Esri JSON geometry objects.
+#[derive(Clone, Deserialize, Serialize, Debug)]
+pub struct EsriLineString<const N: usize>(pub Vec<EsriCoord<N>>);
+
+pub struct EsriLineStringIterator<'a, const N: usize> {
+    iter: std::slice::Iter<'a, EsriCoord<N>>,
+}
+
+impl<'a, const N: usize> Iterator for EsriLineStringIterator<'a, N> {
+    type Item = &'a EsriCoord<N>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next()
+    }
+}
+
+impl<'a, const N: usize> ExactSizeIterator for EsriLineStringIterator<'a, N> {
+    fn len(&self) -> usize {
+        self.iter.len()
+    }
+}
+
+impl<const N: usize> IntoIterator for EsriLineString<N> {
+    type Item = EsriCoord<N>;
+    type IntoIter = std::vec::IntoIter<EsriCoord<N>>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
+impl<const N: usize> EsriLineString<N> {
+    pub fn iter(&self) -> EsriLineStringIterator<N> {
+        EsriLineStringIterator {
+            iter: self.0.iter(),
+        }
+    }
+}
 /// An `esriGeometryPolyline` defined by a vector of `Vec<EsriCoord<N>>`.
 ///
 /// Each inner vector should be a single linestring.
@@ -59,8 +141,26 @@ pub struct EsriMultiPoint<const N: usize> {
 pub struct EsriPolyline<const N: usize> {
     pub hasZ: Option<bool>,
     pub hasM: Option<bool>,
-    pub paths: Vec<Vec<EsriCoord<N>>>,
+    pub paths: Vec<EsriLineString<N>>,
     pub spatialReference: Option<SpatialReference>,
+}
+
+pub struct EsriPolylineIterator<'a, const N: usize> {
+    pub paths_iter: std::slice::Iter<'a, EsriLineString<N>>,
+}
+
+impl<'a, const N: usize> Iterator for EsriPolylineIterator<'a, N> {
+    type Item = &'a EsriLineString<N>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.paths_iter.next()
+    }
+}
+
+impl<'a, const N: usize> ExactSizeIterator for EsriPolylineIterator<'a, N> {
+    fn len(&self) -> usize {
+        self.paths_iter.len()
+    }
 }
 
 /// An `esriGeometryPolygon` defined by a `Vec<Vec<EsriCoord<N>>>`
@@ -78,8 +178,26 @@ pub struct EsriPolyline<const N: usize> {
 pub struct EsriPolygon<const N: usize> {
     pub hasZ: Option<bool>,
     pub hasM: Option<bool>,
-    pub rings: Vec<Vec<EsriCoord<N>>>,
+    pub rings: Vec<EsriLineString<N>>,
     pub spatialReference: Option<SpatialReference>,
+}
+
+pub struct EsriPolygonIterator<'a, const N: usize> {
+    pub paths_iter: std::slice::Iter<'a, EsriLineString<N>>,
+}
+
+impl<'a, const N: usize> Iterator for EsriPolygonIterator<'a, N> {
+    type Item = &'a EsriLineString<N>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.paths_iter.next()
+    }
+}
+
+impl<'a, const N: usize> ExactSizeIterator for EsriPolygonIterator<'a, N> {
+    fn len(&self) -> usize {
+        self.paths_iter.len()
+    }
 }
 
 /// An enum of all valid geometry types. At present this does not include `esriGeometryEnvelope`
@@ -90,6 +208,40 @@ pub enum EsriGeometry<const N: usize> {
     MultiPoint(EsriMultiPoint<N>),
     Polygon(EsriPolygon<N>),
     Polyline(EsriPolyline<N>),
+}
+
+impl<const N: usize> EsriGeometry<N> {
+    /// Returns a point if possible
+    pub fn as_point(self) -> Option<EsriPoint> {
+        match self {
+            EsriGeometry::Point(p) => Some(p),
+            _ => None,
+        }
+    }
+
+    /// Returns a multipoint if possible
+    pub fn as_multipoint(self) -> Option<EsriMultiPoint<N>> {
+        match self {
+            EsriGeometry::MultiPoint(p) => Some(p),
+            _ => None
+        }
+    }
+    
+    /// Returns a polyline if possible
+    pub fn as_polyline(self) -> Option<EsriPolyline<N>> {
+        match self {
+            EsriGeometry::Polyline(pl) => Some(pl),
+            _ => None
+        }
+    }
+
+    /// Returns a polygon if possible
+    pub fn as_polygon(self) -> Option<EsriPolygon<N>> {
+        match self {
+            EsriGeometry::Polygon(ply) => Some(ply),
+            _ => None,
+        }
+    }
 }
 
 // Completed: esriGeometryPoint | esriGeometryMultipoint | esriGeometryPolyline | esriGeometryPolygon |
