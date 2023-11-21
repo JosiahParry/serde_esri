@@ -13,7 +13,9 @@ readme = "README.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-arrow = { version = "48.0.0", features = [], optional = false}
+# arrow = { version = "*", features = [], optional = false}
+# I need to use the exact same version of arrow as used by geoarrow
+arrow = { git = "https://github.com/apache/arrow-rs", rev="fbbb61d94282165f9bb9f73fb4d00a3af16d4aee", features = ["ffi"]}
 geo-types = { version = "0.7.12", optional = true }
 geoarrow = { package = "geoarrow2", git = "https://github.com/geoarrow/geoarrow-rs", optional = true}
 serde = { version = "1.0.192", features = ["derive"] }

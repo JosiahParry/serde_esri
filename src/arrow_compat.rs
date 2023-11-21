@@ -6,7 +6,7 @@ use crate::{
 
 use std::sync::Arc;
 
-use geoarrow::{trait_::MutableGeometryArray, array::{PointArray, MultiPointArray}, GeometryArrayTrait};
+use geoarrow::GeometryArrayTrait;
 use serde_json::Value;
 use std::collections::HashMap;
 
@@ -39,7 +39,7 @@ use arrow::{
     record_batch::RecordBatch,
 };
 
-// convert a field to a new field
+// convert an esri field to a new arrow field
 impl From<Field> for AField {
     fn from(value: Field) -> Self {
         let dtype = match value.field_type {
@@ -74,6 +74,11 @@ fn field_to_schema(fields: Vec<Field>) -> Schema {
     sbuilder.finish()
 }
 
+// Takes a schema and a vector of features
+// The features are processed into a tuple 
+// the first element is a hashmap containing the field name as keys
+// and an array builder as the value
+// the second element is a vectoor of geometry options
 fn create_array_vecs<const N: usize>(
     //fields: &Fields,
     schema: &Schema,
@@ -111,7 +116,7 @@ pub fn featureset_to_arrow<const N: usize>(
 
     let (mut arrays, geometries) = create_array_vecs(&schema, x.features);
 
-    let res_arrs = schema
+    let mut res_arrs = schema
         .fields()
         .iter()
         .map(|fi| {
@@ -120,47 +125,80 @@ pub fn featureset_to_arrow<const N: usize>(
         })
         .collect::<Vec<_>>();
 
-    // if x.geometryType.is_some() {
-    //     let mut sb = SchemaBuilder::from(schema);
-    //     // let gfield = AField::new("geometry", geoarrow::datatypes::GeoDataType::, true);
-    //     // sb.push(gfield);
-    //     // let schema = sb.finish();
-    // }
+    if x.geometryType.is_some() {
 
-    RecordBatch::try_new(schema.into(), res_arrs)
+        // process geometries
+        let geo_arr = as_geoarrow_array(x.geometryType.unwrap().as_str(), geometries);
+        
+        // determine data type 
+        // only one clone thats not so bad right?
+        let dt = geo_arr.data_type().clone();
+
+        // create a new field for the geometry 
+        let af = AField::new("geometry", dt, true);
+
+        // create a new schema builder
+        let mut sb = SchemaBuilder::from(schema);
+
+        // add the geometry field 
+        sb.push(af);
+        let schema = sb.finish();
+
+        // extend res_arrs to include new geometry array
+        res_arrs.push(geo_arr);
+
+        RecordBatch::try_new(schema.into(), res_arrs)
+
+    } else {
+        RecordBatch::try_new(schema.into(), res_arrs)
+    }
+    
 }
 
 fn as_geoarrow_array<const N: usize>(geom_type: &str, geoms: Vec<Option<EsriGeometry<N>>>) -> Arc<dyn Array>  {
     match geom_type {
         "esriGeometryPoint" => {
-            let mut mpa = geoarrow::array::MutablePointArray::new();
-            geoms.into_iter()
-                .for_each(|pi| {
-                    match pi {
-                        Some(pi) => mpa.push_point(pi.as_point().as_ref()),
-                        None => mpa.push_empty()
-                    }
-                });
+        
+            let res = geoms.into_iter()
+                .map(|pi| match pi {
+                    Some(pp) => pp.as_point(),
+                    None => None,
+                })
+                .collect::<Vec<_>>();
 
-            PointArray::from(mpa).into_array_ref()
+        geoarrow::array::PointArray::from(res).into_array_ref()
+
         },
         "esriGeometryMultipoint" => {
-            let mut mpa = geoarrow::array::MutableMultiPointArray::<i64>::new();
-            geoms.into_iter()
-                .for_each(|pi| {
-                    match pi {
-                        Some(pi) => mpa.push_multi_point(pi.as_multipoint().as_ref()).unwrap(),
-                        None => ()
-                    }
-                });
-            
-            MultiPointArray::from(mpa).into_array_ref()
+            let res = geoms.into_iter()
+                .map(|pi| match pi {
+                    Some(pp) => pp.as_multipoint(),
+                    None => None,
+                })
+                .collect::<Vec<_>>();
+
+            geoarrow::array::MultiPointArray::<i64>::from(res).into_array_ref()
         },
         "esriGeometryPolyline" => {
-            // geoarrow::array::MutableMultiLineStringArray::<u64>::new()
-                todo!()
+            let res = geoms.into_iter()
+                .map(|pi| match pi {
+                    Some(pp) => pp.as_polyline(),
+                    None => None,
+                })
+                .collect::<Vec<_>>();
+
+            geoarrow::array::MultiLineStringArray::<i64>::from(res).into_array_ref()
         },
-        "esriGeometryPolygon" => todo!(),
+        "esriGeometryPolygon" => {
+            let res = geoms.into_iter()
+                .map(|pi| match pi {
+                    Some(pp) => pp.as_polygon(),
+                    None => None,
+                })
+                .collect::<Vec<_>>();
+
+        geoarrow::array::PolygonArray::<i64>::from(res).into_array_ref()
+        },
         _ => unimplemented!()
     }
 }
@@ -250,7 +288,7 @@ fn append_value(v: Value, f: &AField, builder: &mut Box<dyn ArrayBuilder>) -> ()
         DataType::Utf8 => {
             bb.downcast_mut::<StringBuilder>()
                 .unwrap()
-                .append_value(v.as_str().unwrap());
+                .append_option(v.as_str());
         }
         DataType::LargeUtf8 => {
             bb.downcast_mut::<StringBuilder>()
