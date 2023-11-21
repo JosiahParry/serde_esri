@@ -210,5 +210,39 @@ pub enum EsriGeometry<const N: usize> {
     Polyline(EsriPolyline<N>),
 }
 
+impl<const N: usize> EsriGeometry<N> {
+    /// Returns a point if possible
+    pub fn as_point(self) -> Option<EsriPoint> {
+        match self {
+            EsriGeometry::Point(p) => Some(p),
+            _ => None,
+        }
+    }
+
+    /// Returns a multipoint if possible
+    pub fn as_multipoint(self) -> Option<EsriMultiPoint<N>> {
+        match self {
+            EsriGeometry::MultiPoint(p) => Some(p),
+            _ => None
+        }
+    }
+    
+    /// Returns a polyline if possible
+    pub fn as_polyline(self) -> Option<EsriPolyline<N>> {
+        match self {
+            EsriGeometry::Polyline(pl) => Some(pl),
+            _ => None
+        }
+    }
+
+    /// Returns a polygon if possible
+    pub fn as_polygon(self) -> Option<EsriPolygon<N>> {
+        match self {
+            EsriGeometry::Polygon(ply) => Some(ply),
+            _ => None,
+        }
+    }
+}
+
 // Completed: esriGeometryPoint | esriGeometryMultipoint | esriGeometryPolyline | esriGeometryPolygon |
 // TODO: esriGeometryEnvelope.
