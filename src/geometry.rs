@@ -87,8 +87,12 @@ impl<'a, const N: usize> ExactSizeIterator for EsriMultiPointIterator<'a, N> {
 // I'm going to try creating an EsriLineString struct
 // which is going to be used for internally for polyline and polygon
 // this is so that i can implement linestring trait for geoarrow
+
+/// This struct is used strictly for representing the internal LineStrings
+/// for the `EsriPolygon` and `EsriPolyline` structs. They do not represent
+/// any Esri JSON geometry objects.
 #[derive(Clone, Deserialize, Serialize, Debug)]
-pub struct EsriLineString<const N: usize>(Vec<EsriCoord<N>>);
+pub struct EsriLineString<const N: usize>(pub Vec<EsriCoord<N>>);
 
 pub struct EsriLineStringIterator<'a, const N: usize> {
     iter: std::slice::Iter<'a, EsriCoord<N>>,
@@ -117,7 +121,6 @@ impl<const N: usize> IntoIterator for EsriLineString<N> {
     }
 }
 
-
 impl<const N: usize> EsriLineString<N> {
     pub fn iter(&self) -> EsriLineStringIterator<N> {
         EsriLineStringIterator {
@@ -142,6 +145,24 @@ pub struct EsriPolyline<const N: usize> {
     pub spatialReference: Option<SpatialReference>,
 }
 
+pub struct EsriPolylineIterator<'a, const N: usize> {
+    pub paths_iter: std::slice::Iter<'a, EsriLineString<N>>,
+}
+
+impl<'a, const N: usize> Iterator for EsriPolylineIterator<'a, N> {
+    type Item = &'a EsriLineString<N>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.paths_iter.next()
+    }
+}
+
+impl<'a, const N: usize> ExactSizeIterator for EsriPolylineIterator<'a, N> {
+    fn len(&self) -> usize {
+        self.paths_iter.len()
+    }
+}
+
 /// An `esriGeometryPolygon` defined by a `Vec<Vec<EsriCoord<N>>>`
 ///
 /// Each inner vector should be a single linear ring. The first `Vec<EsriCoord<N>>`
@@ -157,8 +178,26 @@ pub struct EsriPolyline<const N: usize> {
 pub struct EsriPolygon<const N: usize> {
     pub hasZ: Option<bool>,
     pub hasM: Option<bool>,
-    pub rings: Vec<Vec<EsriCoord<N>>>,
+    pub rings: Vec<EsriLineString<N>>,
     pub spatialReference: Option<SpatialReference>,
+}
+
+pub struct EsriPolygonIterator<'a, const N: usize> {
+    pub paths_iter: std::slice::Iter<'a, EsriLineString<N>>,
+}
+
+impl<'a, const N: usize> Iterator for EsriPolygonIterator<'a, N> {
+    type Item = &'a EsriLineString<N>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.paths_iter.next()
+    }
+}
+
+impl<'a, const N: usize> ExactSizeIterator for EsriPolygonIterator<'a, N> {
+    fn len(&self) -> usize {
+        self.paths_iter.len()
+    }
 }
 
 /// An enum of all valid geometry types. At present this does not include `esriGeometryEnvelope`
