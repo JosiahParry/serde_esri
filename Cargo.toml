@@ -17,7 +17,7 @@ readme = "README.md"
 # I need to use the exact same version of arrow as used by geoarrow
 arrow = { git = "https://github.com/apache/arrow-rs", rev="fbbb61d94282165f9bb9f73fb4d00a3af16d4aee", optional = true}
 geo-types = { version = "0.7.12", optional = true }
-geoarrow = { package = "geoarrow2", git = "https://github.com/geoarrow/geoarrow-rs", optional = true}
+geoarrow = { git = "https://github.com/geoarrow/geoarrow-rs", optional = true}
 serde = { version = "1.0.192", features = ["derive"] }
 serde_json = "1.0.108"
 serde_with = "3.4.0"

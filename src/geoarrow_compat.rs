@@ -154,7 +154,6 @@ impl<const N: usize> PolygonTrait for EsriPolygon<N> {
     }
 
     fn interior(&self, i: usize) -> Option<Self::ItemType<'_>> {
-        let r = self.rings.get(i + 1);
-        r
+        self.rings.get(i + 1)
     }
 }

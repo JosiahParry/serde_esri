@@ -520,9 +520,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "geoarrow2"
+name = "geoarrow"
 version = "0.0.1"
-source = "git+https://github.com/geoarrow/geoarrow-rs#2fb2529ae10769f8698c3c691281099d0dac9bf3"
+source = "git+https://github.com/geoarrow/geoarrow-rs#8767908bc2cd4c0e0a2ec6386e7adc5413d73071"
 dependencies = [
  "anyhow",
  "arrow",
@@ -1040,7 +1040,7 @@ version = "0.1.0"
 dependencies = [
  "arrow",
  "geo-types",
- "geoarrow2",
+ "geoarrow",
  "serde",
  "serde_json",
  "serde_with",
