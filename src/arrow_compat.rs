@@ -184,7 +184,7 @@ fn as_geoarrow_array<const N: usize>(geom_type: &str, geoms: Vec<Option<EsriGeom
                 })
                 .collect::<Vec<_>>();
 
-            let arr = geoarrow::array::MultiPointArray::<i64>::from(res);
+            let arr = geoarrow::array::MultiPointArray::<i32>::from(res);
             (arr.extension_field(), arr.into_array_ref())
         },
         "esriGeometryPolyline" => {
@@ -195,7 +195,7 @@ fn as_geoarrow_array<const N: usize>(geom_type: &str, geoms: Vec<Option<EsriGeom
                 })
                 .collect::<Vec<_>>();
 
-            let arr = geoarrow::array::MultiLineStringArray::<i64>::from(res);
+            let arr = geoarrow::array::MultiLineStringArray::<i32>::from(res);
             (arr.extension_field(), arr.into_array_ref())
         },
         "esriGeometryPolygon" => {
@@ -206,7 +206,7 @@ fn as_geoarrow_array<const N: usize>(geom_type: &str, geoms: Vec<Option<EsriGeom
                 })
                 .collect::<Vec<_>>();
 
-        let arr = geoarrow::array::PolygonArray::<i64>::from(res);
+        let arr = geoarrow::array::PolygonArray::<i32>::from(res);
         (arr.extension_field(), arr.into_array_ref())
         },
         _ => unimplemented!()
