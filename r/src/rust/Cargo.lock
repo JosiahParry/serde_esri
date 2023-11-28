@@ -265,7 +265,7 @@ dependencies = [
 
 [[package]]
 name = "arrow_extendr"
-version = "0.1.0"
+version = "49.0.0-geoarrow"
 dependencies = [
  "arrow",
  "extendr-api",

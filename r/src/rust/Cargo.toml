@@ -10,7 +10,7 @@ name = 'serdesri'
 
 [dependencies]
 arrow = { git = "https://github.com/apache/arrow-rs", rev="fbbb61d94282165f9bb9f73fb4d00a3af16d4aee"}
-arrow_extendr = { path = "../../../arrow-extendr" }
+arrow_extendr = { path = "../../../../arrow-extendr" }
 extendr-api = '*'
-serde_esri = { path = "../../../rust/serde_esri", version = "0.1.0", features = ["geoarrow"] }
+serde_esri = { path = "../../../", version = "0.1.0", features = ["geoarrow"] }
 serde_json = "1.0.108"

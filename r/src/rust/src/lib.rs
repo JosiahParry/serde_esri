@@ -6,7 +6,6 @@ use serde_esri::{
 use arrow_extendr::to::IntoArrowRobj;
 // use arrow::record_batch::RecordBatch;
 
-
 #[extendr]
 /// @export
 fn parse_esri_json_str(str: &str, n_dim: i32) -> Robj {
