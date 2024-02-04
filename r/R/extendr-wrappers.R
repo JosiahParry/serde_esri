@@ -15,7 +15,16 @@ NULL
 parse_esri_json_str <- function(str, n_dim) .Call(wrap__parse_esri_json_str, str, n_dim)
 
 #' @export
+parse_esri_json_str_simd <- function(str, n_dim) .Call(wrap__parse_esri_json_str_simd, str, n_dim)
+
+#' @export
+parse_esri_json_raw_simd <- function(raw, n_dim) .Call(wrap__parse_esri_json_raw_simd, raw, n_dim)
+
+#' @export
 parse_esri_json_raw <- function(raw, n_dim) .Call(wrap__parse_esri_json_raw, raw, n_dim)
+
+#' @export
+parse_esri_json_raw_geoarrow <- function(raw, n_dim) .Call(wrap__parse_esri_json_raw_geoarrow, raw, n_dim)
 
 
 # nolint end
