@@ -10,18 +10,13 @@ keywords = ["esri", "arcgis", "geo", "gis", "spatial"]
 readme = "README.md"
 
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
-# arrow = { version = "*", features = [], optional = false}
-# I need to use the exact same version of arrow as used by geoarrow
-arrow = { git = "https://github.com/apache/arrow-rs", rev="fbbb61d94282165f9bb9f73fb4d00a3af16d4aee", optional = true}
+arrow = { version = "50.0.0", optional = true }
+geoarrow = { version = "0.1.0", optional = true }
 geo-types = { version = "0.7.12", optional = true }
-geoarrow = { git = "https://github.com/geoarrow/geoarrow-rs", optional = true}
 serde = { version = "1.0.192", features = ["derive"] }
 serde_json = "1.0.108"
 serde_with = "3.4.0"
-
 
 [lib]
 crate-type = ["staticlib", "lib"]

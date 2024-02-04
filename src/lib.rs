@@ -35,7 +35,6 @@ pub mod spatial_reference;
 #[cfg(feature = "geo")]
 pub mod geo_types;
 
-// TODO feature flag this
 #[cfg(feature = "geoarrow")]
 pub mod arrow_compat;
 

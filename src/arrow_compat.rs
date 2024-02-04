@@ -40,7 +40,7 @@ use arrow::{
         UInt16Builder,
         UInt32Builder,
         UInt64Builder,
-        UInt8Builder, Array,
+        UInt8Builder, Array, Date32Builder, Date64Builder,
     },
     datatypes::{
         DataType,
@@ -100,7 +100,7 @@ impl From<Field> for AField {
             FieldType::EsriFieldTypeSingle => DataType::Float32,
             FieldType::EsriFieldTypeDouble => DataType::Float64,
             FieldType::EsriFieldTypeString => DataType::Utf8,
-            FieldType::EsriFieldTypeDate => DataType::Date32,
+            FieldType::EsriFieldTypeDate => DataType::Date64,
             FieldType::EsriFieldTypeOid => DataType::Int64,
             FieldType::EsriFieldTypeBlob => DataType::LargeBinary,
             FieldType::EsriFieldTypeGuid => DataType::Utf8,
@@ -172,9 +172,8 @@ fn as_geoarrow_array<const N: usize>(geom_type: &str, geoms: Vec<Option<EsriGeom
                 })
                 .collect::<Vec<_>>();
 
-        let arr = geoarrow::array::PointArray::from(res);
-        (arr.extension_field(), arr.into_array_ref())
-
+            let arr = geoarrow::array::PointArray::from(res);
+            (arr.extension_field(), arr.into_array_ref())
         },
         "esriGeometryMultipoint" => {
             let res = geoms.into_iter()
@@ -212,6 +211,7 @@ fn as_geoarrow_array<const N: usize>(geom_type: &str, geoms: Vec<Option<EsriGeom
         _ => unimplemented!()
     }
 }
+
 
 // take a field and a builder
 // then match on the field to use downcast mut
@@ -314,8 +314,24 @@ fn append_value(v: Value, f: &AField, builder: &mut Box<dyn ArrayBuilder>) -> ()
                 .append_option(v.as_f64());
         }
         DataType::Timestamp(_, _) => todo!(),
-        DataType::Date32 => todo!(),
-        DataType::Date64 => todo!(),
+        DataType::Date32 => {
+            let builder = bb.downcast_mut::<Date32Builder>()
+                .unwrap();
+
+            match v.as_i64() {
+                Some(v) => builder.append_value((v / 100000_i64) as i32),
+                None => builder.append_null(),
+            };
+        },
+        DataType::Date64 => {
+            let builder = bb.downcast_mut::<Date64Builder>()
+                .unwrap();
+
+            match v.as_i64() {
+                Some(v) => builder.append_value(v),
+                None => builder.append_null(),
+            };
+        },
         DataType::Time32(_) => todo!(),
         DataType::Time64(_) => todo!(),
         DataType::Duration(_) => todo!(),

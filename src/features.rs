@@ -50,12 +50,12 @@ pub struct Field {
     #[serde(rename = "type")]
     #[serde_as(as = "DisplayFromStr")]
     pub field_type: FieldType,
-    pub alias: String,
-    pub sqlType: String,
+    pub alias: Option<String>,
+    pub sqlType: Option<String>,
     // unsure what this should be
-    pub domain: serde_json::Value,
+    pub domain: Option<serde_json::Value>,
     // unsure what this should be
-    pub defaultValue: serde_json::Value,
+    pub defaultValue: Option<serde_json::Value>,
 }
 
 // using this query for reference

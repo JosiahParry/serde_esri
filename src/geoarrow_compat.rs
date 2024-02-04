@@ -1,7 +1,9 @@
 use crate::geometry::*;
 use geoarrow::geo_traits::{
-    CoordTrait, LineStringTrait, MultiLineStringTrait, MultiPointTrait, PointTrait, PolygonTrait,
+    CoordTrait, LineStringTrait, 
+    LineStringIterator, MultiLineStringIterator, MultiLineStringTrait, MultiPointIterator, MultiPointTrait, PointTrait, PolygonInteriorIterator, PolygonTrait
 };
+
 
 impl<'a, const N: usize> CoordTrait for &'a EsriCoord<N> {
     type T = f64;
@@ -53,10 +55,9 @@ impl<'a, const N: usize> PointTrait for &'a EsriCoord<N> {
 impl<const N: usize> MultiPointTrait for EsriMultiPoint<N> {
     type T = f64;
     type ItemType<'a> = &'a EsriCoord<N>;
-    type Iter<'a> = EsriMultiPointIterator<'a, N>;
 
-    fn points(&self) -> Self::Iter<'_> {
-        self.iter()
+    fn points(&self) -> MultiPointIterator<'_, Self::T, Self::ItemType<'_>, Self> {
+        MultiPointIterator::new(self, 0, self.num_points())
     }
 
     fn num_points(&self) -> usize {
@@ -66,18 +67,21 @@ impl<const N: usize> MultiPointTrait for EsriMultiPoint<N> {
     fn point(&self, i: usize) -> Option<Self::ItemType<'_>> {
         self.points.get(i)
     }
+
+    unsafe fn point_unchecked(&self, i: usize) -> Self::ItemType<'_> {
+        self.points.get_unchecked(i)
+    }
 }
 
-// Linestring compatibility for Vec<EsriCoord<N>> which is what
-// is used inside of Polyline and Polygon
-// Implement LineStringTrait for Vec<EsriCoord<N>>
+// // Linestring compatibility for Vec<EsriCoord<N>> which is what
+// // is used inside of Polyline and Polygon
+// // Implement LineStringTrait for Vec<EsriCoord<N>>
 impl<const N: usize> LineStringTrait for EsriLineString<N> {
     type T = f64;
     type ItemType<'a> = &'a EsriCoord<N>;
-    type Iter<'a> = EsriLineStringIterator<'a, N>;
 
-    fn coords(&self) -> Self::Iter<'_> {
-        self.iter()
+    fn coords(&self) -> LineStringIterator<'_, Self::T, Self::ItemType<'_>, Self> {
+        LineStringIterator::new(self, 0, self.num_coords())
     }
 
     fn num_coords(&self) -> usize {
@@ -85,43 +89,51 @@ impl<const N: usize> LineStringTrait for EsriLineString<N> {
     }
 
     fn coord(&self, i: usize) -> Option<Self::ItemType<'_>> {
-        self.iter().nth(i)
+        if i >= self.num_coords() {
+            None
+        } else {
+            unsafe { Some(self.coord_unchecked(i)) }
+        }
+    }
+
+    unsafe fn coord_unchecked(&self, i: usize) -> Self::ItemType<'_> {
+        self.iter().nth(i).unwrap()
     }
 }
 
-// I dont reallyyy understand the lifetimes here but hey, it compiles
-impl<'a, const N: usize> LineStringTrait for &'a EsriLineString<N> {
+impl<const N: usize> LineStringTrait for &EsriLineString<N> {
     type T = f64;
-    type ItemType<'b> = &'b EsriCoord<N> 
-        where 
-            Self: 'b;
-    type Iter<'b> = EsriLineStringIterator<'b, N> 
-        where 
-            Self: 'b;
+    type ItemType<'a> = &'a EsriCoord<N> where Self: 'a;
 
-    fn coords(&self) -> Self::Iter<'_> {
-        self.iter()
+    fn coords(&self) -> LineStringIterator<'_, Self::T, Self::ItemType<'_>, Self> {
+        LineStringIterator::new(self, 0, self.num_coords())
     }
 
     fn num_coords(&self) -> usize {
-        self.0.len()
+        (*self).0.len()
     }
 
     fn coord(&self, i: usize) -> Option<Self::ItemType<'_>> {
-        self.iter().nth(i)
+        if i >= self.num_coords() {
+            None
+        } else {
+            unsafe { Some(self.coord_unchecked(i)) }
+        }
+    }
+
+    unsafe fn coord_unchecked(&self, i: usize) -> Self::ItemType<'_> {
+        (*self).iter().nth(i).unwrap()
     }
 }
+
 
 // Polyline implementation
 impl<const N: usize> MultiLineStringTrait for EsriPolyline<N> {
     type T = f64;
     type ItemType<'a> = &'a EsriLineString<N>;
-    type Iter<'a> = EsriPolylineIterator<'a, N>;
 
-    fn lines(&self) -> Self::Iter<'_> {
-        EsriPolylineIterator {
-            paths_iter: self.paths.iter(),
-        }
+    fn lines(&self) -> MultiLineStringIterator<'_, Self::T, Self::ItemType<'_>, Self> {
+        MultiLineStringIterator::new(self, 0, self.num_lines())
     }
 
     fn num_lines(&self) -> usize {
@@ -131,22 +143,24 @@ impl<const N: usize> MultiLineStringTrait for EsriPolyline<N> {
     fn line(&self, i: usize) -> Option<Self::ItemType<'_>> {
         self.paths.get(i)
     }
+
+    unsafe fn line_unchecked(&self, i: usize) -> Self::ItemType<'_> {
+        self.paths.get_unchecked(i)
+    }
+    
 }
 
-// Polygon implementation
+
+// // Polygon implementation
 impl<const N: usize> PolygonTrait for EsriPolygon<N> {
     type T = f64;
     type ItemType<'a> = &'a EsriLineString<N>;
-    type Iter<'a> = std::iter::Skip<std::slice::Iter<'a, EsriLineString<N>>>;
-    // type Iter<'a> = EsriPolygonIterator<'a, N>;
+
 
     fn exterior(&self) -> Option<Self::ItemType<'_>> {
         self.rings.iter().nth(0)
     }
 
-    fn interiors(&self) -> Self::Iter<'_> {
-        self.rings.iter().skip(1)
-    }
 
     fn num_interiors(&self) -> usize {
         let n = self.rings.len();
@@ -155,5 +169,13 @@ impl<const N: usize> PolygonTrait for EsriPolygon<N> {
 
     fn interior(&self, i: usize) -> Option<Self::ItemType<'_>> {
         self.rings.get(i + 1)
+    }
+
+    unsafe fn interior_unchecked(&self, i: usize) -> Self::ItemType<'_> {
+        self.rings.get_unchecked(i + 1)
+    }
+
+    fn interiors(&self) -> PolygonInteriorIterator<'_, Self::T, Self::ItemType<'_>, Self> {
+        PolygonInteriorIterator::new(self, 0, self.num_interiors())
     }
 }
