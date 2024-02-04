@@ -9,6 +9,35 @@ This crate provides representations of Esri JSON objects with [`serde::Deseriali
 - `geo` implements `From` for the Esri JSON objects.
 - `geoarrow` provides compatibility with arrow and geoarrow by implementing geoarrow geometry traits as well as providing a utility function `featureset_to_arrow()` which converts a `FeatureSet` to an arrow `RecordBatch`.
 
+## Example usage: 
+
+In this example, we query a feature service and convert the response to an Arrow `RecordBatch`. This requires the `geoarrow` feature to be enabled.
+
+```rust
+use serde_esri::features::FeatureSet;
+use serde_esri::arrow_compat::featureset_to_arrow;
+
+#[tokio::main]
+async fn main() {
+    
+    // query url 
+    let furl = "https://services.arcgis.com/P3ePLMYs2RVChkJx/ArcGIS/rest/services/USA_Counties_Generalized_Boundaries/FeatureServer/0/query?where=1=1&outFields=*&f=json&resultRecordCount=10";
+    
+    // make the request
+    let resp = reqwest::get(furl)
+        .await.unwrap()
+        .text()
+        .await.unwrap();
+    
+    // parse the response into a FeatureSet
+    let fset: FeatureSet<2> = serde_json::from_str(&resp).unwrap();
+
+    // convert the FeatureSet to an Arrow RecordBatch
+    let rb = featureset_to_arrow(fset).unwrap();
+
+    println!("{:#?}", rb.schema());
+}
+```
 
 ## Supported Esri JSON objects:
 
