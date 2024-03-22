@@ -208,6 +208,7 @@ pub enum EsriGeometry<const N: usize> {
     MultiPoint(EsriMultiPoint<N>),
     Polygon(EsriPolygon<N>),
     Polyline(EsriPolyline<N>),
+    Envelope(EsriEnvelope)
 }
 
 impl<const N: usize> EsriGeometry<N> {
@@ -226,7 +227,7 @@ impl<const N: usize> EsriGeometry<N> {
             _ => None
         }
     }
-    
+
     /// Returns a polyline if possible
     pub fn as_polyline(self) -> Option<EsriPolyline<N>> {
         match self {
@@ -246,3 +247,19 @@ impl<const N: usize> EsriGeometry<N> {
 
 // Completed: esriGeometryPoint | esriGeometryMultipoint | esriGeometryPolyline | esriGeometryPolygon |
 // TODO: esriGeometryEnvelope.
+
+
+#[allow(non_snake_case)]
+#[derive(Clone, Deserialize, Serialize, Debug)]
+#[skip_serializing_none]
+pub struct EsriEnvelope {
+    xmin: f64,
+    ymin: f64,
+    xmax: f64,
+    ymax: f64,
+    zmin: Option<f64>,
+    zmax: Option<f64>,
+    mmin: Option<f64>,
+    mmax: Option<f64>,
+    spatialReference: Option<spatialReference>
+}
