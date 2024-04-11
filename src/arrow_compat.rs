@@ -1,12 +1,12 @@
 //! Compatibility with arrow-rs and geoarrow2
-//! 
-//! This module is enabled by the `geoarrow` feature. It provides a single function 
+//!
+//! This module is enabled by the `geoarrow` feature. It provides a single function
 //! `featureset_to_arrow()` which returns a `RecordBatch` containing arrays for each
 //! field in the original `FeatureSet` struct and an additional field for geometry
-//! if present. 
-//! 
-//! This feature implements the following geoarrow traits: 
-//! 
+//! if present.
+//!
+//! This feature implements the following geoarrow traits:
+//!
 //! - `EsriCoord<N>` implements `CoordTrait` and `PointTrait`
 //! - `EsriPoint` implements `PointTrait`
 //! - `EsriLineString<N>` implements `LineStringTrait`
@@ -15,7 +15,7 @@
 use crate::{
     features::{Feature, FeatureSet, Field},
     field_type::FieldType,
-    geometry::EsriGeometry
+    geometry::EsriGeometry,
 };
 
 use std::sync::Arc;
@@ -26,28 +26,11 @@ use std::collections::HashMap;
 
 use arrow::{
     array::{
-        make_builder,
-        ArrayBuilder,
-        BooleanBuilder,
-        Float32Builder,
-        Float64Builder,
-        Int16Builder,
-        Int32Builder,
-        Int64Builder,
-        Int8Builder,
-        NullBuilder,
-        StringBuilder,
-        UInt16Builder,
-        UInt32Builder,
-        UInt64Builder,
-        UInt8Builder, Array, Date32Builder, Date64Builder,
+        make_builder, Array, ArrayBuilder, BooleanBuilder, Date32Builder, Date64Builder,
+        Float32Builder, Float64Builder, Int16Builder, Int32Builder, Int64Builder, Int8Builder,
+        NullBuilder, StringBuilder, UInt16Builder, UInt32Builder, UInt64Builder, UInt8Builder,
     },
-    datatypes::{
-        DataType,
-        Field as AField,
-        Schema,
-        SchemaBuilder,
-    },
+    datatypes::{DataType, Field as AField, Schema, SchemaBuilder},
     record_batch::RecordBatch,
 };
 
@@ -69,14 +52,13 @@ pub fn featureset_to_arrow<const N: usize>(
         .collect::<Vec<_>>();
 
     if x.geometryType.is_some() {
-
         // process geometries
         let (geo_field, geo_arr) = as_geoarrow_array(x.geometryType.unwrap().as_str(), geometries);
 
         // create a new schema builder
         let mut sb = SchemaBuilder::from(schema);
 
-        // add the geometry field 
+        // add the geometry field
         sb.push(geo_field);
         let schema = sb.finish();
 
@@ -84,11 +66,9 @@ pub fn featureset_to_arrow<const N: usize>(
         res_arrs.push(geo_arr);
 
         RecordBatch::try_new(schema.into(), res_arrs)
-
     } else {
         RecordBatch::try_new(schema.into(), res_arrs)
     }
-    
 }
 
 // convert an esri field to a new arrow field
@@ -127,7 +107,7 @@ fn field_to_schema(fields: Vec<Field>) -> Schema {
 }
 
 // Takes a schema and a vector of features
-// The features are processed into a tuple 
+// The features are processed into a tuple
 // the first element is a hashmap containing the field name as keys
 // and an array builder as the value
 // the second element is a vectoor of geometry options
@@ -135,11 +115,14 @@ fn create_array_vecs<const N: usize>(
     //fields: &Fields,
     schema: &Schema,
     feats: Vec<Feature<N>>,
-) -> (HashMap<&String, (&AField, Box<dyn ArrayBuilder>)>, Vec<Option<EsriGeometry<N>>>)  {
+) -> (
+    HashMap<&String, (&AField, Box<dyn ArrayBuilder>)>,
+    Vec<Option<EsriGeometry<N>>>,
+) {
     let n = feats.len();
 
     let mut map: HashMap<&String, (&AField, Box<dyn ArrayBuilder>)> = HashMap::new();
-    
+
     let mut geometries = Vec::with_capacity(n);
 
     schema.fields.iter().for_each(|f| {
@@ -149,7 +132,7 @@ fn create_array_vecs<const N: usize>(
 
     feats.into_iter().for_each(|m| {
         let a1 = m.attributes.unwrap();
-        
+
         a1.into_iter().for_each(|(k, v)| {
             let (field, builder) = map.get_mut(&k).unwrap();
             append_value(v, field, builder);
@@ -161,11 +144,14 @@ fn create_array_vecs<const N: usize>(
     (map, geometries)
 }
 
-fn as_geoarrow_array<const N: usize>(geom_type: &str, geoms: Vec<Option<EsriGeometry<N>>>) -> (Arc<AField>, Arc<dyn Array>)   {
+fn as_geoarrow_array<const N: usize>(
+    geom_type: &str,
+    geoms: Vec<Option<EsriGeometry<N>>>,
+) -> (Arc<AField>, Arc<dyn Array>) {
     match geom_type {
         "esriGeometryPoint" => {
-        
-            let res = geoms.into_iter()
+            let res = geoms
+                .into_iter()
                 .map(|pi| match pi {
                     Some(pp) => pp.as_point(),
                     None => None,
@@ -174,9 +160,10 @@ fn as_geoarrow_array<const N: usize>(geom_type: &str, geoms: Vec<Option<EsriGeom
 
             let arr = geoarrow::array::PointArray::from(res);
             (arr.extension_field(), arr.into_array_ref())
-        },
+        }
         "esriGeometryMultipoint" => {
-            let res = geoms.into_iter()
+            let res = geoms
+                .into_iter()
                 .map(|pi| match pi {
                     Some(pp) => pp.as_multipoint(),
                     None => None,
@@ -185,9 +172,10 @@ fn as_geoarrow_array<const N: usize>(geom_type: &str, geoms: Vec<Option<EsriGeom
 
             let arr = geoarrow::array::MultiPointArray::<i32>::from(res);
             (arr.extension_field(), arr.into_array_ref())
-        },
+        }
         "esriGeometryPolyline" => {
-            let res = geoms.into_iter()
+            let res = geoms
+                .into_iter()
                 .map(|pi| match pi {
                     Some(pp) => pp.as_polyline(),
                     None => None,
@@ -196,22 +184,22 @@ fn as_geoarrow_array<const N: usize>(geom_type: &str, geoms: Vec<Option<EsriGeom
 
             let arr = geoarrow::array::MultiLineStringArray::<i32>::from(res);
             (arr.extension_field(), arr.into_array_ref())
-        },
+        }
         "esriGeometryPolygon" => {
-            let res = geoms.into_iter()
+            let res = geoms
+                .into_iter()
                 .map(|pi| match pi {
                     Some(pp) => pp.as_polygon(),
                     None => None,
                 })
                 .collect::<Vec<_>>();
 
-        let arr = geoarrow::array::PolygonArray::<i32>::from(res);
-        (arr.extension_field(), arr.into_array_ref())
-        },
-        _ => unimplemented!()
+            let arr = geoarrow::array::PolygonArray::<i32>::from(res);
+            (arr.extension_field(), arr.into_array_ref())
+        }
+        _ => unimplemented!(),
     }
 }
-
 
 // take a field and a builder
 // then match on the field to use downcast mut
@@ -229,8 +217,7 @@ fn append_value(v: Value, f: &AField, builder: &mut Box<dyn ArrayBuilder>) -> ()
                 .append_option(v.as_bool());
         }
         DataType::Int8 => {
-            let builder = bb.downcast_mut::<Int8Builder>()
-                .unwrap();
+            let builder = bb.downcast_mut::<Int8Builder>().unwrap();
 
             match v.as_i64() {
                 Some(v) => builder.append_value(v as i8),
@@ -238,8 +225,7 @@ fn append_value(v: Value, f: &AField, builder: &mut Box<dyn ArrayBuilder>) -> ()
             };
         }
         DataType::Int16 => {
-            let builder = bb.downcast_mut::<Int16Builder>()
-                .unwrap();
+            let builder = bb.downcast_mut::<Int16Builder>().unwrap();
 
             match v.as_i64() {
                 Some(v) => builder.append_value(v as i16),
@@ -247,8 +233,7 @@ fn append_value(v: Value, f: &AField, builder: &mut Box<dyn ArrayBuilder>) -> ()
             };
         }
         DataType::Int32 => {
-            let builder = bb.downcast_mut::<Int32Builder>()
-                .unwrap();
+            let builder = bb.downcast_mut::<Int32Builder>().unwrap();
 
             match v.as_i64() {
                 Some(v) => builder.append_value(v as i32),
@@ -261,8 +246,7 @@ fn append_value(v: Value, f: &AField, builder: &mut Box<dyn ArrayBuilder>) -> ()
                 .append_option(v.as_i64());
         }
         DataType::UInt8 => {
-            let builder = bb.downcast_mut::<UInt8Builder>()
-                .unwrap();
+            let builder = bb.downcast_mut::<UInt8Builder>().unwrap();
 
             match v.as_u64() {
                 Some(v) => builder.append_value(v as u8),
@@ -270,17 +254,15 @@ fn append_value(v: Value, f: &AField, builder: &mut Box<dyn ArrayBuilder>) -> ()
             };
         }
         DataType::UInt16 => {
-            let builder = bb.downcast_mut::<UInt16Builder>()
-                .unwrap();
-            
+            let builder = bb.downcast_mut::<UInt16Builder>().unwrap();
+
             match v.as_u64() {
                 Some(v) => builder.append_value(v as u16),
                 None => builder.append_null(),
             };
         }
         DataType::UInt32 => {
-            let builder = bb.downcast_mut::<UInt32Builder>()
-                .unwrap();
+            let builder = bb.downcast_mut::<UInt32Builder>().unwrap();
 
             match v.as_u64() {
                 Some(v) => builder.append_value(v as u32),
@@ -300,8 +282,7 @@ fn append_value(v: Value, f: &AField, builder: &mut Box<dyn ArrayBuilder>) -> ()
             todo!()
         }
         DataType::Float32 => {
-            let builder = bb.downcast_mut::<Float32Builder>()
-                .unwrap();
+            let builder = bb.downcast_mut::<Float32Builder>().unwrap();
 
             match v.as_f64() {
                 Some(v) => builder.append_value(v as f32),
@@ -315,23 +296,21 @@ fn append_value(v: Value, f: &AField, builder: &mut Box<dyn ArrayBuilder>) -> ()
         }
         DataType::Timestamp(_, _) => todo!(),
         DataType::Date32 => {
-            let builder = bb.downcast_mut::<Date32Builder>()
-                .unwrap();
+            let builder = bb.downcast_mut::<Date32Builder>().unwrap();
 
             match v.as_i64() {
                 Some(v) => builder.append_value((v / 100000_i64) as i32),
                 None => builder.append_null(),
             };
-        },
+        }
         DataType::Date64 => {
-            let builder = bb.downcast_mut::<Date64Builder>()
-                .unwrap();
+            let builder = bb.downcast_mut::<Date64Builder>().unwrap();
 
             match v.as_i64() {
                 Some(v) => builder.append_value(v),
                 None => builder.append_null(),
             };
-        },
+        }
         DataType::Time32(_) => todo!(),
         DataType::Time64(_) => todo!(),
         DataType::Duration(_) => todo!(),
@@ -359,5 +338,6 @@ fn append_value(v: Value, f: &AField, builder: &mut Box<dyn ArrayBuilder>) -> ()
         DataType::Decimal256(_, _) => todo!(),
         DataType::Map(_, _) => todo!(),
         DataType::RunEndEncoded(_, _) => todo!(),
+        _ => todo!(),
     }
 }
