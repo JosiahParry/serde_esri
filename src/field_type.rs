@@ -1,12 +1,13 @@
 //! Enumeration of valid esri field types
-use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+use serde::{Deserialize, Serialize};
+#[derive(Clone, Debug, Deserialize, Serialize, Default)]
 pub enum FieldType {
     EsriFieldTypeSmallInteger = 0,
     EsriFieldTypeInteger = 1,
     EsriFieldTypeSingle = 2,
     EsriFieldTypeDouble = 3,
+    #[default]
     EsriFieldTypeString = 4,
     EsriFieldTypeDate = 5,
     EsriFieldTypeOid = 6,

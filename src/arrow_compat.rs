@@ -18,7 +18,7 @@ use crate::{
     geometry::EsriGeometry,
 };
 
-use std::sync::Arc;
+use std::{result::Result, sync::Arc};
 
 use geoarrow::GeometryArrayTrait;
 use serde_json::Value;
@@ -69,6 +69,20 @@ pub fn featureset_to_arrow<const N: usize>(
     } else {
         RecordBatch::try_new(schema.into(), res_arrs)
     }
+}
+
+use geoarrow::table::GeoTable;
+
+// TODO create my own error types
+/// Given a `FeatureSet`, create a geoarrow `GeoTable`
+pub fn featureset_to_geoarrow<const N: usize>(
+    x: FeatureSet<N>,
+) -> Result<GeoTable, geoarrow::error::GeoArrowError> {
+    let arrow_res = featureset_to_arrow(x)?;
+    let schema_ref = arrow_res.schema_ref().clone();
+    let geometry_index = arrow_res.schema().fields.len();
+
+    GeoTable::try_new(schema_ref, vec![arrow_res], geometry_index)
 }
 
 // convert an esri field to a new arrow field

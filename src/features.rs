@@ -20,7 +20,7 @@ use serde_with::{serde_as, DisplayFromStr};
 /// Note that both geometry and attributes are optional. This is because
 /// we can anticipate receiving _only_ geometries, or _only_ attributes
 /// or both together.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone, Default)]
 pub struct Feature<const N: usize> {
     pub geometry: Option<EsriGeometry<N>>,
     pub attributes: Option<Map<String, Value>>,
@@ -28,7 +28,7 @@ pub struct Feature<const N: usize> {
 
 /// A set of geometries and their attributes
 #[allow(non_snake_case)]
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone, Default)]
 pub struct FeatureSet<const N: usize> {
     pub objectIdFieldName: Option<String>,
     pub globalIdFieldName: Option<String>,
@@ -44,7 +44,7 @@ pub struct FeatureSet<const N: usize> {
 // TODO sqlType, field_type need to be Enums
 #[serde_as]
 #[allow(non_snake_case)]
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, Default)]
 pub struct Field {
     pub name: String,
     #[serde(rename = "type")]

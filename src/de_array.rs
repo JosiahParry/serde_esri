@@ -56,5 +56,3 @@ pub mod arrays {
         deserializer.deserialize_tuple(N, ArrayVisitor::<T, N>(PhantomData))
     }
 }
-
-// pub struct ArrayVisitor<T, const N: usize>(PhantomData<T>);

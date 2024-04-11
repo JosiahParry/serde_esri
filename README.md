@@ -7,35 +7,59 @@ This crate provides representations of Esri JSON objects with [`serde::Deseriali
 `serde_esri` has two additional features `geo` and `geoarrow`. 
 
 - `geo` implements `From` for the Esri JSON objects.
-- `geoarrow` provides compatibility with arrow and geoarrow by implementing geoarrow geometry traits as well as providing a utility function `featureset_to_arrow()` which converts a `FeatureSet` to an arrow `RecordBatch`.
+- `geoarrow` provides compatibility with arrow and geoarrow by implementing geoarrow geometry traits as well as providing a utility function `featureset_to_geoarrow()` which converts a `FeatureSet` to an arrow `GeoTable`.
+
 
 ## Example usage: 
 
-In this example, we query a feature service and convert the response to an Arrow `RecordBatch`. This requires the `geoarrow` feature to be enabled.
+This example reads a few features from a feature service and returns a `FeatureSet` struct. It illustrates the use of the geo and geoarrow features. 
+
+```toml
+[dependencies]
+geo = "0.28.0"
+geoarrow = "0.2.0"
+reqwest = { version = "0.12.3", features = ["blocking"] }
+serde_esri = { version = "0.2.0", features = ["geo", "geoarrow"] }
+serde_json = "1.0.115"
+```
 
 ```rust
+use geo::{GeodesicArea, Polygon};
+use serde_esri::arrow_compat::featureset_to_geoarrow;
 use serde_esri::features::FeatureSet;
-use serde_esri::arrow_compat::featureset_to_arrow;
+use std::io::Read;
 
-#[tokio::main]
-async fn main() {
-    
-    // query url 
-    let furl = "https://services.arcgis.com/P3ePLMYs2RVChkJx/ArcGIS/rest/services/USA_Counties_Generalized_Boundaries/FeatureServer/0/query?where=1=1&outFields=*&f=json&resultRecordCount=10";
-    
-    // make the request
-    let resp = reqwest::get(furl)
-        .await.unwrap()
-        .text()
-        .await.unwrap();
-    
-    // parse the response into a FeatureSet
-    let fset: FeatureSet<2> = serde_json::from_str(&resp).unwrap();
+fn main() {
+    let flayer_url = "https://services.arcgis.com/P3ePLMYs2RVChkJx/ArcGIS/rest/services/USA_Counties_Generalized_Boundaries/FeatureServer/0/query?where=1%3D1&outFields=*&returnGeometry=true&resultRecordCount=5&f=json";
+    let mut res = reqwest::blocking::get(flayer_url).unwrap();
+    let mut body = String::new();
 
-    // convert the FeatureSet to an Arrow RecordBatch
-    let rb = featureset_to_arrow(fset).unwrap();
+    // Read the request into a String
+    res.read_to_string(&mut body).unwrap();
 
-    println!("{:#?}", rb.schema());
+    // Parse into a 2D FeatureSet
+    let fset: FeatureSet<2> = serde_json::from_str(&body).unwrap();
+
+    // Utilize the `geo` feature by converting to Polygon
+    // and calculate geodesic area
+    // iterate through the features
+    let area = fset
+        .features
+        .clone()
+        .into_iter()
+        .map(|feat| {
+            // convert to a geo_types::Polygon
+            let poly = Polygon::from(feat.geometry.unwrap().as_polygon().unwrap());
+            // calculate geodesic area
+            poly.geodesic_area_unsigned()
+        })
+        .collect::<Vec<_>>();
+
+    // print areas
+    println!("{:?}", area);
+
+    // convert to a geoarrow GeoTable
+    println!("{:?}", featureset_to_geoarrow(fset).unwrap());
 }
 ```
 
@@ -43,12 +67,13 @@ async fn main() {
 
 ### Geometry 
 
-[Esri Geometries Objects](https://developers.arcgis.com/documentation/common-data-types/geometry-objects.htm#CURVE) are encoded by the following structs: 
+[Esri Geometries Objects](https://developers.arcgis.com/documentation/common-data-types/geometry-objects.htm) are encoded by the following structs: 
 
 - `EsriPoint`
 - `EsriMultiPoint<N>`
 - `EsriPolyline<N>`
 - `EsriPolygon<N>`
+- `EsriEnvelope`
 
 They are encapsulated by the `EsriGeometry` enum:
 
@@ -58,6 +83,7 @@ enum EsriGeometry<const N: usize> {
     MultiPoint(EsriMultiPoint<N>),
     Polygon(EsriPolygon<N>),
     Polyline(EsriPolyline<N>),
+    Envelope(EsriEnvelope),
 }
 ```
 The parameter `N` is used to specify the dimension of the geometries. Use `<2>` for 2 dimensional data, `<3>` for Z values and `<4>` when `M` and `Z` are present. 
@@ -97,26 +123,5 @@ struct SpatialReference {
     vcs_wkid: Option<u32>,
     latest_vcs_wkid: Option<u32>,
     wkt: Option<String>,
-}
-```
-
-## Example usage: 
-
-This example reads a single feature from a feature service and returns a `FeatureSet` struct. 
-
-```rust
-use serde_esri::features::FeatureSet;
-use reqwest::Error;
-use std::io::Read;
-
-fn main() -> Result<(), Error> {
-    let flayer_url = "https://services.arcgis.com/P3ePLMYs2RVChkJx/ArcGIS/rest/services/USA_Counties_Generalized_Boundaries/FeatureServer/0/query?where=1%3D1&outFields=*&returnGeometry=true&resultRecordCount=1&f=json";
-    let mut res = reqwest::blocking::get(flayer_url)?;
-    let mut body = String::new();
-    res.read_to_string(&mut body).unwrap();
-
-    let fset: FeatureSet<2> = serde_json::from_str(&body).unwrap(); 
-    println!("{:#?}", fset);
-    Ok(())
 }
 ```

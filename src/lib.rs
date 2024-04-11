@@ -1,4 +1,4 @@
-//!
+#![doc = include_str!("../README.md")]
 //!
 //! Example usage:
 //!

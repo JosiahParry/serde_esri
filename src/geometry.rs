@@ -22,7 +22,7 @@ pub struct EsriCoord<const N: usize>(#[serde(with = "arrays")] pub [f64; N]);
 /// An `esriGeometryPoint` with fields x, y, z, and m. x and y are both required.
 #[skip_serializing_none]
 #[allow(non_snake_case)]
-#[derive(Clone, Deserialize, Serialize, Debug)]
+#[derive(Clone, Deserialize, Serialize, Debug, Default)]
 pub struct EsriPoint {
     pub x: f64,
     pub y: f64,
@@ -38,7 +38,7 @@ pub struct EsriPoint {
 /// a `panic!`.
 #[skip_serializing_none]
 #[allow(non_snake_case)]
-#[derive(Clone, Deserialize, Serialize, Debug)]
+#[derive(Clone, Deserialize, Serialize, Debug, Default)]
 pub struct EsriMultiPoint<const N: usize> {
     pub hasZ: Option<bool>,
     pub hasM: Option<bool>,
@@ -91,7 +91,7 @@ impl<'a, const N: usize> ExactSizeIterator for EsriMultiPointIterator<'a, N> {
 /// This struct is used strictly for representing the internal LineStrings
 /// for the `EsriPolygon` and `EsriPolyline` structs. They do not represent
 /// any Esri JSON geometry objects.
-#[derive(Clone, Deserialize, Serialize, Debug)]
+#[derive(Clone, Deserialize, Serialize, Debug, Default)]
 pub struct EsriLineString<const N: usize>(pub Vec<EsriCoord<N>>);
 
 pub struct EsriLineStringIterator<'a, const N: usize> {
@@ -137,7 +137,7 @@ impl<const N: usize> EsriLineString<N> {
 /// a `panic!`.
 #[skip_serializing_none]
 #[allow(non_snake_case)]
-#[derive(Clone, Deserialize, Serialize, Debug)]
+#[derive(Clone, Deserialize, Serialize, Debug, Default)]
 pub struct EsriPolyline<const N: usize> {
     pub hasZ: Option<bool>,
     pub hasM: Option<bool>,
@@ -174,7 +174,7 @@ impl<'a, const N: usize> ExactSizeIterator for EsriPolylineIterator<'a, N> {
 /// a `panic!`.
 #[skip_serializing_none]
 #[allow(non_snake_case)]
-#[derive(Clone, Deserialize, Serialize, Debug)]
+#[derive(Clone, Deserialize, Serialize, Debug, Default)]
 pub struct EsriPolygon<const N: usize> {
     pub hasZ: Option<bool>,
     pub hasM: Option<bool>,
@@ -249,7 +249,7 @@ impl<const N: usize> EsriGeometry<N> {
 // TODO: esriGeometryEnvelope.
 
 #[allow(non_snake_case)]
-#[derive(Clone, Deserialize, Serialize, Debug)]
+#[derive(Clone, Deserialize, Serialize, Debug, Default)]
 #[skip_serializing_none]
 pub struct EsriEnvelope {
     xmin: f64,
