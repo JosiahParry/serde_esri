@@ -1,4 +1,4 @@
-//! Compatibility with arrow-rs and geoarrow2
+//! Compatibility with arrow-rs and geoarrow
 //!
 //! This module is enabled by the `geoarrow` feature. It provides a single function
 //! `featureset_to_arrow()` which returns a `RecordBatch` containing arrays for each
