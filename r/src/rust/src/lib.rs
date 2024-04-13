@@ -1,102 +1,153 @@
 use extendr_api::prelude::*;
-mod sf_compat;
-use serde_esri::{
-    arrow_compat::featureset_to_arrow,
-    features::FeatureSet
+// mod sf_compat;
+mod sfg;
+mod to;
+use crate::sfg::{Dim, SfgDim};
+use serde_esri::geometry::{EsriMultiPoint, EsriPolygon, EsriPolyline};
+use sfg::{
+    SfgLineString, SfgMultiLineString, SfgMultiPoint, SfgMultiPolygon, SfgPoint, SfgPolygon,
 };
-use arrow_extendr::to::IntoArrowRobj;
+use to::AsEsriGeometry;
 
 #[extendr]
-/// @export
-fn parse_esri_json_str_simd(str: String, n_dim: i32) -> Robj {
-    let n_dim = n_dim as usize;
-    let mut str = str;
-    let str = str.as_mut_str();
+fn as_multipoint(x: RMatrix<f64>) -> String {
+    let sfg = SfgMultiPoint(x);
+    let dim = sfg.sfg_dim().unwrap();
 
-    match n_dim {
-        // 0 => unsafe { fset_to_robj(simd_json::serde::from_str::<FeatureSet<0>>(str).unwrap()) },
-        2 => unsafe { crate::sf_compat::handle_features(simd_json::serde::from_str::<FeatureSet<2>>(str).unwrap()) },
-        // 3 => unsafe { fset_to_robj(simd_json::serde::from_str::<FeatureSet<3>>(str).unwrap()) },
-        // 4 => unsafe { fset_to_robj(simd_json::serde::from_str::<FeatureSet<4>>(str).unwrap()) },
-        _ => unimplemented!()
+    match dim {
+        SfgDim::XY => {
+            let mpnt: EsriMultiPoint<2> = sfg.as_multipoint().unwrap();
+            serde_json::to_string(&mpnt).unwrap()
+        }
+        SfgDim::XYZ => {
+            let mpnt: EsriMultiPoint<3> = sfg.as_multipoint().unwrap();
+            serde_json::to_string(&mpnt).unwrap()
+        }
+        SfgDim::XYM => {
+            let mpnt: EsriMultiPoint<3> = sfg.as_multipoint().unwrap();
+            serde_json::to_string(&mpnt).unwrap()
+        }
+        SfgDim::XYZM => {
+            let mpnt: EsriMultiPoint<4> = sfg.as_multipoint().unwrap();
+            serde_json::to_string(&mpnt).unwrap()
+        }
     }
 }
 
 #[extendr]
-/// @export
-fn parse_esri_json_raw_simd(raw: Raw, n_dim: i32) -> Robj {
-    let n_dim = n_dim as usize;
-    let mut raw = raw;
-    let bytes = unsafe { raw.as_typed_slice_raw_mut() };
-    match n_dim {
-        // 0 => unsafe { fset_to_robj(simd_json::serde::from_str::<FeatureSet<0>>(str).unwrap()) },
-        2 => crate::sf_compat::handle_features(simd_json::serde::from_slice::<FeatureSet<2>>(bytes).unwrap()),
-        // 3 => unsafe { fset_to_robj(simd_json::serde::from_str::<FeatureSet<3>>(str).unwrap()) },
-        // 4 => unsafe { fset_to_robj(simd_json::serde::from_str::<FeatureSet<4>>(str).unwrap()) },
-        _ => unimplemented!()
-    }
-}
-
-
-#[extendr]
-/// @export
-fn parse_esri_json_str(str: String, n_dim: i32) -> Robj {
-    let n_dim = n_dim as usize;
-    let str = str.as_str();
-
-    let res = match n_dim {
-        2 => serde_json::from_str::<FeatureSet<2>>(str).unwrap(),
-        _ => unimplemented!()
-    };
-
-    let robj = crate::sf_compat::handle_features(res);
-
-    robj
+fn as_point(x: Doubles) -> String {
+    let sfg = SfgPoint(x);
+    serde_json::to_string(&sfg.as_point().unwrap()).unwrap()
 }
 
 #[extendr]
-/// @export
-fn parse_esri_json_raw(raw: Raw, n_dim: i32) -> Robj {
-    let n_dim = n_dim as usize;
-    let bytes = raw.as_slice();
+fn as_linestring_polyline(x: RMatrix<f64>) -> String {
+    let sfg = SfgLineString(x);
+    let dim = sfg.sfg_dim().unwrap();
 
-    match n_dim {
-        // 0 => (serde_json::from_slice::<FeatureSet<0>>(bytes).unwrap()),
-        2 => crate::sf_compat::handle_features(serde_json::from_slice::<FeatureSet<2>>(bytes).unwrap()),
-        // 3 => fset_to_robj(serde_json::from_slice::<FeatureSet<3>>(bytes).unwrap()),
-        // 4 => fset_to_robj(serde_json::from_slice::<FeatureSet<4>>(bytes).unwrap()),
-        _ => unimplemented!()
+    match dim {
+        SfgDim::XY => {
+            let pline: Option<EsriPolyline<2>> = sfg.as_polyline();
+            serde_json::to_string(&pline).unwrap()
+        }
+        SfgDim::XYZ => {
+            let pline: EsriPolyline<3> = sfg.as_polyline().unwrap();
+            serde_json::to_string(&pline).unwrap()
+        }
+        SfgDim::XYM => {
+            let pline: EsriPolyline<3> = sfg.as_polyline().unwrap();
+            serde_json::to_string(&pline).unwrap()
+        }
+        SfgDim::XYZM => {
+            let pline: EsriPolyline<4> = sfg.as_polyline().unwrap();
+            serde_json::to_string(&pline).unwrap()
+        }
     }
 }
-
 
 #[extendr]
-/// @export
-fn parse_esri_json_raw_geoarrow(raw: Raw, n_dim: i32) -> Robj {
-    let n_dim = n_dim as usize;
-    let bytes = raw.as_slice();
+fn as_polyline(x: List) -> String {
+    let sfg = SfgMultiLineString(x);
+    let dim = sfg.sfg_dim().unwrap();
 
-    match n_dim {
-        // 0 => (serde_json::from_slice::<FeatureSet<0>>(bytes).unwrap()),
-        2 => featureset_to_arrow(serde_json::from_slice::<FeatureSet<2>>(bytes).unwrap()).unwrap().into_arrow_robj().unwrap(),
-        // 3 => fset_to_robj(serde_json::from_slice::<FeatureSet<3>>(bytes).unwrap()),
-        // 4 => fset_to_robj(serde_json::from_slice::<FeatureSet<4>>(bytes).unwrap()),
-        _ => unimplemented!()
+    match dim {
+        SfgDim::XY => {
+            let pline: Option<EsriPolyline<2>> = sfg.as_polyline();
+            serde_json::to_string(&pline).unwrap()
+        }
+        SfgDim::XYZ => {
+            let pline: EsriPolyline<3> = sfg.as_polyline().unwrap();
+            serde_json::to_string(&pline).unwrap()
+        }
+        SfgDim::XYM => {
+            let pline: EsriPolyline<3> = sfg.as_polyline().unwrap();
+            serde_json::to_string(&pline).unwrap()
+        }
+        SfgDim::XYZM => {
+            let pline: EsriPolyline<4> = sfg.as_polyline().unwrap();
+            serde_json::to_string(&pline).unwrap()
+        }
     }
 }
 
+#[extendr]
+fn as_poly_polygon(x: List) -> String {
+    let sfg = SfgPolygon(x);
+    let dim = sfg.sfg_dim().unwrap();
 
+    match dim {
+        SfgDim::XY => {
+            let poly: Option<EsriPolygon<2>> = sfg.as_polygon();
+            serde_json::to_string(&poly).unwrap()
+        }
+        SfgDim::XYZ => {
+            todo!()
+        }
+        SfgDim::XYM => {
+            todo!()
+        }
+        SfgDim::XYZM => {
+            todo!()
+        }
+    }
+}
 
+#[extendr]
+fn as_polygon(x: List) -> String {
+    let sfg = SfgMultiPolygon(x);
+    let dim = sfg.sfg_dim().unwrap();
 
+    match dim {
+        SfgDim::XY => {
+            let poly: Option<EsriPolygon<2>> = sfg.as_polygon();
+            serde_json::to_string(&poly).unwrap()
+        }
+        SfgDim::XYZ => {
+            todo!()
+        }
+        SfgDim::XYM => {
+            todo!()
+        }
+        SfgDim::XYZM => {
+            todo!()
+        }
+    }
+}
 // Macro to generate exports.
 // This ensures exported functions are registered with R.
 // See corresponding C code in `entrypoint.c`.
 extendr_module! {
     mod serdesri;
-    fn parse_esri_json_str;
-    fn parse_esri_json_str_simd;
-    fn parse_esri_json_raw_simd;
-    fn parse_esri_json_raw;
-    fn parse_esri_json_raw_geoarrow;
-}
+    fn as_multipoint;
+    fn as_point;
+    fn as_linestring_polyline;
+    fn as_polyline;
+    fn as_poly_polygon;
+    fn as_polygon;
 
+    // fn parse_esri_json_str;
+    // fn parse_esri_json_str_simd;
+    // fn parse_esri_json_raw_simd;
+    // fn parse_esri_json_raw;
+    // fn parse_esri_json_raw_geoarrow;
+}

@@ -6,7 +6,7 @@ mod polygon;
 mod polyline;
 mod multipoint;
 mod sfc;
-pub use sfc::handle_features;
+// pub use sfc::handle_features;
 
 pub trait AsSfg {
     fn as_sfg(&self) -> Robj;
