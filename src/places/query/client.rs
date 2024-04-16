@@ -14,12 +14,11 @@ pub const PLACES_API_URL: &str =
 /// A client for the ArcGIS Places API
 ///
 /// ```
-/// use crate::places::PlacesClient;
-///
+/// use serde_esri::places::query::{PlacesClient, PLACES_API_URL};
 /// let client = PlacesClient::new(PLACES_API_URL, "your token");
 /// ```
 ///
-/// ### Note
+/// ## Note
 ///
 /// Replace `"your token"` with your actual token.
 ///

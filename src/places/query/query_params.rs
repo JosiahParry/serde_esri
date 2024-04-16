@@ -45,7 +45,7 @@ pub(crate) struct NearPointPreparedParams {
 }
 
 impl NearPointQueryParams {
-    fn prepare(self) -> NearPointPreparedParams {
+    pub(crate) fn prepare(self) -> NearPointPreparedParams {
         NearPointPreparedParams {
             x: self.x,
             y: self.y,
@@ -105,7 +105,7 @@ pub(crate) struct WithinExtentPreparedParams {
 }
 
 impl WithinExtentQueryParams {
-    fn prepare(self) -> WithinExtentPreparedParams {
+    pub(crate) fn prepare(self) -> WithinExtentPreparedParams {
         WithinExtentPreparedParams {
             xmin: self.xmin,
             ymin: self.ymin,

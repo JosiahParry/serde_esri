@@ -5,11 +5,8 @@
 // feature gate Client and NearbyQuery as well as WithinQuery
 
 use crate::places::{
-    query::{
-        CategoriesResponse, NearPointQueryParams, PlaceResponse, PlacesClient, PointResponse,
-        WithinExtentPreparedParams, WithinExtentQueryParams,
-    },
-    CategoryDetails, PlaceResult,
+    query::{NearPointQueryParams, PlacesClient, PointResponse, WithinExtentQueryParams},
+    PlaceResult,
 };
 use reqwest::Result;
 use std::sync::Arc;
