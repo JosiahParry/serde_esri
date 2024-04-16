@@ -1,6 +1,6 @@
 [package]
 name = "serde_esri"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/josiahparry/serde_esri"
@@ -8,21 +8,24 @@ authors = ["Josiah Parry<josiah.parry@gmail.com>"]
 categories = ["science::geo", "parser-implementations", "encoding"]
 keywords = ["esri", "arcgis", "geo", "gis", "spatial"]
 readme = "README.md"
-description = "A library for serializing and deserializing Esri JSON FeatureSet and Geometry objects."
+description = "A library for serializing and deserializing JSON from Esri Location Services."
 
 
 [dependencies]
 arrow = { version = "51.0.0", optional = true }
 geoarrow = { version = "0.2.0", optional = true }
 geo-types = { version = "0.7.12", optional = true }
+reqwest = { version = "0.12.3", optional = true }
 serde = { version = "1.0.192", features = ["derive"] }
 serde_json = "1.0.108"
 serde_with = "3.4.0"
+derive_builder = "0.20.0"
 
 [lib]
 crate-type = ["staticlib", "lib"]
 
 [features]
 default = []
+places-client = ["reqwest/blocking", "reqwest/json"]
 geo = ["dep:geo-types"]
 geoarrow = ["dep:geo-types", "dep:geoarrow", "arrow"]
