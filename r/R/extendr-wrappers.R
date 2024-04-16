@@ -11,20 +11,17 @@
 #' @useDynLib serdesri, .registration = TRUE
 NULL
 
-#' @export
-parse_esri_json_str <- function(str, n_dim) .Call(wrap__parse_esri_json_str, str, n_dim)
+as_multipoint <- function(x) .Call(wrap__as_multipoint, x)
 
-#' @export
-parse_esri_json_str_simd <- function(str, n_dim) .Call(wrap__parse_esri_json_str_simd, str, n_dim)
+as_point <- function(x) .Call(wrap__as_point, x)
 
-#' @export
-parse_esri_json_raw_simd <- function(raw, n_dim) .Call(wrap__parse_esri_json_raw_simd, raw, n_dim)
+as_linestring_polyline <- function(x) .Call(wrap__as_linestring_polyline, x)
 
-#' @export
-parse_esri_json_raw <- function(raw, n_dim) .Call(wrap__parse_esri_json_raw, raw, n_dim)
+as_polyline <- function(x) .Call(wrap__as_polyline, x)
 
-#' @export
-parse_esri_json_raw_geoarrow <- function(raw, n_dim) .Call(wrap__parse_esri_json_raw_geoarrow, raw, n_dim)
+as_poly_polygon <- function(x) .Call(wrap__as_poly_polygon, x)
+
+as_polygon <- function(x) .Call(wrap__as_polygon, x)
 
 
 # nolint end
