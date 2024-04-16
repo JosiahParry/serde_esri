@@ -44,6 +44,7 @@ pub(crate) struct NearPointPreparedParams {
     icon: Option<Icon>,
 }
 
+#[cfg(feature = "places-client")]
 impl NearPointQueryParams {
     pub(crate) fn prepare(self) -> NearPointPreparedParams {
         NearPointPreparedParams {
@@ -104,6 +105,7 @@ pub(crate) struct WithinExtentPreparedParams {
     icon: Option<Icon>,
 }
 
+#[cfg(feature = "places-client")]
 impl WithinExtentQueryParams {
     pub(crate) fn prepare(self) -> WithinExtentPreparedParams {
         WithinExtentPreparedParams {
