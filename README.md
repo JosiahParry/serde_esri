@@ -4,10 +4,11 @@ Esri JSON parsing library.
 
 This crate provides representations of Esri JSON objects with [`serde::Deserialize`](https://docs.rs/serde/1.0.192/serde/de/trait.Deserialize.html) and [`serde::Serialize`](https://docs.rs/serde/1.0.192/serde/de/trait.Serialize.html) trait implementations.
 
-`serde_esri` has two additional features `geo` and `geoarrow`. 
+`serde_esri` has additional features:
 
 - `geo` implements `From` for the Esri JSON objects.
 - `geoarrow` provides compatibility with arrow and geoarrow by implementing geoarrow geometry traits as well as providing a utility function `featureset_to_geoarrow()` which converts a `FeatureSet` to an arrow `GeoTable`.
+- `places-client` provides an API client for the Places Service REST API. 
 
 
 ## Example usage: 
@@ -125,3 +126,39 @@ struct SpatialReference {
     wkt: Option<String>,
 }
 ```
+
+## Places Service API Client
+
+Activate the PlaceAPI client in your Cargo.toml
+
+
+```toml
+[dependencies]
+serde_esri = { version = "0.3.0", features = ["places-client"] }
+```
+
+```rust
+fn main() {
+
+    let client = PlacesClient::new(
+        PLACES_API_URL,
+        "your-developer-credential",
+    );
+
+    // Use the query within extent query builder to create query parameters
+    let params = WithinExtentQueryParamsBuilder::default()
+        .xmin(139.74)
+        .ymin(35.65)
+        .xmax(139.75)
+        .ymax(35.66)
+        .build()
+        .unwrap();
+
+    // Call the within_extent method with the query parameters
+    let res = client.within_extent(params).unwrap();
+
+    // use the automatic pagination for the iterator method
+    res.into_iter()
+        .for_each(|r| println!("{:?}", r.unwrap().name));
+}
+
