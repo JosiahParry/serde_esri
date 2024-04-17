@@ -29,3 +29,6 @@ default = []
 places-client = ["reqwest/blocking", "reqwest/json"]
 geo = ["dep:geo-types"]
 geoarrow = ["dep:geo-types", "dep:geoarrow", "arrow"]
+
+[package.metadata.docs.rs]
+all-features = true
