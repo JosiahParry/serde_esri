@@ -1681,7 +1681,7 @@ dependencies = [
 
 [[package]]
 name = "serde_esri"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "arrow",
  "derive_builder",
