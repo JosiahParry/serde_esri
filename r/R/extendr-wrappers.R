@@ -23,5 +23,7 @@ as_poly_polygon <- function(x) .Call(wrap__as_poly_polygon, x)
 
 as_polygon <- function(x) .Call(wrap__as_polygon, x)
 
+as_attribute <- function(x, n) invisible(.Call(wrap__as_attribute, x, n))
+
 
 # nolint end

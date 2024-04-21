@@ -1,5 +1,6 @@
 use extendr_api::prelude::*;
 // mod sf_compat;
+mod sfc;
 mod sfg;
 mod to;
 use crate::sfg::{Dim, SfgDim};
@@ -140,6 +141,7 @@ fn as_polygon(x: List) -> String {
 use serde_json::{Map, Number, Value};
 
 // TODO if a column is a factor, make it a character factor
+// TODO handle geometry list as well to create Vec<Features>
 #[extendr]
 pub fn as_attribute(x: List, n: i32) {
     let n = n as usize;

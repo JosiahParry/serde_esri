@@ -12,29 +12,31 @@ st_point(c(1, 2, 3, 4)) |> as_point()
 # linestring -------------------------------------------------------------
 
 m <- matrix(c(as.double(1:10)), ncol = 2)
-st_linestring(m) |>
-  as_polyline()
 
-st_linestring(dim = "XYZ") |>
-  as_polyline()
+st_linestring(m) |>
+  as_linestring_polyline()
+
+st_linestring(m, dim = "XYZ") |>
+  as_linestring_polyline()
 
 
 z <- matrix(c(as.double(1:12)), ncol = 3)
+
 st_linestring(z) |>
-  as_polyline()
+  as_linestring_polyline()
 
 st_linestring(z, "XYM") |>
-  as_polyline()
+  as_linestring_polyline()
 
 zm <- matrix(round(rnorm(12), 1), ncol = 4)
+
 st_linestring(zm) |>
-  as_polyline()
-zm
+  as_linestring_polyline()
+
 
 
 
 # multilinestring --------------------------------------------------------
-
 
 st_multilinestring() |>
   as_polyline()
@@ -59,3 +61,15 @@ st_multilinestring(list(zm, zm)) |>
 
 
 # polygon ----------------------------------------------------------------
+sfdep::guerry$geometry[[1]] |>
+  as_polygon()
+
+sfdep::guerry$geometry[[1]] |>
+  st_cast("POLYGON") |>
+  as_poly_polygon()
+
+
+
+# xy with xyz ------------------------------------------------------------
+
+sf::st_sfc(st_linestring(z), st_linestring(z, "XYM"))
