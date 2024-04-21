@@ -3,7 +3,10 @@ use extendr_api::prelude::*;
 mod sfg;
 mod to;
 use crate::sfg::{Dim, SfgDim};
-use serde_esri::geometry::{EsriMultiPoint, EsriPolygon, EsriPolyline};
+use serde_esri::{
+    features::Feature,
+    geometry::{EsriMultiPoint, EsriPolygon, EsriPolyline},
+};
 use sfg::{
     SfgLineString, SfgMultiLineString, SfgMultiPoint, SfgMultiPolygon, SfgPoint, SfgPolygon,
 };
@@ -133,6 +136,58 @@ fn as_polygon(x: List) -> String {
         }
     }
 }
+
+use extendr_api::deserializer::from_robj;
+// use serde_esri::features::Feature;
+use serde_json::{Map, Value};
+
+#[extendr]
+pub fn as_attribute(x: List, n: i32) {
+    let ncol = x.len();
+
+    let i = 1_usize;
+
+    let col_names = x
+        .names()
+        .unwrap()
+        .map(|si| si.to_string())
+        .collect::<Vec<_>>();
+
+    for i in 0..(n as usize) {
+        for j in 0..ncol {
+            let mut map = Map::with_capacity(ncol);
+            let name = col_names[j].clone();
+            let col = x[j];
+            match col.rtype() {
+                Rtype::Doubles => {
+                    let col_typed = Doubles::try_from(col).unwrap();
+                    let v = from_robj::<Value>(&col_typed[i].into());
+                    if let Ok(v) = v {
+                        map.insert(name, v);
+                    }
+                }
+                Rtype::Integers => todo!(),
+                Rtype::Strings => todo!(),
+                Rtype::Logicals => todo!(),
+                _ => unimplemented!(),
+            }
+        }
+    }
+
+    // for j in 0..ncol {
+    //     let name = col_names[j].clone();
+    //     let v = from_robj::<Value>(&x[j]);
+    //     map.insert(name, v.unwrap());
+    // }
+
+    // let feats = Feature::<0> {
+    //     geometry: None,
+    //     attributes: Some(map),
+    // };
+
+    // rprintln!("{:?}", feats);
+}
+
 // Macro to generate exports.
 // This ensures exported functions are registered with R.
 // See corresponding C code in `entrypoint.c`.
@@ -144,6 +199,7 @@ extendr_module! {
     fn as_polyline;
     fn as_poly_polygon;
     fn as_polygon;
+    fn as_attribute;
 
     // fn parse_esri_json_str;
     // fn parse_esri_json_str_simd;

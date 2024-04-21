@@ -9,7 +9,7 @@ crate-type = [ 'staticlib' ]
 name = 'serdesri_r'
 
 [dependencies]
-extendr-api = '0.6.0'
+extendr-api = {version = '0.6.0', features = ["serde"] }
 serde_esri = { version = "0.2.0" }
 serde_json = "1.0.108"
 
