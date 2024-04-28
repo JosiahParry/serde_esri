@@ -1,6 +1,6 @@
 use serde_esri::geometry::{EsriMultiPoint, EsriPolygon, EsriPolyline};
 
-mod feature;
+mod features;
 mod linestring;
 mod multilinestring;
 mod multipoint;
