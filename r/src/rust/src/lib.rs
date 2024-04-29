@@ -105,13 +105,16 @@ fn as_poly_polygon(x: List) -> String {
             serde_json::to_string(&poly).unwrap()
         }
         SfgDim::XYZ => {
-            todo!()
+            let poly: Option<EsriPolygon<3>> = sfg.as_polygon();
+            serde_json::to_string(&poly).unwrap()
         }
         SfgDim::XYM => {
-            todo!()
+            let poly: Option<EsriPolygon<3>> = sfg.as_polygon();
+            serde_json::to_string(&poly).unwrap()
         }
         SfgDim::XYZM => {
-            todo!()
+            let poly: Option<EsriPolygon<4>> = sfg.as_polygon();
+            serde_json::to_string(&poly).unwrap()
         }
     }
 }
@@ -127,13 +130,16 @@ fn as_polygon(x: List) -> String {
             serde_json::to_string(&poly).unwrap()
         }
         SfgDim::XYZ => {
-            todo!()
+            let poly: Option<EsriPolygon<3>> = sfg.as_polygon();
+            serde_json::to_string(&poly).unwrap()
         }
         SfgDim::XYM => {
-            todo!()
+            let poly: Option<EsriPolygon<3>> = sfg.as_polygon();
+            serde_json::to_string(&poly).unwrap()
         }
         SfgDim::XYZM => {
-            todo!()
+            let poly: Option<EsriPolygon<4>> = sfg.as_polygon();
+            serde_json::to_string(&poly).unwrap()
         }
     }
 }
@@ -224,6 +230,7 @@ pub fn as_attribute(x: List, n: i32) {
 // See corresponding C code in `entrypoint.c`.
 extendr_module! {
     mod serdesri;
+    use to;
     fn as_multipoint;
     fn as_point;
     fn as_linestring_polyline;

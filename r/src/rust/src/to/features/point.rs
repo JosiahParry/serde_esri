@@ -9,8 +9,6 @@ use serde_json::{Map, Value};
 
 use crate::{sfc::*, sfg::SfgPoint};
 
-
-
 impl SfcPoint {
     /// Consume an SfcPoint to return a vector of Fetaures
     pub fn as_features<const N: usize>(self) -> Result<Vec<Feature<N>>> {
@@ -46,4 +44,24 @@ impl SfcPoint {
             fields: None,
         }
     }
+}
+
+#[extendr]
+fn as_point_features_2d(x: List) -> String {
+    let sfc = SfcPoint(x);
+    let features = sfc.as_features::<2>().unwrap();
+    serde_json::to_string(&features).unwrap()
+}
+
+#[extendr]
+fn as_point_features_3d(x: List) -> String {
+    let sfc = SfcPoint(x);
+    let features = sfc.as_features::<3>().unwrap();
+    serde_json::to_string(&features).unwrap()
+}
+
+extendr_module! {
+    mod point;
+    fn as_point_features_2d;
+    fn as_point_features_3d;
 }

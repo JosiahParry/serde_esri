@@ -1,3 +1,4 @@
+use extendr_api::extendr_module;
 use serde_esri::geometry::{EsriMultiPoint, EsriPolygon, EsriPolyline};
 
 mod features;
@@ -21,4 +22,9 @@ pub trait AsEsriGeometry<const N: usize> {
     fn as_polygon(&self) -> Option<EsriPolygon<N>> {
         None
     }
+}
+
+extendr_module! {
+    mod to;
+    use features;
 }

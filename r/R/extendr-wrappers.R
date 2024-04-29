@@ -25,5 +25,11 @@ as_polygon <- function(x) .Call(wrap__as_polygon, x)
 
 as_attribute <- function(x, n) invisible(.Call(wrap__as_attribute, x, n))
 
+as_point_features_2d <- function(x) .Call(wrap__as_point_features_2d, x)
+
+as_point_features_3d <- function(x) .Call(wrap__as_point_features_3d, x)
+
+as_multipoint_features_2d <- function(x) .Call(wrap__as_multipoint_features_2d, x)
+
 
 # nolint end

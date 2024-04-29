@@ -61,15 +61,40 @@ st_multilinestring(list(zm, zm)) |>
 
 
 # polygon ----------------------------------------------------------------
-sfdep::guerry$geometry[[1]] |>
-  as_polygon()
 
-sfdep::guerry$geometry[[1]] |>
-  st_cast("POLYGON") |>
-  as_poly_polygon()
+coords <- rbind(
+  c(0, 0, 0),
+  c(0, 1, 0),
+  c(1, 1, 1),
+  c(1, 0, 1),
+  c(0, 0, 0)
+)
 
 
+# xy
+poly2d <- st_polygon(list(coords[, ]))
+as_poly_polygon(poly2d)
 
-# xy with xyz ------------------------------------------------------------
 
-sf::st_sfc(st_linestring(z), st_linestring(z, "XYM"))
+# xyz
+poly3d <- st_polygon(list(coords))
+as_poly_polygon(poly3d)
+
+
+# xyzm
+poly4d <- st_polygon(list(cbind(coords, 1)), dim = "XYZM")
+as_poly_polygon(poly4d)
+
+
+# multipolygon -----------------------------------------------------------
+
+# xy
+mpoly2d <- st_multipolygon(list(list(coords[, 1:2])))
+as_polygon(mpoly2d)
+
+mpoly3d <- st_multipolygon(list(list(coords)))
+as_polygon(poly_3d)
+
+
+mpoly4d <- st_multipolygon(list(list(cbind(coords, 1))))
+as_polygon(mpoly4d)
