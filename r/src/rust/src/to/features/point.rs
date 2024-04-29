@@ -1,12 +1,12 @@
 use crate::deserialize_sr;
+use crate::{sfc::*, sfg::SfgPoint};
 use extendr_api::prelude::*;
 use serde_esri::{
     features::{Feature, FeatureSet},
     geometry::EsriGeometry,
     spatial_reference::SpatialReference,
 };
-
-use crate::{sfc::*, sfg::SfgPoint};
+use serde_json::Map;
 
 impl SfcPoint {
     /// Consume an SfcPoint to return a vector of Fetaures
@@ -22,7 +22,7 @@ impl SfcPoint {
 
                 Feature {
                     geometry: Some(EsriGeometry::Point(geom)),
-                    attributes: None,
+                    attributes: Some(Map::default()),
                 }
             })
             .collect::<Vec<_>>();

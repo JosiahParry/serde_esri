@@ -5,6 +5,8 @@ use serde_esri::{
     spatial_reference::SpatialReference,
 };
 
+use serde_json::Map;
+
 impl SfcPolygon {
     pub fn as_features_2d(self) -> Result<Vec<Feature<2>>> {
         let lstrs = self
@@ -28,7 +30,7 @@ impl SfcPolygon {
 
                 Feature::<2> {
                     geometry: Some(EsriGeometry::Polygon(lstr_list)),
-                    attributes: None,
+                    attributes: Some(Map::default()),
                 }
             })
             .collect::<Vec<_>>();
@@ -58,7 +60,7 @@ impl SfcPolygon {
 
                 Feature::<3> {
                     geometry: Some(EsriGeometry::Polygon(lstr_list)),
-                    attributes: None,
+                    attributes: Some(Map::default()),
                 }
             })
             .collect::<Vec<_>>();

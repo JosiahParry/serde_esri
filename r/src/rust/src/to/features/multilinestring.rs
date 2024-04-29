@@ -4,6 +4,7 @@ use serde_esri::{
     features::Feature, features::FeatureSet, geometry::EsriGeometry, geometry::EsriPolyline,
     spatial_reference::SpatialReference,
 };
+use serde_json::Map;
 
 impl SfcMultiLineString {
     pub fn as_features_2d(self) -> Result<Vec<Feature<2>>> {
@@ -28,7 +29,7 @@ impl SfcMultiLineString {
 
                 Feature::<2> {
                     geometry: Some(EsriGeometry::Polyline(lstr_list)),
-                    attributes: None,
+                    attributes: Some(Map::default()),
                 }
             })
             .collect::<Vec<_>>();
@@ -58,7 +59,7 @@ impl SfcMultiLineString {
 
                 Feature::<3> {
                     geometry: Some(EsriGeometry::Polyline(lstr_list)),
-                    attributes: None,
+                    attributes: Some(Map::default()),
                 }
             })
             .collect::<Vec<_>>();

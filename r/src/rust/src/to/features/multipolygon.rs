@@ -4,6 +4,7 @@ use serde_esri::{
     features::Feature, features::FeatureSet, geometry::EsriGeometry, geometry::EsriPolygon,
     spatial_reference::SpatialReference,
 };
+use serde_json::Map;
 
 impl SfcMultiPolygon {
     pub fn as_features_2d(self) -> Result<Vec<Feature<2>>> {
@@ -28,7 +29,7 @@ impl SfcMultiPolygon {
 
                 Feature::<2> {
                     geometry: Some(EsriGeometry::Polygon(lstr_list)),
-                    attributes: None,
+                    attributes: Some(Map::default()),
                 }
             })
             .collect::<Vec<_>>();
@@ -58,7 +59,7 @@ impl SfcMultiPolygon {
 
                 Feature::<3> {
                     geometry: Some(EsriGeometry::Polygon(lstr_list)),
-                    attributes: None,
+                    attributes: Some(Map::default()),
                 }
             })
             .collect::<Vec<_>>();

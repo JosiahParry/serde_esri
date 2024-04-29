@@ -6,6 +6,8 @@ use serde_esri::{
     spatial_reference::SpatialReference,
 };
 
+use serde_json::Map;
+
 impl SfcMultiPoint {
     pub fn as_features_2d(self) -> Result<Vec<Feature<2>>> {
         let mpnts = self
@@ -29,7 +31,7 @@ impl SfcMultiPoint {
 
                 Feature::<2> {
                     geometry: Some(EsriGeometry::MultiPoint(pnt_mat)),
-                    attributes: None,
+                    attributes: Some(Map::default()),
                 }
             })
             .collect::<Vec<_>>();
@@ -59,7 +61,7 @@ impl SfcMultiPoint {
 
                 Feature::<3> {
                     geometry: Some(EsriGeometry::MultiPoint(pnt_mat)),
-                    attributes: None,
+                    attributes: Some(Map::default()),
                 }
             })
             .collect::<Vec<_>>();
@@ -122,7 +124,6 @@ fn sfc_multipoint_featureset_3d(x: List, sr: Robj) -> String {
     let featureset = sfc.as_featureset_3d(crs);
     serde_json::to_string(&featureset).unwrap()
 }
-
 
 extendr_module! {
     mod multipoint;

@@ -25,13 +25,53 @@ as_polygon <- function(x) .Call(wrap__as_polygon, x)
 
 as_attribute <- function(x, n) invisible(.Call(wrap__as_attribute, x, n))
 
-as_point_features_2d <- function(x) .Call(wrap__as_point_features_2d, x)
+sfc_linestring_features_2d <- function(x) .Call(wrap__sfc_linestring_features_2d, x)
 
-as_point_features_3d <- function(x) .Call(wrap__as_point_features_3d, x)
+sfc_linestring_features_3d <- function(x) .Call(wrap__sfc_linestring_features_3d, x)
 
-as_point_featureset_2d <- function(x, sr) .Call(wrap__as_point_featureset_2d, x, sr)
+sfc_linestring_featureset_2d <- function(x, sr) .Call(wrap__sfc_linestring_featureset_2d, x, sr)
 
-as_multipoint_features_2d <- function(x) .Call(wrap__as_multipoint_features_2d, x)
+sfc_linestring_featureset_3d <- function(x, sr) .Call(wrap__sfc_linestring_featureset_3d, x, sr)
+
+sfc_multilinestring_features_2d <- function(x) .Call(wrap__sfc_multilinestring_features_2d, x)
+
+sfc_multilinestring_features_3d <- function(x) .Call(wrap__sfc_multilinestring_features_3d, x)
+
+sfc_multilinestring_featureset_2d <- function(x, sr) .Call(wrap__sfc_multilinestring_featureset_2d, x, sr)
+
+sfc_multilinestring_featureset_3d <- function(x, sr) .Call(wrap__sfc_multilinestring_featureset_3d, x, sr)
+
+sfc_multipoint_features_2d <- function(x) .Call(wrap__sfc_multipoint_features_2d, x)
+
+sfc_multipoint_features_3d <- function(x) .Call(wrap__sfc_multipoint_features_3d, x)
+
+sfc_multipoint_featureset_2d <- function(x, sr) .Call(wrap__sfc_multipoint_featureset_2d, x, sr)
+
+sfc_multipoint_featureset_3d <- function(x, sr) .Call(wrap__sfc_multipoint_featureset_3d, x, sr)
+
+sfc_multipolygon_features_2d <- function(x) .Call(wrap__sfc_multipolygon_features_2d, x)
+
+sfc_multipolygon_features_3d <- function(x) .Call(wrap__sfc_multipolygon_features_3d, x)
+
+sfc_multipolygon_featureset_2d <- function(x, sr) .Call(wrap__sfc_multipolygon_featureset_2d, x, sr)
+
+sfc_multipolygon_featureset_3d <- function(x, sr) .Call(wrap__sfc_multipolygon_featureset_3d, x, sr)
+
+sfc_point_features_2d <- function(x) .Call(wrap__sfc_point_features_2d, x)
+
+sfc_point_features_3d <- function(x) .Call(wrap__sfc_point_features_3d, x)
+
+sfc_point_featureset_2d <- function(x, sr) .Call(wrap__sfc_point_featureset_2d, x, sr)
+
+sfc_point_featureset_3d <- function(x, sr) .Call(wrap__sfc_point_featureset_3d, x, sr)
+
+sfc_polygon_features_2d <- function(x) .Call(wrap__sfc_polygon_features_2d, x)
+
+sfc_polygon_features_3d <- function(x) .Call(wrap__sfc_polygon_features_3d, x)
+
+sfc_polygon_featureset_2d <- function(x, sr) .Call(wrap__sfc_polygon_featureset_2d, x, sr)
+
+sfc_polygon_featureset_3d <- function(x, sr) .Call(wrap__sfc_polygon_featureset_3d, x, sr)
 
 
 # nolint end
