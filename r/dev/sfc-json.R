@@ -25,5 +25,9 @@ pnt3d <- sf::st_multipoint(matrix(rnorm(12), 3)) |>
 
 sf::st_sfc(mpnt) |>
   sf::st_cast("POINT") |>
+
   as_point_features_3d()
-s
+
+sf::st_sfc(mpnt) |> sf::st_zm() |> 
+  as_point_featureset_2d(list(wkid = 4326))
+

@@ -1,11 +1,10 @@
-use extendr_api::deserializer::from_robj;
+use crate::deserialize_sr;
 use extendr_api::prelude::*;
 use serde_esri::{
     features::{Feature, FeatureSet},
     geometry::EsriGeometry,
     spatial_reference::SpatialReference,
 };
-use serde_json::{Map, Value};
 
 use crate::{sfc::*, sfg::SfgPoint};
 
@@ -47,21 +46,42 @@ impl SfcPoint {
 }
 
 #[extendr]
-fn as_point_features_2d(x: List) -> String {
+fn sfc_point_features_2d(x: List) -> String {
     let sfc = SfcPoint(x);
     let features = sfc.as_features::<2>().unwrap();
     serde_json::to_string(&features).unwrap()
 }
 
 #[extendr]
-fn as_point_features_3d(x: List) -> String {
+fn sfc_point_features_3d(x: List) -> String {
     let sfc = SfcPoint(x);
     let features = sfc.as_features::<3>().unwrap();
     serde_json::to_string(&features).unwrap()
 }
 
+#[extendr]
+// TODO Handle CRS
+fn sfc_point_featureset_2d(x: List, sr: Robj) -> String {
+    let sfc = SfcPoint(x);
+    // This should be part of the R library
+    let crs = deserialize_sr(&sr);
+    let featureset = sfc.as_featureset::<2>(crs);
+    serde_json::to_string(&featureset).unwrap()
+}
+
+#[extendr]
+// TODO Handle CRS
+fn sfc_point_featureset_3d(x: List, sr: Robj) -> String {
+    let sfc = SfcPoint(x);
+    let crs = deserialize_sr(&sr);
+    let featureset = sfc.as_featureset::<3>(crs);
+    serde_json::to_string(&featureset).unwrap()
+}
+
 extendr_module! {
     mod point;
-    fn as_point_features_2d;
-    fn as_point_features_3d;
+    fn sfc_point_features_2d;
+    fn sfc_point_features_3d;
+    fn sfc_point_featureset_2d;
+    fn sfc_point_featureset_3d;
 }

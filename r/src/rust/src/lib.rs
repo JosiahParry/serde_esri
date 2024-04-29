@@ -7,11 +7,16 @@ use crate::sfg::{Dim, SfgDim};
 use serde_esri::{
     features::Feature,
     geometry::{EsriMultiPoint, EsriPolygon, EsriPolyline},
+    spatial_reference::SpatialReference,
 };
 use sfg::{
     SfgLineString, SfgMultiLineString, SfgMultiPoint, SfgMultiPolygon, SfgPoint, SfgPolygon,
 };
 use to::AsEsriGeometry;
+
+pub fn deserialize_sr(sr: &Robj) -> Option<SpatialReference> {
+    extendr_api::deserializer::from_robj::<SpatialReference>(&sr).map_or(None, |sr| Some(sr))
+}
 
 #[extendr]
 fn as_multipoint(x: RMatrix<f64>) -> String {

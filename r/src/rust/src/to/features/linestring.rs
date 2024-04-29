@@ -1,73 +1,71 @@
-use crate::{deserialize_sr, sfc::*, sfg::SfgMultiPoint, to::AsEsriGeometry};
+use crate::{deserialize_sr, sfc::*, sfg::SfgLineString, to::AsEsriGeometry};
 use extendr_api::prelude::*;
 use serde_esri::{
-    features::{Feature, FeatureSet},
-    geometry::{EsriGeometry, EsriMultiPoint},
+    features::Feature, features::FeatureSet, geometry::EsriGeometry, geometry::EsriPolyline,
     spatial_reference::SpatialReference,
 };
 
-impl SfcMultiPoint {
+impl SfcLineString {
     pub fn as_features_2d(self) -> Result<Vec<Feature<2>>> {
-        let mpnts = self
+        let lstrs = self
             .0
             .into_iter()
-            .map(|(_, pnt)| {
-                let pnt_mat = RMatrix::try_from(pnt);
-                let pnt_mat = match pnt_mat {
-                    Ok(pnt_mat) => {
-                        let sfg = SfgMultiPoint(pnt_mat);
-                        let mpnt: Option<EsriMultiPoint<2>> = sfg.as_multipoint();
-                        mpnt.unwrap()
+            .map(|(_, lstr)| {
+                let lstr_list = RMatrix::try_from(lstr);
+                let lstr_list = match lstr_list {
+                    Ok(lstr_list) => {
+                        let sfg = SfgLineString(lstr_list);
+                        let lstr: Option<EsriPolyline<2>> = sfg.as_polyline();
+                        lstr.unwrap()
                     }
-                    Err(_) => EsriMultiPoint {
+                    Err(_) => EsriPolyline {
                         hasZ: Some(false),
                         hasM: Some(false),
-                        points: vec![],
+                        paths: vec![],
                         spatialReference: None,
                     },
                 };
 
                 Feature::<2> {
-                    geometry: Some(EsriGeometry::MultiPoint(pnt_mat)),
+                    geometry: Some(EsriGeometry::Polyline(lstr_list)),
                     attributes: None,
                 }
             })
             .collect::<Vec<_>>();
 
-        Ok(mpnts)
+        Ok(lstrs)
     }
 
     pub fn as_features_3d(self) -> Result<Vec<Feature<3>>> {
-        let mpnts = self
+        let lstrs = self
             .0
             .into_iter()
-            .map(|(_, pnt)| {
-                let pnt_mat = RMatrix::try_from(pnt);
-                let pnt_mat = match pnt_mat {
-                    Ok(pnt_mat) => {
-                        let sfg = SfgMultiPoint(pnt_mat);
-                        let mpnt: Option<EsriMultiPoint<3>> = sfg.as_multipoint();
-                        mpnt.unwrap()
+            .map(|(_, lstr)| {
+                let lstr_list = RMatrix::try_from(lstr);
+                let lstr_list = match lstr_list {
+                    Ok(lstr_list) => {
+                        let sfg = SfgLineString(lstr_list);
+                        let lstr: Option<EsriPolyline<3>> = sfg.as_polyline();
+                        lstr.unwrap()
                     }
-                    Err(_) => EsriMultiPoint {
+                    Err(_) => EsriPolyline {
                         hasZ: Some(false),
                         hasM: Some(false),
-                        points: vec![],
+                        paths: vec![],
                         spatialReference: None,
                     },
                 };
 
                 Feature::<3> {
-                    geometry: Some(EsriGeometry::MultiPoint(pnt_mat)),
+                    geometry: Some(EsriGeometry::Polyline(lstr_list)),
                     attributes: None,
                 }
             })
             .collect::<Vec<_>>();
 
-        Ok(mpnts)
+        Ok(lstrs)
     }
 
-    // TODO: Implement as_features_4d but not supported in sf
     pub fn as_featureset_2d(self, sr: Option<SpatialReference>) -> FeatureSet<2> {
         let feats = self.as_features_2d().expect("Features to be created");
         FeatureSet {
@@ -75,7 +73,7 @@ impl SfcMultiPoint {
             globalIdFieldName: None,
             displayFieldName: None,
             spatialReference: sr,
-            geometryType: Some("esriGeometryMultiPoint".into()),
+            geometryType: Some("esriGeometryLineString".into()),
             features: feats,
             fields: None,
         }
@@ -88,7 +86,7 @@ impl SfcMultiPoint {
             globalIdFieldName: None,
             displayFieldName: None,
             spatialReference: sr,
-            geometryType: Some("esriGeometryMultiPoint".into()),
+            geometryType: Some("esriGeometryLineString".into()),
             features: feats,
             fields: None,
         }
@@ -96,38 +94,37 @@ impl SfcMultiPoint {
 }
 
 #[extendr]
-fn sfc_multipoint_features_2d(x: List) -> String {
-    let res = SfcMultiPoint(x).as_features_2d().unwrap();
+fn sfc_linestring_features_2d(x: List) -> String {
+    let res = SfcLineString(x).as_features_2d().unwrap();
     serde_json::to_string(&res).unwrap()
 }
 
 #[extendr]
-fn sfc_multipoint_features_3d(x: List) -> String {
-    let res = SfcMultiPoint(x).as_features_3d().unwrap();
+fn sfc_linestring_features_3d(x: List) -> String {
+    let res = SfcLineString(x).as_features_3d().unwrap();
     serde_json::to_string(&res).unwrap()
 }
 
 #[extendr]
-fn sfc_multipoint_featureset_2d(x: List, sr: Robj) -> String {
-    let sfc = SfcMultiPoint(x);
+fn sfc_linestring_featureset_2d(x: List, sr: Robj) -> String {
+    let sfc = SfcLineString(x);
     let crs = deserialize_sr(&sr);
     let featureset = sfc.as_featureset_2d(crs);
     serde_json::to_string(&featureset).unwrap()
 }
 
 #[extendr]
-fn sfc_multipoint_featureset_3d(x: List, sr: Robj) -> String {
-    let sfc = SfcMultiPoint(x);
+fn sfc_linestring_featureset_3d(x: List, sr: Robj) -> String {
+    let sfc = SfcLineString(x);
     let crs = deserialize_sr(&sr);
     let featureset = sfc.as_featureset_3d(crs);
     serde_json::to_string(&featureset).unwrap()
 }
 
-
 extendr_module! {
-    mod multipoint;
-    fn sfc_multipoint_features_2d;
-    fn sfc_multipoint_features_3d;
-    fn sfc_multipoint_featureset_2d;
-    fn sfc_multipoint_featureset_3d;
+    mod linestring;
+    fn sfc_linestring_features_2d;
+    fn sfc_linestring_features_3d;
+    fn sfc_linestring_featureset_2d;
+    fn sfc_linestring_featureset_3d;
 }

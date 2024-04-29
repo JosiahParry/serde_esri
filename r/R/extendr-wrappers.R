@@ -29,6 +29,8 @@ as_point_features_2d <- function(x) .Call(wrap__as_point_features_2d, x)
 
 as_point_features_3d <- function(x) .Call(wrap__as_point_features_3d, x)
 
+as_point_featureset_2d <- function(x, sr) .Call(wrap__as_point_featureset_2d, x, sr)
+
 as_multipoint_features_2d <- function(x) .Call(wrap__as_multipoint_features_2d, x)
 
 
