@@ -19,14 +19,14 @@ reqwest = { version = "0.12.3", optional = true }
 serde = { version = "1.0.192", features = ["derive"] }
 serde_json = "1.0.108"
 serde_with = "3.4.0"
-derive_builder = "0.20.0"
+derive_builder = { version = "0.20.0", optional = true }
 
 [lib]
 crate-type = ["staticlib", "lib"]
 
 [features]
 default = []
-places-client = ["reqwest/blocking", "reqwest/json"]
+places-client = ["reqwest/blocking", "reqwest/json", "derive_builder"]
 geo = ["dep:geo-types"]
 geoarrow = ["dep:geo-types", "dep:geoarrow", "arrow"]
 
