@@ -7,7 +7,7 @@ pub struct SfcMultiPoint(pub List);
 /// A List of RMatrix
 pub struct SfcLineString(pub List);
 /// A List of List of RMatrix
-pub struct SfcMultiLinestring(pub List);
+pub struct SfcMultiLineString(pub List);
 /// A List of List of RMatrix ([`SfgPolygon`])
 pub struct SfcPolygon(pub List);
 /// A List of List of List of RMatrix ([`SfgMultiPolygon`])
