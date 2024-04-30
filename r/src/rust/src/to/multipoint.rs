@@ -31,7 +31,7 @@ impl AsEsriGeometry<2> for SfgMultiPoint {
                 let res = EsriMultiPoint {
                     hasZ: Some(false),
                     hasM: Some(false),
-                    points: points,
+                    points,
                     spatialReference: sr,
                 };
 
@@ -71,7 +71,7 @@ impl AsEsriGeometry<3> for SfgMultiPoint {
                 let res = EsriMultiPoint {
                     hasZ: Some(true),
                     hasM: Some(false),
-                    points: points,
+                    points,
                     spatialReference: sr,
                 };
 
@@ -90,7 +90,7 @@ impl AsEsriGeometry<3> for SfgMultiPoint {
                 let res = EsriMultiPoint {
                     hasZ: Some(false),
                     hasM: Some(true),
-                    points: points,
+                    points,
                     spatialReference: sr,
                 };
 
@@ -131,7 +131,7 @@ impl AsEsriGeometry<4> for SfgMultiPoint {
                 let res = EsriMultiPoint {
                     hasZ: Some(true),
                     hasM: Some(true),
-                    points: points,
+                    points,
                     spatialReference: sr,
                 };
 
