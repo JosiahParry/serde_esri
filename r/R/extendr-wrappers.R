@@ -38,6 +38,18 @@ sfg_polygon_as_polygon <- function(x, sr) .Call(wrap__sfg_polygon_as_polygon, x,
 #' @rdname geometries
 sfg_multipolygon_as_polygon <- function(x, sr) .Call(wrap__sfg_multipolygon_as_polygon, x, sr)
 
+#' @param attrs a data.frame of columns that define the attributes
+#' @param geoms an sfc geometry column
+#' @param n the number of rows in `attrs`, if geometry is provided, must have as many elements as `n`
+#' @param sr a list representing the spatial reference e.g. `list(wkid = 3857)`
+#' @export
+#' @rdname features
+sf_as_features_2d <- function(attrs, geoms, n, sr) .Call(wrap__sf_as_features_2d, attrs, geoms, n, sr)
+
+#' @export
+#' @rdname features
+sf_as_features_3d <- function(attrs, geoms, n, sr) .Call(wrap__sf_as_features_3d, attrs, geoms, n, sr)
+
 #' Create an EsriJSON feature array
 #' @param an sfc geometry vector
 #' @export

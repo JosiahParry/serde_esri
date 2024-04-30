@@ -2,6 +2,8 @@
 
 export(as_featureset_2d)
 export(as_featureset_3d)
+export(sf_as_features_2d)
+export(sf_as_features_3d)
 export(sfc_linestring_features_2d)
 export(sfc_linestring_features_3d)
 export(sfc_linestring_featureset_2d)
