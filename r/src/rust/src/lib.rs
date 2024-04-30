@@ -14,7 +14,7 @@ use sfg::{
 use to::AsEsriGeometry;
 
 pub fn deserialize_sr(sr: &Robj) -> Option<SpatialReference> {
-    extendr_api::deserializer::from_robj::<SpatialReference>(&sr).map_or(None, |sr| Some(sr))
+    extendr_api::deserializer::from_robj::<SpatialReference>(sr).ok()
 }
 
 #[extendr]

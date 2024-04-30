@@ -4,11 +4,7 @@ use serde_esri::{geometry::*, spatial_reference::SpatialReference};
 
 impl SfgPoint {
     pub fn as_point(&self, sr: Option<SpatialReference>) -> Option<EsriPoint> {
-        let dim = if let Some(dim) = self.sfg_dim() {
-            dim
-        } else {
-            return None;
-        };
+        let dim = self.sfg_dim()?;
 
         // if it is an empty geometry
         if self.0.len() == 0 {

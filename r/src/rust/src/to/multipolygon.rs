@@ -5,11 +5,7 @@ use serde_esri::{geometry::*, spatial_reference::SpatialReference};
 
 impl AsEsriGeometry<2> for SfgMultiPolygon {
     fn as_polygon(&self, sr: Option<SpatialReference>) -> Option<EsriPolygon<2>> {
-        let dim = if let Some(dim) = self.sfg_dim() {
-            dim
-        } else {
-            return None;
-        };
+        let dim = self.sfg_dim()?;
 
         let n_elements = self.0.len();
 
@@ -65,11 +61,7 @@ impl AsEsriGeometry<2> for SfgMultiPolygon {
 
 impl AsEsriGeometry<3> for SfgMultiPolygon {
     fn as_polygon(&self, sr: Option<SpatialReference>) -> Option<EsriPolygon<3>> {
-        let dim = if let Some(dim) = self.sfg_dim() {
-            dim
-        } else {
-            return None;
-        };
+        let dim = self.sfg_dim()?;
 
         let n_elements = self.0.len();
 
@@ -166,11 +158,7 @@ impl AsEsriGeometry<3> for SfgMultiPolygon {
 
 impl AsEsriGeometry<4> for SfgMultiPolygon {
     fn as_polygon(&self, sr: Option<SpatialReference>) -> Option<EsriPolygon<4>> {
-        let dim = if let Some(dim) = self.sfg_dim() {
-            dim
-        } else {
-            return None;
-        };
+        let dim = self.sfg_dim()?;
 
         let n_elements = self.0.len();
 

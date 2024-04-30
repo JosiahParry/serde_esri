@@ -97,7 +97,7 @@ pub fn as_featureset_2d(attrs: List, geoms: List, n: i32, sr: Robj) -> String {
 
     let feats = attrs
         .into_iter()
-        .zip(geoms.into_iter())
+        .zip(geoms)
         .map(|(a, g)| Feature {
             geometry: g,
             attributes: Some(a),
@@ -207,7 +207,7 @@ pub fn as_featureset_3d(attrs: List, geoms: List, n: i32, sr: Robj, has_z: bool)
 
     let feats = attrs
         .into_iter()
-        .zip(geoms.into_iter())
+        .zip(geoms)
         .map(|(a, g)| Feature {
             geometry: g,
             attributes: Some(a),

@@ -4,11 +4,7 @@ use serde_esri::{geometry::*, spatial_reference::SpatialReference};
 
 impl AsEsriGeometry<2> for SfgMultiPoint {
     fn as_multipoint(&self, sr: Option<SpatialReference>) -> Option<EsriMultiPoint<2>> {
-        let dim = if let Some(dim) = self.sfg_dim() {
-            dim
-        } else {
-            return None;
-        };
+        let dim = self.sfg_dim()?;
 
         let nrow = self.0.nrows();
 
@@ -35,22 +31,18 @@ impl AsEsriGeometry<2> for SfgMultiPoint {
                     spatialReference: sr,
                 };
 
-                return Some(res);
+                Some(res)
             }
-            SfgDim::XYZ => return None,
-            SfgDim::XYM => return None,
-            SfgDim::XYZM => return None,
+            SfgDim::XYZ => None,
+            SfgDim::XYM => None,
+            SfgDim::XYZM => None,
         }
     }
 }
 
 impl AsEsriGeometry<3> for SfgMultiPoint {
     fn as_multipoint(&self, sr: Option<SpatialReference>) -> Option<EsriMultiPoint<3>> {
-        let dim = if let Some(dim) = self.sfg_dim() {
-            dim
-        } else {
-            return None;
-        };
+        let dim = self.sfg_dim()?;
 
         let nrow = self.0.nrows();
 
@@ -103,11 +95,7 @@ impl AsEsriGeometry<3> for SfgMultiPoint {
 
 impl AsEsriGeometry<4> for SfgMultiPoint {
     fn as_multipoint(&self, sr: Option<SpatialReference>) -> Option<EsriMultiPoint<4>> {
-        let dim = if let Some(dim) = self.sfg_dim() {
-            dim
-        } else {
-            return None;
-        };
+        let dim = self.sfg_dim()?;
 
         let nrow = self.0.nrows();
 

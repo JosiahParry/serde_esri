@@ -174,7 +174,7 @@ pub fn sf_as_features_3d(attrs: List, geoms: List, n: i32, sr: Robj) -> String {
 
     let feats = attrs
         .into_iter()
-        .zip(geoms.into_iter())
+        .zip(geoms)
         .map(|(a, g)| Feature {
             geometry: g,
             attributes: Some(a),

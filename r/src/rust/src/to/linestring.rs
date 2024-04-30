@@ -4,11 +4,7 @@ use serde_esri::{geometry::*, spatial_reference::SpatialReference};
 
 impl AsEsriGeometry<2> for SfgLineString {
     fn as_polyline(&self, sr: Option<SpatialReference>) -> Option<EsriPolyline<2>> {
-        let dim = if let Some(dim) = self.sfg_dim() {
-            dim
-        } else {
-            return None;
-        };
+        let dim = self.sfg_dim()?;
 
         let nrow = self.0.nrows();
 
@@ -37,7 +33,7 @@ impl AsEsriGeometry<2> for SfgLineString {
                     spatialReference: sr,
                 };
 
-                return Some(res);
+                Some(res)
             }
             _ => None,
         }
@@ -46,11 +42,7 @@ impl AsEsriGeometry<2> for SfgLineString {
 
 impl AsEsriGeometry<3> for SfgLineString {
     fn as_polyline(&self, sr: Option<SpatialReference>) -> Option<EsriPolyline<3>> {
-        let dim = if let Some(dim) = self.sfg_dim() {
-            dim
-        } else {
-            return None;
-        };
+        let dim = self.sfg_dim()?;
 
         let nrow = self.0.nrows();
         let slice = self.0.as_real_slice().unwrap();
@@ -74,7 +66,7 @@ impl AsEsriGeometry<3> for SfgLineString {
                     spatialReference: sr,
                 };
 
-                return Some(res);
+                Some(res)
             }
             SfgDim::XYM => {
                 let mut points = Vec::with_capacity(nrow);
@@ -94,7 +86,7 @@ impl AsEsriGeometry<3> for SfgLineString {
                     spatialReference: sr,
                 };
 
-                return Some(res);
+                Some(res)
             }
             _ => None,
         }
@@ -103,11 +95,7 @@ impl AsEsriGeometry<3> for SfgLineString {
 
 impl AsEsriGeometry<4> for SfgLineString {
     fn as_polyline(&self, sr: Option<SpatialReference>) -> Option<EsriPolyline<4>> {
-        let dim = if let Some(dim) = self.sfg_dim() {
-            dim
-        } else {
-            return None;
-        };
+        let dim = self.sfg_dim()?;
 
         let nrow = self.0.nrows();
 
@@ -137,7 +125,7 @@ impl AsEsriGeometry<4> for SfgLineString {
                     spatialReference: sr,
                 };
 
-                return Some(res);
+                Some(res)
             }
             _ => None,
         }

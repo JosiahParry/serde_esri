@@ -5,11 +5,7 @@ use serde_esri::{geometry::*, spatial_reference::SpatialReference};
 
 impl AsEsriGeometry<2> for SfgPolygon {
     fn as_polygon(&self, sr: Option<SpatialReference>) -> Option<EsriPolygon<2>> {
-        let dim = if let Some(dim) = self.sfg_dim() {
-            dim
-        } else {
-            return None;
-        };
+        let dim = self.sfg_dim()?;
 
         let n_elements = self.0.len();
 
