@@ -7,7 +7,7 @@ use serde_esri::{
 use serde_json::Map;
 
 impl SfcMultiLineString {
-    pub fn as_features_2d(self) -> Result<Vec<Feature<2>>> {
+    pub fn as_features_2d(self, sr: Option<SpatialReference>) -> Result<Vec<Feature<2>>> {
         let lstrs = self
             .0
             .into_iter()
@@ -16,7 +16,7 @@ impl SfcMultiLineString {
                 let lstr_list = match lstr_list {
                     Ok(lstr_list) => {
                         let sfg = SfgMultiLineString(lstr_list);
-                        let lstr: Option<EsriPolyline<2>> = sfg.as_polyline();
+                        let lstr: Option<EsriPolyline<2>> = sfg.as_polyline(sr.clone());
                         lstr.unwrap()
                     }
                     Err(_) => EsriPolyline {
@@ -37,7 +37,7 @@ impl SfcMultiLineString {
         Ok(lstrs)
     }
 
-    pub fn as_features_3d(self) -> Result<Vec<Feature<3>>> {
+    pub fn as_features_3d(self, sr: Option<SpatialReference>) -> Result<Vec<Feature<3>>> {
         let lstrs = self
             .0
             .into_iter()
@@ -46,14 +46,14 @@ impl SfcMultiLineString {
                 let lstr_list = match lstr_list {
                     Ok(lstr_list) => {
                         let sfg = SfgMultiLineString(lstr_list);
-                        let lstr: Option<EsriPolyline<3>> = sfg.as_polyline();
+                        let lstr: Option<EsriPolyline<3>> = sfg.as_polyline(sr.clone());
                         lstr.unwrap()
                     }
                     Err(_) => EsriPolyline {
                         hasZ: Some(false),
                         hasM: Some(false),
                         paths: vec![],
-                        spatialReference: None,
+                        spatialReference: sr.clone(),
                     },
                 };
 
@@ -68,7 +68,7 @@ impl SfcMultiLineString {
     }
 
     pub fn as_featureset_2d(self, sr: Option<SpatialReference>) -> FeatureSet<2> {
-        let feats = self.as_features_2d().expect("Features to be created");
+        let feats = self.as_features_2d(None).expect("Features to be created");
         FeatureSet {
             objectIdFieldName: None,
             globalIdFieldName: None,
@@ -77,11 +77,13 @@ impl SfcMultiLineString {
             geometryType: Some("esriGeometryPolyline".into()),
             features: feats,
             fields: None,
+            hasM: None,
+            hasZ: None,
         }
     }
 
     pub fn as_featureset_3d(self, sr: Option<SpatialReference>) -> FeatureSet<3> {
-        let feats = self.as_features_3d().expect("Features to be created");
+        let feats = self.as_features_3d(None).expect("Features to be created");
         FeatureSet {
             objectIdFieldName: None,
             globalIdFieldName: None,
@@ -90,23 +92,35 @@ impl SfcMultiLineString {
             geometryType: Some("esriGeometryPolyline".into()),
             features: feats,
             fields: None,
+            // TODO parameterize this??
+            // how can we propagate the hasZ and M forward/
+            hasM: None,
+            hasZ: Some(true),
         }
     }
 }
 
 #[extendr]
-fn sfc_multilinestring_features_2d(x: List) -> String {
-    let res = SfcMultiLineString(x).as_features_2d().unwrap();
+/// @export
+/// @rdname features
+fn sfc_multilinestring_features_2d(x: List, sr: Robj) -> String {
+    let sr = deserialize_sr(&sr);
+    let res = SfcMultiLineString(x).as_features_2d(sr).unwrap();
     serde_json::to_string(&res).unwrap()
 }
 
 #[extendr]
-fn sfc_multilinestring_features_3d(x: List) -> String {
-    let res = SfcMultiLineString(x).as_features_3d().unwrap();
+/// @export
+/// @rdname features
+fn sfc_multilinestring_features_3d(x: List, sr: Robj) -> String {
+    let sr = deserialize_sr(&sr);
+    let res = SfcMultiLineString(x).as_features_3d(sr).unwrap();
     serde_json::to_string(&res).unwrap()
 }
 
 #[extendr]
+/// @export
+/// @rdname featureset
 fn sfc_multilinestring_featureset_2d(x: List, sr: Robj) -> String {
     let sfc = SfcMultiLineString(x);
     let crs = deserialize_sr(&sr);
@@ -115,6 +129,8 @@ fn sfc_multilinestring_featureset_2d(x: List, sr: Robj) -> String {
 }
 
 #[extendr]
+/// @export
+/// @rdname featureset
 fn sfc_multilinestring_featureset_3d(x: List, sr: Robj) -> String {
     let sfc = SfcMultiLineString(x);
     let crs = deserialize_sr(&sr);

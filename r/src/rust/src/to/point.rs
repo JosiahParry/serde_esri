@@ -1,9 +1,9 @@
 use crate::sfg::{Dim, SfgDim, SfgPoint};
 use extendr_api::prelude::*;
-use serde_esri::geometry::*;
+use serde_esri::{geometry::*, spatial_reference::SpatialReference};
 
 impl SfgPoint {
-    pub fn as_point(&self) -> Option<EsriPoint> {
+    pub fn as_point(&self, sr: Option<SpatialReference>) -> Option<EsriPoint> {
         let dim = if let Some(dim) = self.sfg_dim() {
             dim
         } else {
@@ -21,28 +21,28 @@ impl SfgPoint {
                 y: self.0.elt(1).inner(),
                 z: None,
                 m: None,
-                spatialReference: None,
+                spatialReference: sr,
             }),
             SfgDim::XYZ => Some(EsriPoint {
                 x: self.0.elt(0).inner(),
                 y: self.0.elt(1).inner(),
                 z: Some(self.0.elt(2).inner()),
                 m: None,
-                spatialReference: None,
+                spatialReference: sr,
             }),
             SfgDim::XYM => Some(EsriPoint {
                 x: self.0.elt(0).inner(),
                 y: self.0.elt(1).inner(),
                 z: None,
                 m: Some(self.0.elt(2).inner()),
-                spatialReference: None,
+                spatialReference: sr,
             }),
             SfgDim::XYZM => Some(EsriPoint {
                 x: self.0.elt(0).inner(),
                 y: self.0.elt(1).inner(),
                 z: Some(self.0.elt(2).inner()),
                 m: Some(self.0.elt(3).inner()),
-                spatialReference: None,
+                spatialReference: sr,
             }),
         }
     }

@@ -1,10 +1,9 @@
 use super::AsEsriGeometry;
 use crate::sfg::{Dim, SfgDim, SfgMultiPoint};
-use serde_esri::geometry::*;
-
+use serde_esri::{geometry::*, spatial_reference::SpatialReference};
 
 impl AsEsriGeometry<2> for SfgMultiPoint {
-    fn as_multipoint(&self) -> Option<EsriMultiPoint<2>> {
+    fn as_multipoint(&self, sr: Option<SpatialReference>) -> Option<EsriMultiPoint<2>> {
         let dim = if let Some(dim) = self.sfg_dim() {
             dim
         } else {
@@ -33,7 +32,7 @@ impl AsEsriGeometry<2> for SfgMultiPoint {
                     hasZ: Some(false),
                     hasM: Some(false),
                     points: points,
-                    spatialReference: None,
+                    spatialReference: sr,
                 };
 
                 return Some(res);
@@ -46,7 +45,7 @@ impl AsEsriGeometry<2> for SfgMultiPoint {
 }
 
 impl AsEsriGeometry<3> for SfgMultiPoint {
-    fn as_multipoint(&self) -> Option<EsriMultiPoint<3>> {
+    fn as_multipoint(&self, sr: Option<SpatialReference>) -> Option<EsriMultiPoint<3>> {
         let dim = if let Some(dim) = self.sfg_dim() {
             dim
         } else {
@@ -73,7 +72,7 @@ impl AsEsriGeometry<3> for SfgMultiPoint {
                     hasZ: Some(true),
                     hasM: Some(false),
                     points: points,
-                    spatialReference: None,
+                    spatialReference: sr,
                 };
 
                 Some(res)
@@ -92,7 +91,7 @@ impl AsEsriGeometry<3> for SfgMultiPoint {
                     hasZ: Some(false),
                     hasM: Some(true),
                     points: points,
-                    spatialReference: None,
+                    spatialReference: sr,
                 };
 
                 Some(res)
@@ -103,7 +102,7 @@ impl AsEsriGeometry<3> for SfgMultiPoint {
 }
 
 impl AsEsriGeometry<4> for SfgMultiPoint {
-    fn as_multipoint(&self) -> Option<EsriMultiPoint<4>> {
+    fn as_multipoint(&self, sr: Option<SpatialReference>) -> Option<EsriMultiPoint<4>> {
         let dim = if let Some(dim) = self.sfg_dim() {
             dim
         } else {
@@ -133,7 +132,7 @@ impl AsEsriGeometry<4> for SfgMultiPoint {
                     hasZ: Some(true),
                     hasM: Some(true),
                     points: points,
-                    spatialReference: None,
+                    spatialReference: sr,
                 };
 
                 Some(res)

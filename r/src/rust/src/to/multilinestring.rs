@@ -1,10 +1,10 @@
 use super::AsEsriGeometry;
 use crate::sfg::{Dim, SfgDim, SfgMultiLineString};
 use extendr_api::prelude::*;
-use serde_esri::geometry::*;
+use serde_esri::{geometry::*, spatial_reference::SpatialReference};
 
 impl AsEsriGeometry<2> for SfgMultiLineString {
-    fn as_polyline(&self) -> Option<EsriPolyline<2>> {
+    fn as_polyline(&self, sr: Option<SpatialReference>) -> Option<EsriPolyline<2>> {
         let dim = if let Some(dim) = self.sfg_dim() {
             dim
         } else {
@@ -51,7 +51,7 @@ impl AsEsriGeometry<2> for SfgMultiLineString {
                     hasZ: Some(false),
                     hasM: Some(false),
                     paths: linestrings,
-                    spatialReference: None,
+                    spatialReference: sr,
                 };
 
                 Some(res)
@@ -62,7 +62,7 @@ impl AsEsriGeometry<2> for SfgMultiLineString {
 }
 
 impl AsEsriGeometry<3> for SfgMultiLineString {
-    fn as_polyline(&self) -> Option<EsriPolyline<3>> {
+    fn as_polyline(&self, sr: Option<SpatialReference>) -> Option<EsriPolyline<3>> {
         let dim = if let Some(dim) = self.sfg_dim() {
             dim
         } else {
@@ -110,7 +110,7 @@ impl AsEsriGeometry<3> for SfgMultiLineString {
                     hasZ: Some(true),
                     hasM: Some(false),
                     paths: linestrings,
-                    spatialReference: None,
+                    spatialReference: sr,
                 };
 
                 Some(res)
@@ -148,7 +148,7 @@ impl AsEsriGeometry<3> for SfgMultiLineString {
                     hasZ: Some(false),
                     hasM: Some(true),
                     paths: linestrings,
-                    spatialReference: None,
+                    spatialReference: sr,
                 };
 
                 Some(res)
@@ -159,7 +159,7 @@ impl AsEsriGeometry<3> for SfgMultiLineString {
 }
 
 impl AsEsriGeometry<4> for SfgMultiLineString {
-    fn as_polyline(&self) -> Option<EsriPolyline<4>> {
+    fn as_polyline(&self, sr: Option<SpatialReference>) -> Option<EsriPolyline<4>> {
         let dim = if let Some(dim) = self.sfg_dim() {
             dim
         } else {
@@ -208,7 +208,7 @@ impl AsEsriGeometry<4> for SfgMultiLineString {
                     hasZ: Some(true),
                     hasM: Some(true),
                     paths: linestrings,
-                    spatialReference: None,
+                    spatialReference: sr,
                 };
 
                 Some(res)

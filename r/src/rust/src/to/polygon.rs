@@ -1,10 +1,10 @@
 use super::AsEsriGeometry;
 use crate::sfg::{Dim, SfgDim, SfgPolygon};
 use extendr_api::prelude::*;
-use serde_esri::geometry::*;
+use serde_esri::{geometry::*, spatial_reference::SpatialReference};
 
 impl AsEsriGeometry<2> for SfgPolygon {
-    fn as_polygon(&self) -> Option<EsriPolygon<2>> {
+    fn as_polygon(&self, sr: Option<SpatialReference>) -> Option<EsriPolygon<2>> {
         let dim = if let Some(dim) = self.sfg_dim() {
             dim
         } else {
@@ -51,7 +51,7 @@ impl AsEsriGeometry<2> for SfgPolygon {
                     hasZ: Some(false),
                     hasM: Some(false),
                     rings: linestrings,
-                    spatialReference: None,
+                    spatialReference: sr,
                 };
 
                 Some(res)
@@ -62,7 +62,7 @@ impl AsEsriGeometry<2> for SfgPolygon {
 }
 
 impl AsEsriGeometry<3> for SfgPolygon {
-    fn as_polygon(&self) -> Option<EsriPolygon<3>> {
+    fn as_polygon(&self, sr: Option<SpatialReference>) -> Option<EsriPolygon<3>> {
         let dim = if let Some(dim) = self.sfg_dim() {
             dim
         } else {
@@ -110,7 +110,7 @@ impl AsEsriGeometry<3> for SfgPolygon {
                     hasZ: Some(true),
                     hasM: Some(false),
                     rings: linestrings,
-                    spatialReference: None,
+                    spatialReference: sr,
                 };
 
                 Some(res)
@@ -148,7 +148,7 @@ impl AsEsriGeometry<3> for SfgPolygon {
                     hasZ: Some(false),
                     hasM: Some(true),
                     rings: linestrings,
-                    spatialReference: None,
+                    spatialReference: sr,
                 };
 
                 Some(res)
@@ -159,7 +159,7 @@ impl AsEsriGeometry<3> for SfgPolygon {
 }
 
 impl AsEsriGeometry<4> for SfgPolygon {
-    fn as_polygon(&self) -> Option<EsriPolygon<4>> {
+    fn as_polygon(&self, sr: Option<SpatialReference>) -> Option<EsriPolygon<4>> {
         let dim = if let Some(dim) = self.sfg_dim() {
             dim
         } else {
@@ -208,7 +208,7 @@ impl AsEsriGeometry<4> for SfgPolygon {
                     hasZ: Some(true),
                     hasM: Some(true),
                     rings: linestrings,
-                    spatialReference: None,
+                    spatialReference: sr,
                 };
 
                 Some(res)

@@ -7,7 +7,7 @@ use serde_esri::{
 use serde_json::Map;
 
 impl SfcMultiPolygon {
-    pub fn as_features_2d(self) -> Result<Vec<Feature<2>>> {
+    pub fn as_features_2d(self, sr: Option<SpatialReference>) -> Result<Vec<Feature<2>>> {
         let lstrs = self
             .0
             .into_iter()
@@ -16,7 +16,7 @@ impl SfcMultiPolygon {
                 let lstr_list = match lstr_list {
                     Ok(lstr_list) => {
                         let sfg = SfgMultiPolygon(lstr_list);
-                        let lstr: Option<EsriPolygon<2>> = sfg.as_polygon();
+                        let lstr: Option<EsriPolygon<2>> = sfg.as_polygon(sr.clone());
                         lstr.unwrap()
                     }
                     Err(_) => EsriPolygon {
@@ -37,7 +37,7 @@ impl SfcMultiPolygon {
         Ok(lstrs)
     }
 
-    pub fn as_features_3d(self) -> Result<Vec<Feature<3>>> {
+    pub fn as_features_3d(self, sr: Option<SpatialReference>) -> Result<Vec<Feature<3>>> {
         let lstrs = self
             .0
             .into_iter()
@@ -46,7 +46,7 @@ impl SfcMultiPolygon {
                 let lstr_list = match lstr_list {
                     Ok(lstr_list) => {
                         let sfg = SfgMultiPolygon(lstr_list);
-                        let lstr: Option<EsriPolygon<3>> = sfg.as_polygon();
+                        let lstr: Option<EsriPolygon<3>> = sfg.as_polygon(sr);
                         lstr.unwrap()
                     }
                     Err(_) => EsriPolygon {
@@ -68,7 +68,7 @@ impl SfcMultiPolygon {
     }
 
     pub fn as_featureset_2d(self, sr: Option<SpatialReference>) -> FeatureSet<2> {
-        let feats = self.as_features_2d().expect("Features to be created");
+        let feats = self.as_features_2d(None).expect("Features to be created");
         FeatureSet {
             objectIdFieldName: None,
             globalIdFieldName: None,
@@ -77,11 +77,15 @@ impl SfcMultiPolygon {
             geometryType: Some("esriGeometryPolygon".into()),
             features: feats,
             fields: None,
+            // TODO parameterize this??
+            // how can we propagate the hasZ and M forward/
+            hasM: None,
+            hasZ: None,
         }
     }
 
     pub fn as_featureset_3d(self, sr: Option<SpatialReference>) -> FeatureSet<3> {
-        let feats = self.as_features_3d().expect("Features to be created");
+        let feats = self.as_features_3d(None).expect("Features to be created");
         FeatureSet {
             objectIdFieldName: None,
             globalIdFieldName: None,
@@ -90,23 +94,35 @@ impl SfcMultiPolygon {
             geometryType: Some("esriGeometryPolygon".into()),
             features: feats,
             fields: None,
+            // TODO parameterize this??
+            // how can we propagate the hasZ and M forward/
+            hasM: None,
+            hasZ: Some(true),
         }
     }
 }
 
 #[extendr]
-fn sfc_multipolygon_features_2d(x: List) -> String {
-    let res = SfcMultiPolygon(x).as_features_2d().unwrap();
+/// @export
+/// @rdname features
+fn sfc_multipolygon_features_2d(x: List, sr: Robj) -> String {
+    let sr = deserialize_sr(&sr);
+    let res = SfcMultiPolygon(x).as_features_2d(sr).unwrap();
     serde_json::to_string(&res).unwrap()
 }
 
 #[extendr]
-fn sfc_multipolygon_features_3d(x: List) -> String {
-    let res = SfcMultiPolygon(x).as_features_3d().unwrap();
+/// @export
+/// @rdname features
+fn sfc_multipolygon_features_3d(x: List, sr: Robj) -> String {
+    let sr = deserialize_sr(&sr);
+    let res = SfcMultiPolygon(x).as_features_3d(sr).unwrap();
     serde_json::to_string(&res).unwrap()
 }
 
 #[extendr]
+/// @export
+/// @rdname featureset
 fn sfc_multipolygon_featureset_2d(x: List, sr: Robj) -> String {
     let sfc = SfcMultiPolygon(x);
     let crs = deserialize_sr(&sr);
@@ -115,6 +131,8 @@ fn sfc_multipolygon_featureset_2d(x: List, sr: Robj) -> String {
 }
 
 #[extendr]
+/// @export
+/// @rdname featureset
 fn sfc_multipolygon_featureset_3d(x: List, sr: Robj) -> String {
     let sfc = SfcMultiPolygon(x);
     let crs = deserialize_sr(&sr);

@@ -1,9 +1,9 @@
 use super::AsEsriGeometry;
 use crate::sfg::{Dim, SfgDim, SfgLineString};
-use serde_esri::geometry::*;
+use serde_esri::{geometry::*, spatial_reference::SpatialReference};
 
 impl AsEsriGeometry<2> for SfgLineString {
-    fn as_polyline(&self) -> Option<EsriPolyline<2>> {
+    fn as_polyline(&self, sr: Option<SpatialReference>) -> Option<EsriPolyline<2>> {
         let dim = if let Some(dim) = self.sfg_dim() {
             dim
         } else {
@@ -34,7 +34,7 @@ impl AsEsriGeometry<2> for SfgLineString {
                     hasZ: Some(false),
                     hasM: Some(false),
                     paths: vec![linestring],
-                    spatialReference: None,
+                    spatialReference: sr,
                 };
 
                 return Some(res);
@@ -45,7 +45,7 @@ impl AsEsriGeometry<2> for SfgLineString {
 }
 
 impl AsEsriGeometry<3> for SfgLineString {
-    fn as_polyline(&self) -> Option<EsriPolyline<3>> {
+    fn as_polyline(&self, sr: Option<SpatialReference>) -> Option<EsriPolyline<3>> {
         let dim = if let Some(dim) = self.sfg_dim() {
             dim
         } else {
@@ -71,7 +71,7 @@ impl AsEsriGeometry<3> for SfgLineString {
                     hasZ: Some(true),
                     hasM: Some(false),
                     paths: vec![linestring],
-                    spatialReference: None,
+                    spatialReference: sr,
                 };
 
                 return Some(res);
@@ -91,7 +91,7 @@ impl AsEsriGeometry<3> for SfgLineString {
                     hasZ: Some(false),
                     hasM: Some(true),
                     paths: vec![linestring],
-                    spatialReference: None,
+                    spatialReference: sr,
                 };
 
                 return Some(res);
@@ -102,7 +102,7 @@ impl AsEsriGeometry<3> for SfgLineString {
 }
 
 impl AsEsriGeometry<4> for SfgLineString {
-    fn as_polyline(&self) -> Option<EsriPolyline<4>> {
+    fn as_polyline(&self, sr: Option<SpatialReference>) -> Option<EsriPolyline<4>> {
         let dim = if let Some(dim) = self.sfg_dim() {
             dim
         } else {
@@ -134,7 +134,7 @@ impl AsEsriGeometry<4> for SfgLineString {
                     hasZ: Some(true),
                     hasM: Some(true),
                     paths: vec![linestring],
-                    spatialReference: None,
+                    spatialReference: sr,
                 };
 
                 return Some(res);

@@ -11,67 +11,144 @@
 #' @useDynLib serdesri, .registration = TRUE
 NULL
 
-as_multipoint <- function(x) .Call(wrap__as_multipoint, x)
+#' @export
+#' @rdname geometries
+sfg_point_as_point <- function(x) .Call(wrap__sfg_point_as_point, x)
 
-as_point <- function(x) .Call(wrap__as_point, x)
+#' Convert sfg geometries to EsriJSON strings
+#'
+#' @param x an sfg object
+#' @export
+#' @rdname geometries
+sfg_multipoint_as_multipoint <- function(x) .Call(wrap__sfg_multipoint_as_multipoint, x)
 
-as_linestring_polyline <- function(x) .Call(wrap__as_linestring_polyline, x)
+#' @export
+#' @rdname geometries
+sfg_linestring_as_polyline <- function(x) .Call(wrap__sfg_linestring_as_polyline, x)
 
-as_polyline <- function(x) .Call(wrap__as_polyline, x)
+#' @export
+#' @rdname geometries
+sfg_multilinestring_as_polyline <- function(x) .Call(wrap__sfg_multilinestring_as_polyline, x)
 
-as_poly_polygon <- function(x) .Call(wrap__as_poly_polygon, x)
+#' @export
+#' @rdname geometries
+sfg_polygon_as_polygon <- function(x) .Call(wrap__sfg_polygon_as_polygon, x)
 
-as_polygon <- function(x) .Call(wrap__as_polygon, x)
+#' @export
+#' @rdname geometries
+sfg_multipolygon_as_polygon <- function(x) .Call(wrap__sfg_multipolygon_as_polygon, x)
 
-as_attribute <- function(x, n) invisible(.Call(wrap__as_attribute, x, n))
-
+#' Create an EsriJSON feature array
+#' @param an sfc geometry vector
+#' @export
+#' @rdname features
 sfc_linestring_features_2d <- function(x) .Call(wrap__sfc_linestring_features_2d, x)
 
+#' @export
+#' @rdname features
 sfc_linestring_features_3d <- function(x) .Call(wrap__sfc_linestring_features_3d, x)
 
+#' @export
+#' @rdname featureset
 sfc_linestring_featureset_2d <- function(x, sr) .Call(wrap__sfc_linestring_featureset_2d, x, sr)
 
+#' @export
+#' @rdname featureset
 sfc_linestring_featureset_3d <- function(x, sr) .Call(wrap__sfc_linestring_featureset_3d, x, sr)
 
+#' @export
+#' @rdname features
 sfc_multilinestring_features_2d <- function(x) .Call(wrap__sfc_multilinestring_features_2d, x)
 
+#' @export
+#' @rdname features
 sfc_multilinestring_features_3d <- function(x) .Call(wrap__sfc_multilinestring_features_3d, x)
 
+#' @export
+#' @rdname featureset
 sfc_multilinestring_featureset_2d <- function(x, sr) .Call(wrap__sfc_multilinestring_featureset_2d, x, sr)
 
+#' @export
+#' @rdname featureset
 sfc_multilinestring_featureset_3d <- function(x, sr) .Call(wrap__sfc_multilinestring_featureset_3d, x, sr)
 
+#' @export
+#' @rdname features
 sfc_multipoint_features_2d <- function(x) .Call(wrap__sfc_multipoint_features_2d, x)
 
+#' @export
+#' @rdname features
 sfc_multipoint_features_3d <- function(x) .Call(wrap__sfc_multipoint_features_3d, x)
 
+#' @export
+#' @rdname featureset
 sfc_multipoint_featureset_2d <- function(x, sr) .Call(wrap__sfc_multipoint_featureset_2d, x, sr)
 
+#' @export
+#' @rdname featureset
 sfc_multipoint_featureset_3d <- function(x, sr) .Call(wrap__sfc_multipoint_featureset_3d, x, sr)
 
+#' @export
+#' @rdname features
 sfc_multipolygon_features_2d <- function(x) .Call(wrap__sfc_multipolygon_features_2d, x)
 
+#' @export
+#' @rdname features
 sfc_multipolygon_features_3d <- function(x) .Call(wrap__sfc_multipolygon_features_3d, x)
 
+#' @export
+#' @rdname featureset
 sfc_multipolygon_featureset_2d <- function(x, sr) .Call(wrap__sfc_multipolygon_featureset_2d, x, sr)
 
+#' @export
+#' @rdname featureset
 sfc_multipolygon_featureset_3d <- function(x, sr) .Call(wrap__sfc_multipolygon_featureset_3d, x, sr)
 
+#' @export
+#' @rdname features
 sfc_point_features_2d <- function(x) .Call(wrap__sfc_point_features_2d, x)
 
+#' @export
+#' @rdname features
 sfc_point_features_3d <- function(x) .Call(wrap__sfc_point_features_3d, x)
 
+#' @export
+#' @rdname featureset
 sfc_point_featureset_2d <- function(x, sr) .Call(wrap__sfc_point_featureset_2d, x, sr)
 
+#' @export
+#' @rdname featureset
 sfc_point_featureset_3d <- function(x, sr) .Call(wrap__sfc_point_featureset_3d, x, sr)
 
+#' @export
+#' @rdname features
 sfc_polygon_features_2d <- function(x) .Call(wrap__sfc_polygon_features_2d, x)
 
+#' @export
+#' @rdname features
 sfc_polygon_features_3d <- function(x) .Call(wrap__sfc_polygon_features_3d, x)
 
+#' @export
+#' @rdname featureset
 sfc_polygon_featureset_2d <- function(x, sr) .Call(wrap__sfc_polygon_featureset_2d, x, sr)
 
+#' @export
+#' @rdname featureset
 sfc_polygon_featureset_3d <- function(x, sr) .Call(wrap__sfc_polygon_featureset_3d, x, sr)
+
+#' Create a `FeatureSet` with 2-dimensional geometries
+#' @param attrs a data.frame of columns that define the attributes
+#' @param geoms an sfc geometry column
+#' @param n the number of rows in `attrs`, if geometry is provided, must have as many elements as `n`
+#' @param sr a list representing the spatial reference e.g. `list(wkid = 3857)`
+#' @export
+#' @rdname featureset
+as_featureset_2d <- function(attrs, geoms, n, sr) .Call(wrap__as_featureset_2d, attrs, geoms, n, sr)
+
+#' @export
+#' @rdname featureset
+#' @param has_z bool. Whether Z or M geometries are provided. When `has_z = FALSE`, the attribute `hasM = true`
+as_featureset_3d <- function(attrs, geoms, n, sr, has_z) .Call(wrap__as_featureset_3d, attrs, geoms, n, sr, has_z)
 
 
 # nolint end

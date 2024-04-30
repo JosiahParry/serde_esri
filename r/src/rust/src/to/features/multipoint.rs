@@ -9,7 +9,7 @@ use serde_esri::{
 use serde_json::Map;
 
 impl SfcMultiPoint {
-    pub fn as_features_2d(self) -> Result<Vec<Feature<2>>> {
+    pub fn as_features_2d(self, sr: Option<SpatialReference>) -> Result<Vec<Feature<2>>> {
         let mpnts = self
             .0
             .into_iter()
@@ -18,7 +18,7 @@ impl SfcMultiPoint {
                 let pnt_mat = match pnt_mat {
                     Ok(pnt_mat) => {
                         let sfg = SfgMultiPoint(pnt_mat);
-                        let mpnt: Option<EsriMultiPoint<2>> = sfg.as_multipoint();
+                        let mpnt: Option<EsriMultiPoint<2>> = sfg.as_multipoint(sr.clone());
                         mpnt.unwrap()
                     }
                     Err(_) => EsriMultiPoint {
@@ -39,7 +39,7 @@ impl SfcMultiPoint {
         Ok(mpnts)
     }
 
-    pub fn as_features_3d(self) -> Result<Vec<Feature<3>>> {
+    pub fn as_features_3d(self, sr: Option<SpatialReference>) -> Result<Vec<Feature<3>>> {
         let mpnts = self
             .0
             .into_iter()
@@ -48,7 +48,7 @@ impl SfcMultiPoint {
                 let pnt_mat = match pnt_mat {
                     Ok(pnt_mat) => {
                         let sfg = SfgMultiPoint(pnt_mat);
-                        let mpnt: Option<EsriMultiPoint<3>> = sfg.as_multipoint();
+                        let mpnt: Option<EsriMultiPoint<3>> = sfg.as_multipoint(sr.clone());
                         mpnt.unwrap()
                     }
                     Err(_) => EsriMultiPoint {
@@ -71,7 +71,7 @@ impl SfcMultiPoint {
 
     // TODO: Implement as_features_4d but not supported in sf
     pub fn as_featureset_2d(self, sr: Option<SpatialReference>) -> FeatureSet<2> {
-        let feats = self.as_features_2d().expect("Features to be created");
+        let feats = self.as_features_2d(None).expect("Features to be created");
         FeatureSet {
             objectIdFieldName: None,
             globalIdFieldName: None,
@@ -80,11 +80,13 @@ impl SfcMultiPoint {
             geometryType: Some("esriGeometryMultiPoint".into()),
             features: feats,
             fields: None,
+            hasM: None,
+            hasZ: None,
         }
     }
 
     pub fn as_featureset_3d(self, sr: Option<SpatialReference>) -> FeatureSet<3> {
-        let feats = self.as_features_3d().expect("Features to be created");
+        let feats = self.as_features_3d(None).expect("Features to be created");
         FeatureSet {
             objectIdFieldName: None,
             globalIdFieldName: None,
@@ -93,23 +95,35 @@ impl SfcMultiPoint {
             geometryType: Some("esriGeometryMultiPoint".into()),
             features: feats,
             fields: None,
+            // TODO parameterize this??
+            // how can we propagate the hasZ and M forward/
+            hasM: None,
+            hasZ: Some(true),
         }
     }
 }
 
 #[extendr]
-fn sfc_multipoint_features_2d(x: List) -> String {
-    let res = SfcMultiPoint(x).as_features_2d().unwrap();
+/// @export
+/// @rdname features
+fn sfc_multipoint_features_2d(x: List, sr: Robj) -> String {
+    let sr = deserialize_sr(&sr);
+    let res = SfcMultiPoint(x).as_features_2d(sr).unwrap();
     serde_json::to_string(&res).unwrap()
 }
 
 #[extendr]
-fn sfc_multipoint_features_3d(x: List) -> String {
-    let res = SfcMultiPoint(x).as_features_3d().unwrap();
+/// @export
+/// @rdname features
+fn sfc_multipoint_features_3d(x: List, sr: Robj) -> String {
+    let sr = deserialize_sr(&sr);
+    let res = SfcMultiPoint(x).as_features_3d(sr).unwrap();
     serde_json::to_string(&res).unwrap()
 }
 
 #[extendr]
+/// @export
+/// @rdname featureset
 fn sfc_multipoint_featureset_2d(x: List, sr: Robj) -> String {
     let sfc = SfcMultiPoint(x);
     let crs = deserialize_sr(&sr);
@@ -118,6 +132,8 @@ fn sfc_multipoint_featureset_2d(x: List, sr: Robj) -> String {
 }
 
 #[extendr]
+/// @export
+/// @rdname featureset
 fn sfc_multipoint_featureset_3d(x: List, sr: Robj) -> String {
     let sfc = SfcMultiPoint(x);
     let crs = deserialize_sr(&sr);

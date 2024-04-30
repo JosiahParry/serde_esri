@@ -10,14 +10,17 @@ use serde_json::Map;
 
 impl SfcPoint {
     /// Consume an SfcPoint to return a vector of Fetaures
-    pub fn as_features<const N: usize>(self) -> Result<Vec<Feature<N>>> {
+    pub fn as_features<const N: usize>(
+        self,
+        sr: Option<SpatialReference>,
+    ) -> Result<Vec<Feature<N>>> {
         let feats = self
             .0
             .into_iter()
             .map(|(_, feat)| {
                 let inner = Doubles::try_from(feat).expect("doubles vector");
                 let geom = SfgPoint(inner)
-                    .as_point()
+                    .as_point(sr.clone())
                     .expect("correct length of doubles vector");
 
                 Feature {
@@ -32,7 +35,9 @@ impl SfcPoint {
     /// A spatial reference should be created and passed in from the `crs` attribute
     /// of the sfc object. For points, it is safe to ignore the `<N>` constant, I believe.
     pub fn as_featureset<const N: usize>(self, sr: Option<SpatialReference>) -> FeatureSet<N> {
-        let feats = self.as_features().expect("Features to be created");
+        let feats = self.as_features(None).expect("Features to be created");
+        let z = Some(N >= 3);
+        let m = Some(N == 4);
         FeatureSet {
             objectIdFieldName: None,
             globalIdFieldName: None,
@@ -41,26 +46,37 @@ impl SfcPoint {
             geometryType: Some("esriGeometryPoint".into()),
             features: feats,
             fields: None,
+            // TODO parameterize this??
+            // Because
+            hasM: m,
+            hasZ: z,
         }
     }
 }
 
 #[extendr]
-fn sfc_point_features_2d(x: List) -> String {
+/// @export
+/// @rdname features
+fn sfc_point_features_2d(x: List, sr: Robj) -> String {
+    let sr = deserialize_sr(&sr);
     let sfc = SfcPoint(x);
-    let features = sfc.as_features::<2>().unwrap();
+    let features = sfc.as_features::<2>(sr).unwrap();
     serde_json::to_string(&features).unwrap()
 }
 
 #[extendr]
-fn sfc_point_features_3d(x: List) -> String {
+/// @export
+/// @rdname features
+fn sfc_point_features_3d(x: List, sr: Robj) -> String {
+    let sr = deserialize_sr(&sr);
     let sfc = SfcPoint(x);
-    let features = sfc.as_features::<3>().unwrap();
+    let features = sfc.as_features::<3>(sr).unwrap();
     serde_json::to_string(&features).unwrap()
 }
 
 #[extendr]
-// TODO Handle CRS
+/// @export
+/// @rdname featureset
 fn sfc_point_featureset_2d(x: List, sr: Robj) -> String {
     let sfc = SfcPoint(x);
     // This should be part of the R library
@@ -70,7 +86,8 @@ fn sfc_point_featureset_2d(x: List, sr: Robj) -> String {
 }
 
 #[extendr]
-// TODO Handle CRS
+/// @export
+/// @rdname featureset
 fn sfc_point_featureset_3d(x: List, sr: Robj) -> String {
     let sfc = SfcPoint(x);
     let crs = deserialize_sr(&sr);

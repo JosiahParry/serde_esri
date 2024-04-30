@@ -14,7 +14,7 @@ st_point(c(1, 2, 3, 4)) |> as_point()
 m <- matrix(c(as.double(1:10)), ncol = 2)
 
 st_linestring(m) |>
-  as_linestring_polyline()
+  sfg_linestring_as_polyline()
 
 st_linestring(m, dim = "XYZ") |>
   as_linestring_polyline()
