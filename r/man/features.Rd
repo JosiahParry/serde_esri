@@ -15,29 +15,29 @@
 \alias{sfc_polygon_features_3d}
 \title{Create an EsriJSON feature array}
 \usage{
-sfc_linestring_features_2d(x)
+sfc_linestring_features_2d(x, sr)
 
-sfc_linestring_features_3d(x)
+sfc_linestring_features_3d(x, sr)
 
-sfc_multilinestring_features_2d(x)
+sfc_multilinestring_features_2d(x, sr)
 
-sfc_multilinestring_features_3d(x)
+sfc_multilinestring_features_3d(x, sr)
 
-sfc_multipoint_features_2d(x)
+sfc_multipoint_features_2d(x, sr)
 
-sfc_multipoint_features_3d(x)
+sfc_multipoint_features_3d(x, sr)
 
-sfc_multipolygon_features_2d(x)
+sfc_multipolygon_features_2d(x, sr)
 
-sfc_multipolygon_features_3d(x)
+sfc_multipolygon_features_3d(x, sr)
 
-sfc_point_features_2d(x)
+sfc_point_features_2d(x, sr)
 
-sfc_point_features_3d(x)
+sfc_point_features_3d(x, sr)
 
-sfc_polygon_features_2d(x)
+sfc_polygon_features_2d(x, sr)
 
-sfc_polygon_features_3d(x)
+sfc_polygon_features_3d(x, sr)
 }
 \arguments{
 \item{an}{sfc geometry vector}

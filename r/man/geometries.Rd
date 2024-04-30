@@ -9,17 +9,17 @@
 \alias{sfg_multipolygon_as_polygon}
 \title{Convert sfg geometries to EsriJSON strings}
 \usage{
-sfg_point_as_point(x)
+sfg_point_as_point(x, sr)
 
-sfg_multipoint_as_multipoint(x)
+sfg_multipoint_as_multipoint(x, sr)
 
-sfg_linestring_as_polyline(x)
+sfg_linestring_as_polyline(x, sr)
 
-sfg_multilinestring_as_polyline(x)
+sfg_multilinestring_as_polyline(x, sr)
 
-sfg_polygon_as_polygon(x)
+sfg_polygon_as_polygon(x, sr)
 
-sfg_multipolygon_as_polygon(x)
+sfg_multipolygon_as_polygon(x, sr)
 }
 \arguments{
 \item{x}{an sfg object}

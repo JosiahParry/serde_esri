@@ -13,40 +13,40 @@ NULL
 
 #' @export
 #' @rdname geometries
-sfg_point_as_point <- function(x) .Call(wrap__sfg_point_as_point, x)
+sfg_point_as_point <- function(x, sr) .Call(wrap__sfg_point_as_point, x, sr)
 
 #' Convert sfg geometries to EsriJSON strings
 #'
 #' @param x an sfg object
 #' @export
 #' @rdname geometries
-sfg_multipoint_as_multipoint <- function(x) .Call(wrap__sfg_multipoint_as_multipoint, x)
+sfg_multipoint_as_multipoint <- function(x, sr) .Call(wrap__sfg_multipoint_as_multipoint, x, sr)
 
 #' @export
 #' @rdname geometries
-sfg_linestring_as_polyline <- function(x) .Call(wrap__sfg_linestring_as_polyline, x)
+sfg_linestring_as_polyline <- function(x, sr) .Call(wrap__sfg_linestring_as_polyline, x, sr)
 
 #' @export
 #' @rdname geometries
-sfg_multilinestring_as_polyline <- function(x) .Call(wrap__sfg_multilinestring_as_polyline, x)
+sfg_multilinestring_as_polyline <- function(x, sr) .Call(wrap__sfg_multilinestring_as_polyline, x, sr)
 
 #' @export
 #' @rdname geometries
-sfg_polygon_as_polygon <- function(x) .Call(wrap__sfg_polygon_as_polygon, x)
+sfg_polygon_as_polygon <- function(x, sr) .Call(wrap__sfg_polygon_as_polygon, x, sr)
 
 #' @export
 #' @rdname geometries
-sfg_multipolygon_as_polygon <- function(x) .Call(wrap__sfg_multipolygon_as_polygon, x)
+sfg_multipolygon_as_polygon <- function(x, sr) .Call(wrap__sfg_multipolygon_as_polygon, x, sr)
 
 #' Create an EsriJSON feature array
 #' @param an sfc geometry vector
 #' @export
 #' @rdname features
-sfc_linestring_features_2d <- function(x) .Call(wrap__sfc_linestring_features_2d, x)
+sfc_linestring_features_2d <- function(x, sr) .Call(wrap__sfc_linestring_features_2d, x, sr)
 
 #' @export
 #' @rdname features
-sfc_linestring_features_3d <- function(x) .Call(wrap__sfc_linestring_features_3d, x)
+sfc_linestring_features_3d <- function(x, sr) .Call(wrap__sfc_linestring_features_3d, x, sr)
 
 #' @export
 #' @rdname featureset
@@ -58,11 +58,11 @@ sfc_linestring_featureset_3d <- function(x, sr) .Call(wrap__sfc_linestring_featu
 
 #' @export
 #' @rdname features
-sfc_multilinestring_features_2d <- function(x) .Call(wrap__sfc_multilinestring_features_2d, x)
+sfc_multilinestring_features_2d <- function(x, sr) .Call(wrap__sfc_multilinestring_features_2d, x, sr)
 
 #' @export
 #' @rdname features
-sfc_multilinestring_features_3d <- function(x) .Call(wrap__sfc_multilinestring_features_3d, x)
+sfc_multilinestring_features_3d <- function(x, sr) .Call(wrap__sfc_multilinestring_features_3d, x, sr)
 
 #' @export
 #' @rdname featureset
@@ -74,11 +74,11 @@ sfc_multilinestring_featureset_3d <- function(x, sr) .Call(wrap__sfc_multilinest
 
 #' @export
 #' @rdname features
-sfc_multipoint_features_2d <- function(x) .Call(wrap__sfc_multipoint_features_2d, x)
+sfc_multipoint_features_2d <- function(x, sr) .Call(wrap__sfc_multipoint_features_2d, x, sr)
 
 #' @export
 #' @rdname features
-sfc_multipoint_features_3d <- function(x) .Call(wrap__sfc_multipoint_features_3d, x)
+sfc_multipoint_features_3d <- function(x, sr) .Call(wrap__sfc_multipoint_features_3d, x, sr)
 
 #' @export
 #' @rdname featureset
@@ -90,11 +90,11 @@ sfc_multipoint_featureset_3d <- function(x, sr) .Call(wrap__sfc_multipoint_featu
 
 #' @export
 #' @rdname features
-sfc_multipolygon_features_2d <- function(x) .Call(wrap__sfc_multipolygon_features_2d, x)
+sfc_multipolygon_features_2d <- function(x, sr) .Call(wrap__sfc_multipolygon_features_2d, x, sr)
 
 #' @export
 #' @rdname features
-sfc_multipolygon_features_3d <- function(x) .Call(wrap__sfc_multipolygon_features_3d, x)
+sfc_multipolygon_features_3d <- function(x, sr) .Call(wrap__sfc_multipolygon_features_3d, x, sr)
 
 #' @export
 #' @rdname featureset
@@ -106,11 +106,11 @@ sfc_multipolygon_featureset_3d <- function(x, sr) .Call(wrap__sfc_multipolygon_f
 
 #' @export
 #' @rdname features
-sfc_point_features_2d <- function(x) .Call(wrap__sfc_point_features_2d, x)
+sfc_point_features_2d <- function(x, sr) .Call(wrap__sfc_point_features_2d, x, sr)
 
 #' @export
 #' @rdname features
-sfc_point_features_3d <- function(x) .Call(wrap__sfc_point_features_3d, x)
+sfc_point_features_3d <- function(x, sr) .Call(wrap__sfc_point_features_3d, x, sr)
 
 #' @export
 #' @rdname featureset
@@ -122,11 +122,11 @@ sfc_point_featureset_3d <- function(x, sr) .Call(wrap__sfc_point_featureset_3d, 
 
 #' @export
 #' @rdname features
-sfc_polygon_features_2d <- function(x) .Call(wrap__sfc_polygon_features_2d, x)
+sfc_polygon_features_2d <- function(x, sr) .Call(wrap__sfc_polygon_features_2d, x, sr)
 
 #' @export
 #' @rdname features
-sfc_polygon_features_3d <- function(x) .Call(wrap__sfc_polygon_features_3d, x)
+sfc_polygon_features_3d <- function(x, sr) .Call(wrap__sfc_polygon_features_3d, x, sr)
 
 #' @export
 #' @rdname featureset
