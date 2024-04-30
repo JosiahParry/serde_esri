@@ -1,7 +1,7 @@
 library(sf)
 
 st_point() |>
-  as_point()
+  sfg_point_as_point()
 
 st_point(c(1, 2)) |> as_point()
 

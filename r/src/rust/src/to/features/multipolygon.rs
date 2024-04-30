@@ -46,7 +46,7 @@ impl SfcMultiPolygon {
                 let lstr_list = match lstr_list {
                     Ok(lstr_list) => {
                         let sfg = SfgMultiPolygon(lstr_list);
-                        let lstr: Option<EsriPolygon<3>> = sfg.as_polygon(sr);
+                        let lstr: Option<EsriPolygon<3>> = sfg.as_polygon(sr.clone());
                         lstr.unwrap()
                     }
                     Err(_) => EsriPolygon {
