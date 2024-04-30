@@ -37,9 +37,10 @@ st_linestring(zm) |>
 
 
 # multilinestring --------------------------------------------------------
-
-st_multilinestring() |>
-  as_polyline()
+m <- matrix(x, ncol = 2)
+z <- matrix(x, ncol = 3)
+zm <- matrix(x, ncol = 4)
+st_multilinestring(m)
 
 # XY
 st_multilinestring(list(m, m)) |>
