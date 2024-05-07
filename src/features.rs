@@ -10,7 +10,7 @@
 use crate::{field_type::FieldType, geometry::EsriGeometry, spatial_reference::SpatialReference};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
-use serde_with::{serde_as, DisplayFromStr};
+use serde_with::{serde_as, skip_serializing_none, DisplayFromStr};
 
 // handy reference
 // https://github.com/Esri/arcgis-rest-js/blob/0e410dc16e0dd2961affb09ff7efbfb9b6c4999a/packages/arcgis-rest-request/src/types/feature.ts#L24
@@ -20,6 +20,7 @@ use serde_with::{serde_as, DisplayFromStr};
 /// Note that both geometry and attributes are optional. This is because
 /// we can anticipate receiving _only_ geometries, or _only_ attributes
 /// or both together.
+#[skip_serializing_none]
 #[derive(Debug, Deserialize, Serialize, Clone, Default)]
 pub struct Feature<const N: usize> {
     pub geometry: Option<EsriGeometry<N>>,
@@ -27,16 +28,19 @@ pub struct Feature<const N: usize> {
 }
 
 /// A set of geometries and their attributes
+#[skip_serializing_none]
 #[allow(non_snake_case)]
 #[derive(Debug, Deserialize, Serialize, Clone, Default)]
 pub struct FeatureSet<const N: usize> {
     pub objectIdFieldName: Option<String>,
     pub globalIdFieldName: Option<String>,
     pub displayFieldName: Option<String>,
-    pub spatialReference: Option<SpatialReference>,
     pub geometryType: Option<String>, // TODO should this be an enum?
-    pub features: Vec<Feature<N>>,
+    pub spatialReference: Option<SpatialReference>,
+    pub hasZ: Option<bool>,
+    pub hasM: Option<bool>,
     pub fields: Option<Vec<Field>>,
+    pub features: Vec<Feature<N>>,
 }
 
 /// Metadata about an attribute field
@@ -45,6 +49,7 @@ pub struct FeatureSet<const N: usize> {
 #[serde_as]
 #[allow(non_snake_case)]
 #[derive(Clone, Debug, Deserialize, Serialize, Default)]
+#[skip_serializing_none]
 pub struct Field {
     pub name: String,
     #[serde(rename = "type")]
