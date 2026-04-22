@@ -1,36 +1,35 @@
 [package]
 name = "serde_esri"
-version = "0.4.0"
+version = "0.5.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/josiahparry/serde_esri"
 authors = ["Josiah Parry<josiah.parry@gmail.com>"]
-categories = ["science::geo", "parser-implementations", "encoding"]
-keywords = ["esri", "arcgis", "geo", "gis", "spatial"]
+categories = ["encoding", "parser-implementations", "science::geo"]
+keywords = ["arcgis", "esri", "geo", "gis", "spatial"]
 readme = "README.md"
 description = "A library for serializing and deserializing JSON from Esri Location Services."
 
+[package.metadata.docs.rs]
+all-features = true
+
+[lib]
+crate-type = ["lib", "staticlib"]
 
 [dependencies]
 arrow = { version = "51.0.0", optional = true }
-geoarrow = { version = "0.2.0", optional = true }
+derive_builder = { version = "0.20.0" }
+geo = { version = "0.31.0", optional = true }
 geo-types = { version = "0.7.12", optional = true }
-geo = {version = "0.31.0", optional = true}
+geoarrow = { version = "0.2.0", optional = true }
 reqwest = { version = "0.12.3", optional = true }
 serde = { version = "1.0.192", features = ["derive"] }
 serde_json = "1.0.108"
 serde_with = "3.4.0"
-derive_builder = { version = "0.20.0" }
-
-[lib]
-crate-type = ["staticlib", "lib"]
 
 [features]
 default = []
-places-client = ["reqwest/blocking", "reqwest/json"]
-geo = ["dep:geo-types"]
 from-geo = ["dep:geo", "dep:geo-types"]
-geoarrow = ["dep:geo-types", "dep:geoarrow", "arrow"]
-
-[package.metadata.docs.rs]
-all-features = true
+geo = ["dep:geo-types"]
+geoarrow = ["arrow", "dep:geo-types", "dep:geoarrow"]
+places-client = ["reqwest/blocking", "reqwest/json"]
