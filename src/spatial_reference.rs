@@ -6,17 +6,17 @@ use serde_with::skip_serializing_none;
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SpatialReference {
-    pub wkid: Option<u32>,
-    pub latest_wkid: Option<u32>,
-    pub vcs_wkid: Option<u32>,
-    pub latest_vcs_wkid: Option<u32>,
+    pub wkid: Option<i32>,
+    pub latest_wkid: Option<i32>,
+    pub vcs_wkid: Option<i32>,
+    pub latest_vcs_wkid: Option<i32>,
     pub wkt: Option<String>,
 }
 
 impl Default for SpatialReference {
     fn default() -> Self {
         Self {
-            wkid: Some(3857_u32),
+            wkid: Some(3857_i32),
             latest_wkid: None,
             vcs_wkid: None,
             latest_vcs_wkid: None,
