@@ -20,9 +20,32 @@ impl MultiPath {
                 .sum(),
         )
     }
+
+    /// Reverses a path's vertices in every attribute, keeping a closed path's first vertex
+    /// first (`reversePath`).
+    pub fn reverse_path(&mut self, path_index: usize) {
+        let Some(range) = self.path_range(path_index) else {
+            return;
+        };
+        let start = range.start + usize::from(self.is_closed_path(path_index));
+        let range = start.min(range.end)..range.end;
+        let vertices = &mut self.vertices;
+        if let Some(xy) = vertices.xy.get_mut(range.clone()) {
+            xy.reverse();
+        }
+        for column in [&mut vertices.z, &mut vertices.m].into_iter().flatten() {
+            if let Some(values) = column.get_mut(range.clone()) {
+                values.reverse();
+            }
+        }
+        if let Some(id) = vertices.id.as_mut().and_then(|id| id.get_mut(range)) {
+            id.reverse();
+        }
+    }
 }
 
-/// A polygon over these rings with the odd-even fill rule and its OGC flags computed.
+/// A polygon over these rings with the odd-even fill rule, every ring closed as the engine
+/// keeps them, and its OGC flags computed.
 impl From<MultiPath> for Polygon {
     fn from(rings: MultiPath) -> Self {
         let mut polygon = Polygon {
@@ -30,6 +53,9 @@ impl From<MultiPath> for Polygon {
             fill_rule: FillRule::OddEven,
         };
         polygon.update_ogc_flags();
+        for flags in &mut polygon.rings.path_flags {
+            flags.insert(PathFlag::Closed);
+        }
         polygon
     }
 }

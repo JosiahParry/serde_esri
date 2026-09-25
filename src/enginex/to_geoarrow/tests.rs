@@ -129,3 +129,15 @@ fn mixed_geometries_build_a_geometry_array() -> Result<(), ToGeoArrowError> {
     }
     Ok(())
 }
+
+/// GeoArrow values read back into the engine match the geometries they were built from.
+#[test]
+fn geoarrow_values_read_back_into_the_engine() -> Result<(), String> {
+    let polygons = [Some(Polygon::from(multi_path(&[&CLOCKWISE, &HOLE, &CLOCKWISE_EAST])))];
+    let array = MultiPolygonArray::try_from(GeometryColumn(&polygons)).map_err(|e| e.to_string())?;
+    let value = array.value(0).map_err(|e| e.to_string())?;
+    let read_back = Geometry::from_geo_traits(&value).map_err(|e| e.to_string())?;
+    let original = polygons[0].clone().map(Geometry::Polygon);
+    assert_eq!(Some(read_back), original);
+    Ok(())
+}

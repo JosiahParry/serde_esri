@@ -60,3 +60,16 @@ fn unflagged_rings_form_one_polygon() {
     polygon.update_ogc_flags();
     assert_eq!(polygon.ogc_polygons().collect::<Vec<_>>(), vec![0..2, 2..3]);
 }
+
+#[test]
+fn reverse_path_keeps_a_closed_path_start() {
+    let mut polygon = polygon(&[&CLOCKWISE]);
+    polygon.rings.vertices.m = Some(vec![0.0, 1.0, 2.0, 3.0]);
+    polygon.rings.reverse_path(0);
+    assert_eq!(
+        polygon.rings.vertices.xy,
+        vec![[0.0, 0.0], [4.0, 0.0], [4.0, 4.0], [0.0, 4.0]]
+    );
+    assert_eq!(polygon.rings.vertices.m, Some(vec![0.0, 3.0, 2.0, 1.0]));
+    assert_eq!(polygon.rings.ring_area(0), Some(-16.0));
+}

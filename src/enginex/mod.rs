@@ -22,6 +22,8 @@
 mod description;
 mod envelope;
 mod flags;
+#[cfg(feature = "geo-traits")]
+mod from_geo_traits;
 mod from_shape;
 mod geometry;
 #[cfg(feature = "geo-traits")]
@@ -49,3 +51,5 @@ pub use vertex::{Vertex, VertexAttributes};
 pub use geo_traits_impl::{PathView, PolygonView};
 #[cfg(feature = "geoarrow-array")]
 pub use to_geoarrow::{GeometryColumn, ToGeoArrowError};
+#[cfg(feature = "geo-traits")]
+pub use from_geo_traits::FromGeoTraitsError;
