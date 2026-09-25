@@ -8,6 +8,10 @@ use crate::spatial_reference::SpatialReference;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
+mod to_enginex;
+
+pub use to_enginex::FromEsriError;
+
 /// Represents a single coordinate used in the creation of `EsriPolygon` and `EsriPolyline`s.
 ///
 /// It requires a valid `N` of values per coordinate. Should always be one of
