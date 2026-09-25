@@ -26,6 +26,8 @@ mod geometry;
 #[cfg(feature = "geo-traits")]
 mod geo_traits_impl;
 mod rings;
+#[cfg(feature = "geoarrow-array")]
+mod to_geoarrow;
 pub mod shape;
 mod vertex;
 
@@ -42,3 +44,5 @@ pub use geometry::{
 pub use vertex::{Vertex, VertexAttributes};
 #[cfg(feature = "geo-traits")]
 pub use geo_traits_impl::{PathView, PolygonView};
+#[cfg(feature = "geoarrow-array")]
+pub use to_geoarrow::{GeometryColumn, ToGeoArrowError};
