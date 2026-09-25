@@ -16,9 +16,13 @@
 //!
 //! Supported vertex attributes are x/y, z, m, and id.
 //!
-//! Read geometries from Esri shape buffers with [`shape::EsriShape`].
+//! Read geometries from Esri shape buffers with [`shape::EsriShape`], or convert shapefile
+//! records with `Geometry::try_from(crate::shape::Shape)`.
 
+mod from_shape;
 pub mod shape;
+
+pub use from_shape::FromShapeError;
 
 /// A vertex attribute. Discriminants match `VertexDescription.Semantics`.
 #[repr(u16)]
