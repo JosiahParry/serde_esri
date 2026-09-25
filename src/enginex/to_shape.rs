@@ -154,9 +154,9 @@ impl MultiPath {
 }
 
 impl Envelope {
-    /// The engine's export of an envelope: a clockwise ring from (xmin, ymin), with Z and M
-    /// alternating between their minimum and maximum.
-    fn to_polygon(self) -> Polygon {
+    /// The engine's export of an envelope: a clockwise ring from (xmin, ymin), with each
+    /// attribute alternating between its minimum and maximum.
+    pub(in crate::enginex) fn to_polygon(self) -> Polygon {
         let Some(xy) = self.xy else {
             return Polygon::from(MultiPath::default());
         };
@@ -182,7 +182,7 @@ impl Envelope {
                     y,
                     z: self.z.map(pick),
                     m: self.m.map(pick),
-                    id: None,
+                    id: self.id.map(|id| if i % 2 == 0 { id.min } else { id.max }),
                 }
             })
             .collect();

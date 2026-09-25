@@ -5,6 +5,7 @@
 //! cargo run --example shp_corpus -- path/to/dir
 //! ```
 
+use serde_esri::enginex::{shape::EsriShapeBuffer, Geometry};
 use serde_esri::shape::{
     FileError, FinishedShapes, Record, Shape, ShapeFile, ShapeIndex, ShapeReader, ShapeWriter,
 };
@@ -83,10 +84,11 @@ fn check(path: &Path) -> String {
     line += &format!("; random {random_access}");
 
     // Converts each record into the engine and back, comparing the shape buffers.
+    // Also writes each geometry as an engine shape buffer and reads it back.
     let mut failures = std::collections::BTreeMap::<String, usize>::new();
-    let (mut converted, mut unchanged) = (0, 0);
+    let (mut converted, mut unchanged, mut engine_buffers) = (0, 0, 0);
     for record in &records {
-        let geometry = match serde_esri::enginex::Geometry::try_from(record.shape.clone()) {
+        let geometry = match Geometry::try_from(record.shape.clone()) {
             Ok(geometry) => geometry,
             Err(e) => {
                 *failures.entry(e.to_string()).or_default() += 1;
@@ -98,8 +100,15 @@ fn check(path: &Path) -> String {
         if let Ok(Ok(bytes)) = back {
             unchanged += usize::from(Ok(bytes) == Vec::<u8>::try_from(&record.shape));
         }
+        let buffer = EsriShapeBuffer::try_from(&geometry);
+        let read_back: Option<Option<Geometry>> = buffer
+            .ok()
+            .and_then(|buffer| buffer.as_shape().try_into().ok());
+        engine_buffers += usize::from(format!("{read_back:?}") == format!("{:?}", Some(Some(geometry))));
     }
-    line + &format!("; enginex {converted} ok, {unchanged} unchanged {failures:?}")
+    line + &format!(
+        "; enginex {converted} ok, {unchanged} unchanged, {engine_buffers} engine buffers same {failures:?}"
+    )
 }
 
 /// "same", or where and how the rewritten bytes first differ.

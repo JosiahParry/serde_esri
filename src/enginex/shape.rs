@@ -10,9 +10,13 @@
 //! when it equals the first vertex, and keep it otherwise.
 
 use crate::enginex::{
-    FillRule, Geometry, MultiPath, MultiPoint, PathFlag, PathFlags, Point, Polygon, Polyline,
+    Geometry, MultiPath, MultiPoint, PathFlag, PathFlags, Point, Polygon, Polyline,
     Vertex, VertexAttributes,
 };
+
+mod writer;
+
+pub use writer::EsriShapeBuffer;
 
 const HAS_ZS: u32 = 0x8000_0000;
 const HAS_MS: u32 = 0x4000_0000;
@@ -246,10 +250,7 @@ impl TryFrom<EsriShape<'_>> for Option<Geometry> {
                 let path = r.multipath(modifiers, path_type)?;
                 match path_type {
                     PathType::Polyline => Geometry::Polyline(Polyline(path)),
-                    PathType::Polygon => Geometry::Polygon(Polygon {
-                        rings: path,
-                        fill_rule: FillRule::OddEven,
-                    }),
+                    PathType::Polygon => Geometry::Polygon(Polygon::from(path)),
                 }
             }
         };
