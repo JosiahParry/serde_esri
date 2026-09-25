@@ -6,7 +6,7 @@
 
 use crate::{
     enginex::{
-        FillRule, Geometry, MultiPath, MultiPoint, PathFlag, PathFlags, Point, Polygon, Polyline,
+        Geometry, MultiPath, MultiPoint, PathFlag, PathFlags, Point, Polyline,
         Vertex, VertexAttributes,
     },
     shape::{self, Measures, MultiPart, Shape},
@@ -124,15 +124,6 @@ impl From<shape::Point> for [f64; 2] {
     }
 }
 
-/// Shapefile polygons use the odd-even fill rule.
-impl From<MultiPath> for Polygon {
-    fn from(rings: MultiPath) -> Self {
-        Polygon {
-            rings,
-            fill_rule: FillRule::OddEven,
-        }
-    }
-}
 
 impl Measures {
     /// One M per point, with "no data" and an absent M section as `NaN`.

@@ -48,6 +48,7 @@ fn polygon_z_drops_closing_vertices() -> Result<(), FromShapeError> {
     let Geometry::Polygon(polygon) = Geometry::try_from(shape)? else {
         panic!("expected a polygon");
     };
+    assert_eq!(polygon.ogc_polygons().collect::<Vec<_>>(), vec![0..2]);
     let rings = polygon.rings;
     assert_eq!(rings.path_offsets, vec![0, 4, 8]);
     assert!(rings.is_closed_path(0) && rings.is_closed_path(1));

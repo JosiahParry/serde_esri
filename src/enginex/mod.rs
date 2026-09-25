@@ -23,6 +23,7 @@ mod description;
 mod flags;
 mod from_shape;
 mod geometry;
+mod rings;
 pub mod shape;
 mod vertex;
 
