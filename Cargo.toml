@@ -21,6 +21,7 @@ crate-type = ["lib", "staticlib"]
 arrow = { version = "51.0.0", optional = true }
 derive_builder = { version = "0.20.0" }
 geo = { version = "0.31.0", optional = true }
+geo-traits = { version = "0.3.0", optional = true, default-features = false }
 geo-types = { version = "0.7.12", optional = true }
 geoarrow = { version = "0.2.0", optional = true }
 reqwest = { version = "0.12.3", optional = true }
@@ -32,5 +33,10 @@ serde_with = "3.4.0"
 default = []
 from-geo = ["dep:geo", "dep:geo-types"]
 geo = ["dep:geo-types"]
+geo-traits = ["dep:geo-traits"]
 geoarrow = ["arrow", "dep:geo-types", "dep:geoarrow"]
 places-client = ["reqwest/blocking", "reqwest/json"]
+
+[dev-dependencies]
+geo-traits = "0.3.0"
+geo-types = "0.7.12"

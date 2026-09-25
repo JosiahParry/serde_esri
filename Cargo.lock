@@ -742,6 +742,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "geo-traits"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2e7c353d12a704ccfab1ba8bfb1a7fe6cb18b665bf89d37f4f7890edcd260206"
+dependencies = [
+ "geo-types",
+]
+
+[[package]]
 name = "geo-types"
 version = "0.7.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1806,6 +1815,7 @@ dependencies = [
  "arrow",
  "derive_builder",
  "geo 0.31.0",
+ "geo-traits",
  "geo-types",
  "geoarrow",
  "reqwest",

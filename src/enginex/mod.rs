@@ -23,6 +23,8 @@ mod description;
 mod flags;
 mod from_shape;
 mod geometry;
+#[cfg(feature = "geo-traits")]
+mod geo_traits_impl;
 mod rings;
 pub mod shape;
 mod vertex;
@@ -38,3 +40,5 @@ pub use geometry::{
     Segments,
 };
 pub use vertex::{Vertex, VertexAttributes};
+#[cfg(feature = "geo-traits")]
+pub use geo_traits_impl::{PathView, PolygonView};
