@@ -50,7 +50,7 @@ impl<const N: usize> From<EsriPolyline<N>> for MultiLineString {
             .map(|mli| {
                 let li_coords = mli
                     .into_iter()
-                    .map(|ci| Coord::from(ci))
+                    .map(Coord::from)
                     .collect::<Vec<Coord>>();
 
                 LineString::new(li_coords)
@@ -69,7 +69,7 @@ impl<const N: usize> From<EsriPolygon<N>> for Polygon {
             .map(|mli| {
                 let li_coords = mli
                     .into_iter()
-                    .map(|ci| Coord::from(ci))
+                    .map(Coord::from)
                     .collect::<Vec<Coord>>();
 
                 LineString::new(li_coords)

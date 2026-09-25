@@ -33,6 +33,7 @@ pub struct NearPointQueryParams {
 }
 
 /// Prepared version of NearPointQueryParams which concatenates the category_ids
+#[cfg(feature = "places-client")]
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct NearPointPreparedParams {
@@ -92,7 +93,8 @@ pub struct WithinExtentQueryParams {
     pub icon: Option<Icon>,
 }
 
-/// Prepared version of NearPointQueryParams which concatenates the category_ids
+/// Prepared version of WithinExtentQueryParams which concatenates the category_ids
+#[cfg(feature = "places-client")]
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct WithinExtentPreparedParams {

@@ -1,6 +1,6 @@
 [package]
 name = "serde_esri"
-version = "1.0.0"
+version = "2.0.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/josiahparry/serde_esri"
@@ -9,7 +9,7 @@ categories = ["encoding", "parser-implementations", "science::geo"]
 keywords = ["arcgis", "esri", "geo", "gis", "spatial"]
 readme = "README.md"
 description = "A library for serializing and deserializing JSON from Esri Location Services."
-exclude = ["r/", ".zed/", "TODO.md"]
+include = ["src/**/*", "examples/**/*", "README.md"]
 
 [package.metadata.docs.rs]
 all-features = true
@@ -18,11 +18,15 @@ all-features = true
 crate-type = ["lib", "staticlib"]
 
 [dependencies]
-arrow = { version = "51.0.0", optional = true }
+arrow-array = { version = "59", optional = true }
+arrow-buffer = { version = "59", optional = true }
+arrow-schema = { version = "59", optional = true }
 derive_builder = { version = "0.20.0" }
 geo = { version = "0.31.0", optional = true }
+geo-traits = { version = "0.3.0", optional = true, default-features = false }
 geo-types = { version = "0.7.12", optional = true }
-geoarrow = { version = "0.2.0", optional = true }
+geoarrow-array = { version = "0.9.0", optional = true }
+geoarrow-schema = { version = "0.9.0", optional = true }
 reqwest = { version = "0.12.3", optional = true }
 serde = { version = "1.0.192", features = ["derive"] }
 serde_json = "1.0.108"
@@ -32,5 +36,21 @@ serde_with = "3.4.0"
 default = []
 from-geo = ["dep:geo", "dep:geo-types"]
 geo = ["dep:geo-types"]
-geoarrow = ["arrow", "dep:geo-types", "dep:geoarrow"]
+geo-traits = ["dep:geo-traits"]
+geoarrow = [
+    "geo-traits",
+    "dep:arrow-array",
+    "dep:arrow-buffer",
+    "dep:arrow-schema",
+    "dep:geoarrow-array",
+    "dep:geoarrow-schema",
+]
 places-client = ["reqwest/blocking", "reqwest/json"]
+
+[dev-dependencies]
+geo-traits = "0.3.0"
+geo-types = "0.7.12"
+
+[[example]]
+name = "shp_to_geoarrow"
+required-features = ["geoarrow"]

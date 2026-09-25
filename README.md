@@ -7,8 +7,11 @@ This crate provides representations of Esri JSON objects with [`serde::Deseriali
 `serde_esri` has additional features:
 
 - `geo` implements `From` for the Esri JSON objects.
-- `geoarrow` provides compatibility with arrow and geoarrow by implementing geoarrow geometry traits as well as providing a utility function `featureset_to_geoarrow()` which converts a `FeatureSet` to an arrow `GeoTable`.
+- `geo-traits` implements [`geo-traits`](https://docs.rs/geo-traits) for the Esri JSON geometries and the `enginex` geometries.
+- `geoarrow` converts a `FeatureSet` into an Arrow `RecordBatch` with a GeoArrow geometry column via `RecordBatch::try_from(&feature_set)`, and `enginex` geometries into GeoArrow arrays. It builds on `geoarrow-array` and arrow 59, replacing the earlier `featureset_to_arrow()` and `featureset_to_geoarrow()`.
 - `places-client` provides an API client for the Places Service REST API. 
+
+The `shape` module reads and writes shapefiles, and `enginex` represents geometries the way the Esri geometry engine stores them.
 
 
 ## Example usage: 
@@ -17,16 +20,16 @@ This example reads a few features from a feature service and returns a `FeatureS
 
 ```toml
 [dependencies]
+arrow-array = "59"
 geo = "0.28.0"
-geoarrow = "0.2.0"
 reqwest = { version = "0.12.3", features = ["blocking"] }
-serde_esri = { version = "0.2.0", features = ["geo", "geoarrow"] }
+serde_esri = { version = "2.0.0", features = ["geo", "geoarrow"] }
 serde_json = "1.0.115"
 ```
 
-```rust
+```rust,ignore
+use arrow_array::RecordBatch;
 use geo::{GeodesicArea, Polygon};
-use serde_esri::arrow_compat::featureset_to_geoarrow;
 use serde_esri::features::FeatureSet;
 use std::io::Read;
 
@@ -59,8 +62,8 @@ fn main() {
     // print areas
     println!("{:?}", area);
 
-    // convert to a geoarrow GeoTable
-    println!("{:?}", featureset_to_geoarrow(fset).unwrap());
+    // convert to an Arrow RecordBatch with a GeoArrow geometry column
+    println!("{:?}", RecordBatch::try_from(&fset).unwrap());
 }
 ```
 
@@ -134,31 +137,28 @@ Activate the PlaceAPI client in your Cargo.toml
 
 ```toml
 [dependencies]
-serde_esri = { version = "0.3.0", features = ["places-client"] }
+serde_esri = { version = "2.0.0", features = ["places-client"] }
 ```
 
 ```rust
-fn main() {
+let client = PlacesClient::new(
+    PLACES_API_URL,
+    "your-developer-credential",
+);
 
-    let client = PlacesClient::new(
-        PLACES_API_URL,
-        "your-developer-credential",
-    );
+// Use the query within extent query builder to create query parameters
+let params = WithinExtentQueryParamsBuilder::default()
+    .xmin(139.74)
+    .ymin(35.65)
+    .xmax(139.75)
+    .ymax(35.66)
+    .build()
+    .unwrap();
 
-    // Use the query within extent query builder to create query parameters
-    let params = WithinExtentQueryParamsBuilder::default()
-        .xmin(139.74)
-        .ymin(35.65)
-        .xmax(139.75)
-        .ymax(35.66)
-        .build()
-        .unwrap();
+// Call the within_extent method with the query parameters
+let res = client.within_extent(params).unwrap();
 
-    // Call the within_extent method with the query parameters
-    let res = client.within_extent(params).unwrap();
-
-    // use the automatic pagination for the iterator method
-    res.into_iter()
-        .for_each(|r| println!("{:?}", r.unwrap().name));
-}
+// use the automatic pagination for the iterator method
+res.into_iter()
+    .for_each(|r| println!("{:?}", r.unwrap().name));
 

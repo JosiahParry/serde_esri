@@ -1,357 +1,254 @@
-//! Compatibility with arrow-rs and geoarrow
+//! Converts a [`FeatureSet`] into an Arrow [`RecordBatch`]: one column per field and a GeoArrow
+//! geometry column built through the engine (see [`crate::enginex`]).
 //!
-//! This module is enabled by the `geoarrow` feature. It provides a single function
-//! `featureset_to_arrow()` which returns a `RecordBatch` containing arrays for each
-//! field in the original `FeatureSet` struct and an additional field for geometry
-//! if present.
+//! ```ignore
+//! let batch = RecordBatch::try_from(&feature_set)?;
+//! ```
 //!
-//! This feature implements the following geoarrow traits:
-//!
-//! - `EsriCoord<N>` implements `CoordTrait` and `PointTrait`
-//! - `EsriPoint` implements `PointTrait`
-//! - `EsriLineString<N>` implements `LineStringTrait`
-//! - `EsriPolyline<N>` implements `MultiLineStringTrait`
-//! - `EsriPolygon<N>` implements `PolygonTrait`
+//! Integers, floats, strings, GUIDs, and XML map to their Arrow types, dates to UTC millisecond
+//! timestamps, and geometry fields are left to the geometry column. The geometry column's CRS
+//! comes from the spatial reference: WKIDs below 100000 as EPSG codes, others as ESRI codes.
+
 use crate::{
+    enginex::{Geometry, GeometryColumn, ToGeoArrowError},
     features::{Feature, FeatureSet, Field},
     field_type::FieldType,
-    geometry::EsriGeometry,
+    geometry::FromEsriError,
+    spatial_reference::SpatialReference,
 };
-
-use std::{result::Result, sync::Arc};
-
-use geoarrow::GeometryArrayTrait;
+use arrow_array::{
+    ArrayRef, Float32Array, Float64Array, Int16Array, Int32Array, Int64Array, LargeStringArray,
+    RecordBatch, RecordBatchOptions, StringArray, TimestampMillisecondArray,
+};
+use arrow_schema::{ArrowError, Field as ArrowField, Schema};
+use geoarrow_array::{
+    array::{GeometryArray, MultiLineStringArray, MultiPointArray, MultiPolygonArray, PointArray},
+    GeoArrowArray,
+};
+use geoarrow_schema::{Crs, Metadata};
 use serde_json::Value;
-use std::collections::HashMap;
+use std::sync::Arc;
 
-use arrow::{
-    array::{
-        make_builder, Array, ArrayBuilder, BooleanBuilder, Date32Builder, Date64Builder,
-        Float32Builder, Float64Builder, Int16Builder, Int32Builder, Int64Builder, Int8Builder,
-        NullBuilder, StringBuilder, UInt16Builder, UInt32Builder, UInt64Builder, UInt8Builder,
-    },
-    datatypes::{DataType, Field as AField, Schema, SchemaBuilder},
-    record_batch::RecordBatch,
-};
+#[derive(Debug)]
+pub enum ToArrowError {
+    /// The field's type has no Arrow column.
+    UnsupportedField { name: String, field_type: FieldType },
+    /// `geometryType` names no supported geometry type.
+    UnsupportedGeometryType(String),
+    /// A feature's geometry differs from the feature set's `geometryType`.
+    GeometryTypeMismatch,
+    Geometry(FromEsriError),
+    GeoArrow(ToGeoArrowError),
+    Arrow(ArrowError),
+}
 
-/// Given a `FeatureSet`, create a `RecordBatch`
-pub fn featureset_to_arrow<const N: usize>(
-    x: FeatureSet<N>,
-) -> Result<RecordBatch, arrow::error::ArrowError> {
-    let schema = field_to_schema(x.fields.unwrap());
-
-    let (mut arrays, geometries) = create_array_vecs(&schema, x.features);
-
-    let mut res_arrs = schema
-        .fields()
-        .iter()
-        .map(|fi| {
-            let arr = arrays.get_mut(fi.name()).unwrap();
-            arr.1.finish()
-        })
-        .collect::<Vec<_>>();
-
-    if x.geometryType.is_some() {
-        // process geometries
-        let (geo_field, geo_arr) = as_geoarrow_array(x.geometryType.unwrap().as_str(), geometries);
-
-        // create a new schema builder
-        let mut sb = SchemaBuilder::from(schema);
-
-        // add the geometry field
-        sb.push(geo_field);
-        let schema = sb.finish();
-
-        // extend res_arrs to include new geometry array
-        res_arrs.push(geo_arr);
-
-        RecordBatch::try_new(schema.into(), res_arrs)
-    } else {
-        RecordBatch::try_new(schema.into(), res_arrs)
+impl std::fmt::Display for ToArrowError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ToArrowError::UnsupportedField { name, field_type } => {
+                write!(f, "field {name} has unsupported type {field_type}")
+            }
+            ToArrowError::UnsupportedGeometryType(t) => write!(f, "unsupported geometry type {t}"),
+            ToArrowError::GeometryTypeMismatch => {
+                write!(f, "a feature's geometry differs from the feature set's geometry type")
+            }
+            ToArrowError::Geometry(e) => write!(f, "{e}"),
+            ToArrowError::GeoArrow(e) => write!(f, "{e}"),
+            ToArrowError::Arrow(e) => write!(f, "{e}"),
+        }
     }
 }
 
-use geoarrow::table::GeoTable;
-
-// TODO create my own error types
-/// Given a `FeatureSet`, create a geoarrow `GeoTable`
-pub fn featureset_to_geoarrow<const N: usize>(
-    x: FeatureSet<N>,
-) -> Result<GeoTable, geoarrow::error::GeoArrowError> {
-    let arrow_res = featureset_to_arrow(x)?;
-    let schema_ref = arrow_res.schema_ref().clone();
-    let geometry_index = arrow_res.schema().fields.len();
-
-    GeoTable::try_new(schema_ref, vec![arrow_res], geometry_index)
+impl std::error::Error for ToArrowError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            ToArrowError::Geometry(e) => Some(e),
+            ToArrowError::GeoArrow(e) => Some(e),
+            ToArrowError::Arrow(e) => Some(e),
+            _ => None,
+        }
+    }
 }
 
-// convert an esri field to a new arrow field
-impl From<Field> for AField {
-    fn from(value: Field) -> Self {
-        let dtype = match value.field_type {
-            FieldType::EsriFieldTypeSmallInteger => DataType::Int16,
-            FieldType::EsriFieldTypeInteger => DataType::Int32,
-            FieldType::EsriFieldTypeSingle => DataType::Float32,
-            FieldType::EsriFieldTypeDouble => DataType::Float64,
-            FieldType::EsriFieldTypeString => DataType::Utf8,
-            FieldType::EsriFieldTypeDate => DataType::Date64,
-            FieldType::EsriFieldTypeOid => DataType::Int64,
-            FieldType::EsriFieldTypeBlob => DataType::LargeBinary,
-            FieldType::EsriFieldTypeGuid => DataType::Utf8,
-            FieldType::EsriFieldTypeGlobalId => DataType::Utf8,
-            FieldType::EsriFieldTypeXml => DataType::LargeUtf8,
-            FieldType::EsriFieldTypeRaster => unimplemented!(),
-            FieldType::EsriFieldTypeGeometry => unimplemented!(),
+impl From<FromEsriError> for ToArrowError {
+    fn from(e: FromEsriError) -> Self {
+        ToArrowError::Geometry(e)
+    }
+}
+
+impl From<ToGeoArrowError> for ToArrowError {
+    fn from(e: ToGeoArrowError) -> Self {
+        ToArrowError::GeoArrow(e)
+    }
+}
+
+impl From<ArrowError> for ToArrowError {
+    fn from(e: ArrowError) -> Self {
+        ToArrowError::Arrow(e)
+    }
+}
+
+impl Field {
+    /// The field's values across `features`, or `None` for geometry fields.
+    fn column<const N: usize>(
+        &self,
+        features: &[Feature<N>],
+    ) -> Result<Option<ArrayRef>, ToArrowError> {
+        let values = features
+            .iter()
+            .map(|f| f.attributes.as_ref().and_then(|a| a.get(&self.name)));
+        let integers = values.clone().map(|v| v.and_then(Value::as_i64));
+        let floats = values.clone().map(|v| v.and_then(Value::as_f64));
+        let strings = values.map(|v| v.and_then(Value::as_str));
+        let array: ArrayRef = match self.field_type {
+            FieldType::EsriFieldTypeSmallInteger => Arc::new(
+                integers
+                    .map(|v| v.and_then(|v| i16::try_from(v).ok()))
+                    .collect::<Int16Array>(),
+            ),
+            FieldType::EsriFieldTypeInteger => Arc::new(
+                integers
+                    .map(|v| v.and_then(|v| i32::try_from(v).ok()))
+                    .collect::<Int32Array>(),
+            ),
+            FieldType::EsriFieldTypeOid => Arc::new(integers.collect::<Int64Array>()),
+            FieldType::EsriFieldTypeSingle => {
+                Arc::new(floats.map(|v| v.map(|v| v as f32)).collect::<Float32Array>())
+            }
+            FieldType::EsriFieldTypeDouble => Arc::new(floats.collect::<Float64Array>()),
+            FieldType::EsriFieldTypeString
+            | FieldType::EsriFieldTypeGuid
+            | FieldType::EsriFieldTypeGlobalId => Arc::new(strings.collect::<StringArray>()),
+            FieldType::EsriFieldTypeXml => Arc::new(strings.collect::<LargeStringArray>()),
+            FieldType::EsriFieldTypeDate => Arc::new(
+                integers
+                    .collect::<TimestampMillisecondArray>()
+                    .with_timezone("UTC"),
+            ),
+            FieldType::EsriFieldTypeGeometry => return Ok(None),
+            FieldType::EsriFieldTypeBlob | FieldType::EsriFieldTypeRaster => {
+                return Err(ToArrowError::UnsupportedField {
+                    name: self.name.clone(),
+                    field_type: self.field_type.clone(),
+                })
+            }
         };
-
-        Self::new(value.name, dtype, true)
+        Ok(Some(array))
     }
 }
 
-// Takes a vector or Esri Fields and creates a Fields
-// of arrow field types
-fn field_to_schema(fields: Vec<Field>) -> Schema {
-    let mut sbuilder = SchemaBuilder::with_capacity(fields.len());
-
-    for field in fields.into_iter() {
-        let arrow_field = AField::from(field);
-        sbuilder.push(arrow_field);
-    }
-    sbuilder.finish()
-}
-
-// Takes a schema and a vector of features
-// The features are processed into a tuple
-// the first element is a hashmap containing the field name as keys
-// and an array builder as the value
-// the second element is a vectoor of geometry options
-fn create_array_vecs<const N: usize>(
-    //fields: &Fields,
-    schema: &Schema,
-    feats: Vec<Feature<N>>,
-) -> (
-    HashMap<&String, (&AField, Box<dyn ArrayBuilder>)>,
-    Vec<Option<EsriGeometry<N>>>,
-) {
-    let n = feats.len();
-
-    let mut map: HashMap<&String, (&AField, Box<dyn ArrayBuilder>)> = HashMap::new();
-
-    let mut geometries = Vec::with_capacity(n);
-
-    schema.fields.iter().for_each(|f| {
-        let b = make_builder(f.data_type(), n);
-        map.insert(f.name(), (&f, b));
-    });
-
-    feats.into_iter().for_each(|m| {
-        let a1 = m.attributes.unwrap();
-
-        a1.into_iter().for_each(|(k, v)| {
-            let (field, builder) = map.get_mut(&k).unwrap();
-            append_value(v, field, builder);
-        });
-
-        geometries.push(m.geometry);
-    });
-
-    (map, geometries)
-}
-
-fn as_geoarrow_array<const N: usize>(
-    geom_type: &str,
-    geoms: Vec<Option<EsriGeometry<N>>>,
-) -> (Arc<AField>, Arc<dyn Array>) {
-    match geom_type {
-        "esriGeometryPoint" => {
-            let res = geoms
-                .into_iter()
-                .map(|pi| match pi {
-                    Some(pp) => pp.as_point(),
-                    None => None,
-                })
-                .collect::<Vec<_>>();
-
-            let arr = geoarrow::array::PointArray::from(res);
-            (arr.extension_field(), arr.into_array_ref())
+/// An EPSG code for WKIDs below 100000 and an ESRI code otherwise, or the WKT.
+impl From<&SpatialReference> for Crs {
+    fn from(sr: &SpatialReference) -> Self {
+        match (sr.latest_wkid.or(sr.wkid), &sr.wkt) {
+            (Some(wkid), _) if wkid < 100_000 => Crs::from_authority_code(format!("EPSG:{wkid}")),
+            (Some(wkid), _) => Crs::from_authority_code(format!("ESRI:{wkid}")),
+            (None, Some(wkt)) => Crs::from_unknown_crs_type(wkt.clone()),
+            (None, None) => Crs::default(),
         }
-        "esriGeometryMultipoint" => {
-            let res = geoms
-                .into_iter()
-                .map(|pi| match pi {
-                    Some(pp) => pp.as_multipoint(),
-                    None => None,
-                })
-                .collect::<Vec<_>>();
-
-            let arr = geoarrow::array::MultiPointArray::<i32>::from(res);
-            (arr.extension_field(), arr.into_array_ref())
-        }
-        "esriGeometryPolyline" => {
-            let res = geoms
-                .into_iter()
-                .map(|pi| match pi {
-                    Some(pp) => pp.as_polyline(),
-                    None => None,
-                })
-                .collect::<Vec<_>>();
-
-            let arr = geoarrow::array::MultiLineStringArray::<i32>::from(res);
-            (arr.extension_field(), arr.into_array_ref())
-        }
-        "esriGeometryPolygon" => {
-            let res = geoms
-                .into_iter()
-                .map(|pi| match pi {
-                    Some(pp) => pp.as_polygon(),
-                    None => None,
-                })
-                .collect::<Vec<_>>();
-
-            let arr = geoarrow::array::PolygonArray::<i32>::from(res);
-            (arr.extension_field(), arr.into_array_ref())
-        }
-        _ => unimplemented!(),
     }
 }
 
-// take a field and a builder
-// then match on the field to use downcast mut
-fn append_value(v: Value, f: &AField, builder: &mut Box<dyn ArrayBuilder>) -> () {
-    let bb = builder.as_any_mut();
-    match f.data_type() {
-        DataType::Null => {
-            bb.downcast_mut::<NullBuilder>()
-                .unwrap()
-                .append_empty_value();
+impl<const N: usize> FeatureSet<N> {
+    /// The geometry field and column as the GeoArrow array `geometryType` calls for.
+    fn geometry_column(
+        &self,
+        geometry_type: &str,
+        metadata: Arc<Metadata>,
+    ) -> Result<(ArrowField, ArrayRef), ToArrowError> {
+        fn typed<T>(
+            geometries: &[Option<Geometry>],
+            pick: fn(Geometry) -> Option<T>,
+        ) -> Result<Vec<Option<T>>, ToArrowError> {
+            geometries
+                .iter()
+                .cloned()
+                .map(|g| g.map(|g| pick(g).ok_or(ToArrowError::GeometryTypeMismatch)).transpose())
+                .collect()
         }
-        DataType::Boolean => {
-            bb.downcast_mut::<BooleanBuilder>()
-                .unwrap()
-                .append_option(v.as_bool());
+        fn column(array: impl GeoArrowArray) -> (ArrowField, ArrayRef) {
+            (array.data_type().to_field("geometry", true), array.to_array_ref())
         }
-        DataType::Int8 => {
-            let builder = bb.downcast_mut::<Int8Builder>().unwrap();
 
-            match v.as_i64() {
-                Some(v) => builder.append_value(v as i8),
-                None => builder.append_null(),
-            };
-        }
-        DataType::Int16 => {
-            let builder = bb.downcast_mut::<Int16Builder>().unwrap();
-
-            match v.as_i64() {
-                Some(v) => builder.append_value(v as i16),
-                None => builder.append_null(),
-            };
-        }
-        DataType::Int32 => {
-            let builder = bb.downcast_mut::<Int32Builder>().unwrap();
-
-            match v.as_i64() {
-                Some(v) => builder.append_value(v as i32),
-                None => builder.append_null(),
-            };
-        }
-        DataType::Int64 => {
-            bb.downcast_mut::<Int64Builder>()
-                .unwrap()
-                .append_option(v.as_i64());
-        }
-        DataType::UInt8 => {
-            let builder = bb.downcast_mut::<UInt8Builder>().unwrap();
-
-            match v.as_u64() {
-                Some(v) => builder.append_value(v as u8),
-                None => builder.append_null(),
-            };
-        }
-        DataType::UInt16 => {
-            let builder = bb.downcast_mut::<UInt16Builder>().unwrap();
-
-            match v.as_u64() {
-                Some(v) => builder.append_value(v as u16),
-                None => builder.append_null(),
-            };
-        }
-        DataType::UInt32 => {
-            let builder = bb.downcast_mut::<UInt32Builder>().unwrap();
-
-            match v.as_u64() {
-                Some(v) => builder.append_value(v as u32),
-                None => builder.append_null(),
-            };
-        }
-        DataType::UInt64 => {
-            bb.downcast_mut::<UInt64Builder>()
-                .unwrap()
-                .append_option(v.as_u64());
-        }
-        DataType::Float16 => {
-            // bb.downcast_mut::<Float16Builder>()
-            //     .unwrap()
-            //     .append_value(v.as_f64().unwrap() as f16);
-            // There is no 16 bit float in rust
-            todo!()
-        }
-        DataType::Float32 => {
-            let builder = bb.downcast_mut::<Float32Builder>().unwrap();
-
-            match v.as_f64() {
-                Some(v) => builder.append_value(v as f32),
-                None => builder.append_null(),
-            };
-        }
-        DataType::Float64 => {
-            bb.downcast_mut::<Float64Builder>()
-                .unwrap()
-                .append_option(v.as_f64());
-        }
-        DataType::Timestamp(_, _) => todo!(),
-        DataType::Date32 => {
-            let builder = bb.downcast_mut::<Date32Builder>().unwrap();
-
-            match v.as_i64() {
-                Some(v) => builder.append_value((v / 100000_i64) as i32),
-                None => builder.append_null(),
-            };
-        }
-        DataType::Date64 => {
-            let builder = bb.downcast_mut::<Date64Builder>().unwrap();
-
-            match v.as_i64() {
-                Some(v) => builder.append_value(v),
-                None => builder.append_null(),
-            };
-        }
-        DataType::Time32(_) => todo!(),
-        DataType::Time64(_) => todo!(),
-        DataType::Duration(_) => todo!(),
-        DataType::Interval(_) => todo!(),
-        DataType::Binary => todo!(),
-        DataType::FixedSizeBinary(_) => todo!(),
-        DataType::LargeBinary => todo!(),
-        DataType::Utf8 => {
-            bb.downcast_mut::<StringBuilder>()
-                .unwrap()
-                .append_option(v.as_str());
-        }
-        DataType::LargeUtf8 => {
-            bb.downcast_mut::<StringBuilder>()
-                .unwrap()
-                .append_option(v.as_str());
-        }
-        DataType::List(_) => todo!(),
-        DataType::FixedSizeList(_, _) => todo!(),
-        DataType::LargeList(_) => todo!(),
-        DataType::Struct(_) => todo!(),
-        DataType::Union(_, _) => todo!(),
-        DataType::Dictionary(_, _) => todo!(),
-        DataType::Decimal128(_, _) => todo!(),
-        DataType::Decimal256(_, _) => todo!(),
-        DataType::Map(_, _) => todo!(),
-        DataType::RunEndEncoded(_, _) => todo!(),
-        _ => todo!(),
+        let geometries = self
+            .features
+            .iter()
+            .map(|f| f.geometry.as_ref().map(Geometry::try_from).transpose())
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(match geometry_type {
+            "esriGeometryPoint" => {
+                let points = typed(&geometries, |g| match g {
+                    Geometry::Point(p) => Some(p),
+                    _ => None,
+                })?;
+                column(PointArray::try_from(GeometryColumn(&points))?.with_metadata(metadata))
+            }
+            "esriGeometryMultipoint" => {
+                let multi_points = typed(&geometries, |g| match g {
+                    Geometry::MultiPoint(mp) => Some(mp),
+                    _ => None,
+                })?;
+                let array = MultiPointArray::try_from(GeometryColumn(&multi_points))?;
+                column(array.with_metadata(metadata))
+            }
+            "esriGeometryPolyline" => {
+                let polylines = typed(&geometries, |g| match g {
+                    Geometry::Polyline(p) => Some(p),
+                    _ => None,
+                })?;
+                let array = MultiLineStringArray::try_from(GeometryColumn(&polylines))?;
+                column(array.with_metadata(metadata))
+            }
+            "esriGeometryPolygon" => {
+                let polygons = typed(&geometries, |g| match g {
+                    Geometry::Polygon(p) => Some(p),
+                    _ => None,
+                })?;
+                let array = MultiPolygonArray::try_from(GeometryColumn(&polygons))?;
+                column(array.with_metadata(metadata))
+            }
+            "esriGeometryEnvelope" => {
+                let array = GeometryArray::try_from(GeometryColumn(&geometries))?;
+                column(array.with_metadata(metadata))
+            }
+            other => return Err(ToArrowError::UnsupportedGeometryType(other.to_string())),
+        })
     }
 }
+
+impl<const N: usize> TryFrom<&FeatureSet<N>> for RecordBatch {
+    type Error = ToArrowError;
+
+    fn try_from(feature_set: &FeatureSet<N>) -> Result<Self, Self::Error> {
+        let mut fields = Vec::new();
+        let mut columns = Vec::new();
+        for field in feature_set.fields.iter().flatten() {
+            if let Some(column) = field.column(&feature_set.features)? {
+                fields.push(ArrowField::new(&field.name, column.data_type().clone(), true));
+                columns.push(column);
+            }
+        }
+
+        if let Some(geometry_type) = &feature_set.geometryType {
+            let crs = feature_set
+                .spatialReference
+                .as_ref()
+                .map(Crs::from)
+                .unwrap_or_default();
+            let metadata = Arc::new(Metadata::new(crs, None));
+            let (field, column) = feature_set.geometry_column(geometry_type, metadata)?;
+            fields.push(field);
+            columns.push(column);
+        }
+
+        let options = RecordBatchOptions::new().with_row_count(Some(feature_set.features.len()));
+        Ok(RecordBatch::try_new_with_options(
+            Arc::new(Schema::new(fields)),
+            columns,
+            &options,
+        )?)
+    }
+}
+
+#[cfg(test)]
+mod tests;

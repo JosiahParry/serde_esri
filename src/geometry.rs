@@ -8,6 +8,16 @@ use crate::spatial_reference::SpatialReference;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
+mod to_enginex;
+
+pub use to_enginex::FromEsriError;
+
+#[cfg(feature = "geo-traits")]
+mod geo_traits_impl;
+
+#[cfg(feature = "geo-traits")]
+pub use geo_traits_impl::{EsriPathView, EsriPolygonView};
+
 /// Represents a single coordinate used in the creation of `EsriPolygon` and `EsriPolyline`s.
 ///
 /// It requires a valid `N` of values per coordinate. Should always be one of
@@ -51,7 +61,7 @@ pub struct EsriMultiPointIterator<'a, const N: usize> {
 }
 
 impl<const N: usize> EsriMultiPoint<N> {
-    pub fn iter(&self) -> EsriMultiPointIterator<N> {
+    pub fn iter(&self) -> EsriMultiPointIterator<'_, N> {
         EsriMultiPointIterator {
             points_iter: self.points.iter(),
         }
@@ -119,7 +129,7 @@ impl<const N: usize> IntoIterator for EsriLineString<N> {
 }
 
 impl<const N: usize> EsriLineString<N> {
-    pub fn iter(&self) -> EsriLineStringIterator<N> {
+    pub fn iter(&self) -> EsriLineStringIterator<'_, N> {
         EsriLineStringIterator {
             iter: self.0.iter(),
         }
