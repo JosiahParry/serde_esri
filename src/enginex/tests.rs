@@ -2,10 +2,10 @@ use super::*;
 
 #[test]
 fn vertex_description_bits_match_java() {
-    let d: VertexDescription = [Semantics::Z, Semantics::Id].into_iter().collect();
+    let d: VertexDescription = [Attribute::Z, Attribute::Id].into_iter().collect();
     assert_eq!(u16::from(d), 0b1011);
-    assert!(d.has(Semantics::Position));
-    assert!(!d.has(Semantics::M));
+    assert!(d.has(Attribute::Position));
+    assert!(!d.has(Attribute::M));
     assert_eq!(VertexDescription::try_from(0b1011), Ok(d));
     assert_eq!(VertexDescription::try_from(0b1_0001), Err(0b1_0001));
     assert_eq!(VertexDescription::try_from(0b0010), Err(0b0010));

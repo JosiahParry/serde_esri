@@ -38,7 +38,7 @@ mod vertex;
 #[cfg(test)]
 mod tests;
 
-pub use description::{Semantics, VertexDescription};
+pub use description::{Attribute, VertexDescription};
 pub use flags::{FillRule, GeometryType, PathFlag, PathFlags, SegmentFlags, SegmentType};
 pub use from_shape::FromShapeError;
 pub use to_shape::ToShapeError;

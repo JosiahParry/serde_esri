@@ -6,7 +6,7 @@
 //! dimension and are not exposed.
 
 use crate::enginex::{
-    Envelope, Geometry, Line, MultiPath, MultiPoint, Point, Polygon, Polyline, Semantics, Vertex,
+    Envelope, Geometry, Line, MultiPath, MultiPoint, Point, Polygon, Polyline, Attribute, Vertex,
     VertexAttributes, VertexDescription,
 };
 use geo_traits::{
@@ -19,7 +19,7 @@ use geo_traits::{
 /// Z and M map to their dimensions; IDs have none.
 impl From<VertexDescription> for Dimensions {
     fn from(description: VertexDescription) -> Self {
-        match (description.has(Semantics::Z), description.has(Semantics::M)) {
+        match (description.has(Attribute::Z), description.has(Attribute::M)) {
             (false, false) => Dimensions::Xy,
             (true, false) => Dimensions::Xyz,
             (false, true) => Dimensions::Xym,

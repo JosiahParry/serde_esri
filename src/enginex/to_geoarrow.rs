@@ -10,7 +10,7 @@
 //! ```
 
 use crate::enginex::{
-    Geometry, MultiPoint, Point, Polygon, Polyline, Semantics, Vertex, VertexAttributes,
+    Geometry, MultiPoint, Point, Polygon, Polyline, Attribute, Vertex, VertexAttributes,
     VertexDescription,
 };
 use arrow_buffer::{NullBuffer, OffsetBuffer, ScalarBuffer};
@@ -67,7 +67,7 @@ impl From<GeoArrowError> for ToGeoArrowError {
 /// Z and M map to their dimensions; IDs have none.
 impl From<VertexDescription> for Dimension {
     fn from(description: VertexDescription) -> Self {
-        match (description.has(Semantics::Z), description.has(Semantics::M)) {
+        match (description.has(Attribute::Z), description.has(Attribute::M)) {
             (false, false) => Dimension::XY,
             (true, false) => Dimension::XYZ,
             (false, true) => Dimension::XYM,

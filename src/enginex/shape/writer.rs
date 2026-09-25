@@ -7,7 +7,7 @@
 
 use crate::enginex::{
     shape::{EsriShape, ShapeError, ShapeType, HAS_IDS, HAS_MS, HAS_ZS},
-    Envelope, Geometry, MultiPath, Point, Polyline, Semantics, Vertex, VertexAttributes,
+    Envelope, Geometry, MultiPath, Point, Polyline, Attribute, Vertex, VertexAttributes,
     VertexDescription,
 };
 
@@ -45,8 +45,8 @@ enum Kind {
 impl Kind {
     /// The basic type for these attributes, or the general type with modifier bits when there are IDs.
     fn type_code(self, description: VertexDescription) -> u32 {
-        let (z, m) = (description.has(Semantics::Z), description.has(Semantics::M));
-        if description.has(Semantics::Id) {
+        let (z, m) = (description.has(Attribute::Z), description.has(Attribute::M));
+        if description.has(Attribute::Id) {
             let general = match self {
                 Kind::Point => ShapeType::GeneralPoint,
                 Kind::MultiPoint => ShapeType::GeneralMultiPoint,
@@ -189,13 +189,13 @@ impl TryFrom<&Geometry> for EsriShapeBuffer {
                 w.u32(Kind::Point.type_code(description));
                 w.av_f64(v.x);
                 w.av_f64(v.y);
-                if description.has(Semantics::Z) {
+                if description.has(Attribute::Z) {
                     w.av_f64(v.z.unwrap_or(f64::NAN));
                 }
-                if description.has(Semantics::M) {
+                if description.has(Attribute::M) {
                     w.av_f64(v.m.unwrap_or(f64::NAN));
                 }
-                if description.has(Semantics::Id) {
+                if description.has(Attribute::Id) {
                     w.i32(v.id.unwrap_or(0));
                 }
             }

@@ -1,6 +1,6 @@
 //! Single vertices and column-wise vertex storage.
 
-use crate::enginex::{Semantics, VertexDescription};
+use crate::enginex::{Attribute, VertexDescription};
 
 /// A single vertex with all of its attributes.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
@@ -15,9 +15,9 @@ pub struct Vertex {
 impl Vertex {
     pub fn description(&self) -> VertexDescription {
         [
-            self.z.map(|_| Semantics::Z),
-            self.m.map(|_| Semantics::M),
-            self.id.map(|_| Semantics::Id),
+            self.z.map(|_| Attribute::Z),
+            self.m.map(|_| Attribute::M),
+            self.id.map(|_| Attribute::Id),
         ]
         .into_iter()
         .flatten()
@@ -45,9 +45,9 @@ impl VertexAttributes {
 
     pub fn description(&self) -> VertexDescription {
         [
-            self.z.as_ref().map(|_| Semantics::Z),
-            self.m.as_ref().map(|_| Semantics::M),
-            self.id.as_ref().map(|_| Semantics::Id),
+            self.z.as_ref().map(|_| Attribute::Z),
+            self.m.as_ref().map(|_| Attribute::M),
+            self.id.as_ref().map(|_| Attribute::Id),
         ]
         .into_iter()
         .flatten()
@@ -84,10 +84,10 @@ impl FromIterator<Vertex> for VertexAttributes {
         for v in vertices {
             columns.xy.push([v.x, v.y]);
             if let Some(z) = &mut columns.z {
-                z.push(v.z.unwrap_or(Semantics::Z.default_value()));
+                z.push(v.z.unwrap_or(Attribute::Z.default_value()));
             }
             if let Some(m) = &mut columns.m {
-                m.push(v.m.unwrap_or(Semantics::M.default_value()));
+                m.push(v.m.unwrap_or(Attribute::M.default_value()));
             }
             if let Some(id) = &mut columns.id {
                 id.push(v.id.unwrap_or(0));
