@@ -69,3 +69,30 @@ impl VertexAttributes {
         (0..self.len()).filter_map(|i| self.get(i))
     }
 }
+
+/// Columns follow the first vertex: an attribute it carries is kept for all, with the engine default where missing.
+impl FromIterator<Vertex> for VertexAttributes {
+    fn from_iter<I: IntoIterator<Item = Vertex>>(vertices: I) -> Self {
+        let mut vertices = vertices.into_iter().peekable();
+        let first = vertices.peek().copied().unwrap_or_default();
+        let mut columns = VertexAttributes {
+            xy: Vec::new(),
+            z: first.z.map(|_| Vec::new()),
+            m: first.m.map(|_| Vec::new()),
+            id: first.id.map(|_| Vec::new()),
+        };
+        for v in vertices {
+            columns.xy.push([v.x, v.y]);
+            if let Some(z) = &mut columns.z {
+                z.push(v.z.unwrap_or(Semantics::Z.default_value()));
+            }
+            if let Some(m) = &mut columns.m {
+                m.push(v.m.unwrap_or(Semantics::M.default_value()));
+            }
+            if let Some(id) = &mut columns.id {
+                id.push(v.id.unwrap_or(0));
+            }
+        }
+        columns
+    }
+}

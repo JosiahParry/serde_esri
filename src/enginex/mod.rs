@@ -27,6 +27,7 @@ mod geometry;
 #[cfg(feature = "geo-traits")]
 mod geo_traits_impl;
 mod rings;
+mod to_shape;
 #[cfg(feature = "geoarrow-array")]
 mod to_geoarrow;
 pub mod shape;
@@ -38,6 +39,7 @@ mod tests;
 pub use description::{Semantics, VertexDescription};
 pub use flags::{FillRule, GeometryType, PathFlag, PathFlags, SegmentFlags, SegmentType};
 pub use from_shape::FromShapeError;
+pub use to_shape::ToShapeError;
 pub use geometry::{
     Envelope, Envelope2D, Geometry, Interval, Line, MultiPath, MultiPoint, Point, Polygon, Polyline,
     Segments,

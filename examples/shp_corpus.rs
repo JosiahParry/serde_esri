@@ -6,7 +6,7 @@
 //! ```
 
 use serde_esri::shape::{
-    FileError, FinishedShapes, Record, ShapeFile, ShapeIndex, ShapeReader, ShapeWriter,
+    FileError, FinishedShapes, Record, Shape, ShapeFile, ShapeIndex, ShapeReader, ShapeWriter,
 };
 use std::{
     io::Cursor,
@@ -82,15 +82,24 @@ fn check(path: &Path) -> String {
         .join("/");
     line += &format!("; random {random_access}");
 
+    // Converts each record into the engine and back, comparing the shape buffers.
     let mut failures = std::collections::BTreeMap::<String, usize>::new();
-    let mut converted = 0;
+    let (mut converted, mut unchanged) = (0, 0);
     for record in &records {
-        match serde_esri::enginex::Geometry::try_from(record.shape.clone()) {
-            Ok(_) => converted += 1,
-            Err(e) => *failures.entry(e.to_string()).or_default() += 1,
+        let geometry = match serde_esri::enginex::Geometry::try_from(record.shape.clone()) {
+            Ok(geometry) => geometry,
+            Err(e) => {
+                *failures.entry(e.to_string()).or_default() += 1;
+                continue;
+            }
+        };
+        converted += 1;
+        let back = Shape::try_from(&geometry).map(|shape| Vec::<u8>::try_from(&shape));
+        if let Ok(Ok(bytes)) = back {
+            unchanged += usize::from(Ok(bytes) == Vec::<u8>::try_from(&record.shape));
         }
     }
-    line + &format!("; enginex {converted} ok {failures:?}")
+    line + &format!("; enginex {converted} ok, {unchanged} unchanged {failures:?}")
 }
 
 /// "same", or where and how the rewritten bytes first differ.
