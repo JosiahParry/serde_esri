@@ -2,7 +2,7 @@
 //! every array value against the engine geometry it came from.
 //!
 //! ```sh
-//! cargo run --example shp_to_geoarrow --features geoarrow-array -- a.shp b.shp
+//! cargo run --example shp_to_geoarrow --features geoarrow -- a.shp b.shp
 //! ```
 
 use geo_traits::{

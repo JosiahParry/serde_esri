@@ -15,9 +15,6 @@ pub mod geo_types;
 #[cfg(feature = "geoarrow")]
 pub mod arrow_compat;
 
-#[cfg(feature = "geoarrow")]
-mod geoarrow_compat;
-
 #[cfg(feature = "from-geo")]
 #[allow(clippy::from_over_into)]
 pub mod geo;
