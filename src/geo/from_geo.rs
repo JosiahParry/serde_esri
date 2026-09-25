@@ -123,7 +123,7 @@ impl Into<EsriPolygon<2>> for &Polygon {
         EsriPolygon {
             hasZ: None,
             hasM: None,
-            rings: rings,
+            rings,
             spatialReference: None,
         }
     }
@@ -141,7 +141,7 @@ impl Into<EsriPolygon<2>> for &MultiPolygon {
         EsriPolygon {
             hasZ: None,
             hasM: None,
-            rings: rings,
+            rings,
             spatialReference: None,
         }
     }

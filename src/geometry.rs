@@ -61,7 +61,7 @@ pub struct EsriMultiPointIterator<'a, const N: usize> {
 }
 
 impl<const N: usize> EsriMultiPoint<N> {
-    pub fn iter(&self) -> EsriMultiPointIterator<N> {
+    pub fn iter(&self) -> EsriMultiPointIterator<'_, N> {
         EsriMultiPointIterator {
             points_iter: self.points.iter(),
         }
@@ -129,7 +129,7 @@ impl<const N: usize> IntoIterator for EsriLineString<N> {
 }
 
 impl<const N: usize> EsriLineString<N> {
-    pub fn iter(&self) -> EsriLineStringIterator<N> {
+    pub fn iter(&self) -> EsriLineStringIterator<'_, N> {
         EsriLineStringIterator {
             iter: self.0.iter(),
         }
