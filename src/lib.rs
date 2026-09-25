@@ -6,6 +6,7 @@ pub mod features;
 pub mod field_type;
 pub mod geometry;
 pub mod places;
+pub mod shape;
 pub mod spatial_reference;
 // feature flag: geo-types
 #[cfg(feature = "geo")]
