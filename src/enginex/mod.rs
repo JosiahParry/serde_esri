@@ -20,6 +20,7 @@
 //! records with `Geometry::try_from(crate::shape::Shape)`.
 
 mod description;
+mod envelope;
 mod flags;
 mod from_shape;
 mod geometry;
