@@ -12,9 +12,8 @@ use crate::enginex::{
 use geo_traits::{
     CoordTrait, Dimensions, GeometryTrait, GeometryType, LineStringTrait, LineTrait,
     MultiLineStringTrait, MultiPointTrait, MultiPolygonTrait, PointTrait, PolygonTrait, RectTrait,
-    UnimplementedGeometryCollection, UnimplementedLine, UnimplementedLineString,
-    UnimplementedMultiLineString, UnimplementedMultiPoint, UnimplementedMultiPolygon,
-    UnimplementedPoint, UnimplementedPolygon, UnimplementedRect, UnimplementedTriangle,
+    UnimplementedGeometryCollection, UnimplementedLineString, UnimplementedPolygon,
+    UnimplementedTriangle,
 };
 
 /// Z and M map to their dimensions; IDs have none.
@@ -245,28 +244,28 @@ macro_rules! geometry_trait {
     (@pick Rect, Rect, $unimplemented:ty) => { Self };
     (@pick Line, Line, $unimplemented:ty) => { Self };
     (@pick $variant:ident, $slot:ident, $unimplemented:ty) => { $unimplemented };
-    ($ty:ty, $variant:ident, $dim:expr) => {
-        impl GeometryTrait for $ty {
+    ([$($generics:tt)*] $ty:ty, $variant:ident, $dim:expr) => {
+        impl<$($generics)*> ::geo_traits::GeometryTrait for $ty {
             type T = f64;
-            type PointType<'b> = geometry_trait!(@pick $variant, Point, UnimplementedPoint<f64>) where Self: 'b;
-            type LineStringType<'b> = geometry_trait!(@pick $variant, LineString, UnimplementedLineString<f64>) where Self: 'b;
-            type PolygonType<'b> = geometry_trait!(@pick $variant, Polygon, UnimplementedPolygon<f64>) where Self: 'b;
-            type MultiPointType<'b> = geometry_trait!(@pick $variant, MultiPoint, UnimplementedMultiPoint<f64>) where Self: 'b;
-            type MultiLineStringType<'b> = geometry_trait!(@pick $variant, MultiLineString, UnimplementedMultiLineString<f64>) where Self: 'b;
-            type MultiPolygonType<'b> = geometry_trait!(@pick $variant, MultiPolygon, UnimplementedMultiPolygon<f64>) where Self: 'b;
-            type GeometryCollectionType<'b> = UnimplementedGeometryCollection<f64> where Self: 'b;
-            type RectType<'b> = geometry_trait!(@pick $variant, Rect, UnimplementedRect<f64>) where Self: 'b;
-            type TriangleType<'b> = UnimplementedTriangle<f64> where Self: 'b;
-            type LineType<'b> = geometry_trait!(@pick $variant, Line, UnimplementedLine<f64>) where Self: 'b;
+            type PointType<'b> = $crate::enginex::geo_traits_impl::geometry_trait!(@pick $variant, Point, ::geo_traits::UnimplementedPoint<f64>) where Self: 'b;
+            type LineStringType<'b> = $crate::enginex::geo_traits_impl::geometry_trait!(@pick $variant, LineString, ::geo_traits::UnimplementedLineString<f64>) where Self: 'b;
+            type PolygonType<'b> = $crate::enginex::geo_traits_impl::geometry_trait!(@pick $variant, Polygon, ::geo_traits::UnimplementedPolygon<f64>) where Self: 'b;
+            type MultiPointType<'b> = $crate::enginex::geo_traits_impl::geometry_trait!(@pick $variant, MultiPoint, ::geo_traits::UnimplementedMultiPoint<f64>) where Self: 'b;
+            type MultiLineStringType<'b> = $crate::enginex::geo_traits_impl::geometry_trait!(@pick $variant, MultiLineString, ::geo_traits::UnimplementedMultiLineString<f64>) where Self: 'b;
+            type MultiPolygonType<'b> = $crate::enginex::geo_traits_impl::geometry_trait!(@pick $variant, MultiPolygon, ::geo_traits::UnimplementedMultiPolygon<f64>) where Self: 'b;
+            type GeometryCollectionType<'b> = ::geo_traits::UnimplementedGeometryCollection<f64> where Self: 'b;
+            type RectType<'b> = $crate::enginex::geo_traits_impl::geometry_trait!(@pick $variant, Rect, ::geo_traits::UnimplementedRect<f64>) where Self: 'b;
+            type TriangleType<'b> = ::geo_traits::UnimplementedTriangle<f64> where Self: 'b;
+            type LineType<'b> = $crate::enginex::geo_traits_impl::geometry_trait!(@pick $variant, Line, ::geo_traits::UnimplementedLine<f64>) where Self: 'b;
 
-            fn dim(&self) -> Dimensions {
-                let dim: fn(&Self) -> Dimensions = $dim;
+            fn dim(&self) -> ::geo_traits::Dimensions {
+                let dim: fn(&Self) -> ::geo_traits::Dimensions = $dim;
                 dim(self)
             }
 
             fn as_type(
                 &self,
-            ) -> GeometryType<
+            ) -> ::geo_traits::GeometryType<
                 '_,
                 Self::PointType<'_>,
                 Self::LineStringType<'_>,
@@ -279,20 +278,22 @@ macro_rules! geometry_trait {
                 Self::TriangleType<'_>,
                 Self::LineType<'_>,
             > {
-                GeometryType::$variant(self)
+                ::geo_traits::GeometryType::$variant(self)
             }
         }
     };
 }
 
-geometry_trait!(PathView<'_>, LineString, |p| p.vertices.description().into());
-geometry_trait!(PolygonView<'_>, Polygon, |p| p.rings.vertices.description().into());
-geometry_trait!(Point, Point, |p| p.0.map_or(Dimensions::Xy, |v| v.description().into()));
-geometry_trait!(MultiPoint, MultiPoint, |mp| mp.vertices.description().into());
-geometry_trait!(Polyline, MultiLineString, |p| p.0.vertices.description().into());
-geometry_trait!(Polygon, MultiPolygon, |p| p.rings.vertices.description().into());
-geometry_trait!(Line, Line, |l| l.start.description().into());
-geometry_trait!(Envelope, Rect, |e| RectTrait::min(e).description().into());
+pub(crate) use geometry_trait;
+
+geometry_trait!([] PathView<'_>, LineString, |p| p.vertices.description().into());
+geometry_trait!([] PolygonView<'_>, Polygon, |p| p.rings.vertices.description().into());
+geometry_trait!([] Point, Point, |p| p.0.map_or(Dimensions::Xy, |v| v.description().into()));
+geometry_trait!([] MultiPoint, MultiPoint, |mp| mp.vertices.description().into());
+geometry_trait!([] Polyline, MultiLineString, |p| p.0.vertices.description().into());
+geometry_trait!([] Polygon, MultiPolygon, |p| p.rings.vertices.description().into());
+geometry_trait!([] Line, Line, |l| l.start.description().into());
+geometry_trait!([] Envelope, Rect, |e| RectTrait::min(e).description().into());
 
 impl GeometryTrait for Geometry {
     type T = f64;

@@ -27,7 +27,7 @@ mod from_geo_traits;
 mod from_shape;
 mod geometry;
 #[cfg(feature = "geo-traits")]
-mod geo_traits_impl;
+pub(crate) mod geo_traits_impl;
 mod rings;
 mod to_shape;
 #[cfg(feature = "geoarrow-array")]

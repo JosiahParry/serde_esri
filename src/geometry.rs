@@ -12,6 +12,12 @@ mod to_enginex;
 
 pub use to_enginex::FromEsriError;
 
+#[cfg(feature = "geo-traits")]
+mod geo_traits_impl;
+
+#[cfg(feature = "geo-traits")]
+pub use geo_traits_impl::{EsriPathView, EsriPolygonView};
+
 /// Represents a single coordinate used in the creation of `EsriPolygon` and `EsriPolyline`s.
 ///
 /// It requires a valid `N` of values per coordinate. Should always be one of
