@@ -39,7 +39,7 @@ impl std::fmt::Display for ShapeError {
 
 impl std::error::Error for ShapeError {}
 
-/// Error from [`ShapeReader`] or [`ShapeWriter`]: I/O failed, or the shapes are invalid.
+/// Error from [`ShapeReader`](crate::shape::ShapeReader) or [`ShapeWriter`](crate::shape::ShapeWriter): I/O failed, or the shapes are invalid.
 #[derive(Debug)]
 pub enum FileError {
     Io(std::io::Error),

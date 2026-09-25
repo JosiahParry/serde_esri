@@ -24,7 +24,7 @@ pub enum PathFlag {
     OgcStartPolygon = 4,
 }
 
-/// Bitmask of [`PathFlag`]s for one path of a [`MultiPath`].
+/// Bitmask of [`PathFlag`]s for one path of a [`MultiPath`](crate::enginex::MultiPath).
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 pub struct PathFlags(pub u8);
 
@@ -59,7 +59,7 @@ pub enum SegmentType {
 }
 
 impl SegmentType {
-    /// Number of `f64`s the segment occupies in [`Segments::params`] (`MultiPathImpl._segmentParamSizes`).
+    /// Number of `f64`s the segment occupies in [`Segments::params`](crate::enginex::Segments::params) (`MultiPathImpl._segmentParamSizes`).
     pub const fn param_count(self) -> usize {
         match self {
             SegmentType::Line => 0,
