@@ -1,8 +1,13 @@
 //! Converts the protocol buffer types into their `serde_esri` counterparts.
 
+#[cfg(feature = "geoarrow")]
+mod arrow;
 mod feature_set;
 mod geometry;
 mod scalars;
+
+#[cfg(feature = "geoarrow")]
+pub use arrow::PbfToArrowError;
 
 #[cfg(test)]
 mod tests;

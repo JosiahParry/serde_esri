@@ -504,6 +504,8 @@ dependencies = [
 name = "esripbf"
 version = "0.1.0"
 dependencies = [
+ "arrow-array",
+ "arrow-ipc",
  "bytes",
  "prost",
  "serde_esri",
