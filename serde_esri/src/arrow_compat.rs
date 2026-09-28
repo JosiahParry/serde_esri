@@ -16,7 +16,7 @@ use crate::{
     enginex::{Geometry, GeometryColumn, ToGeoArrowError},
     features::{EsriValue, Feature, FeatureSet, Field},
     field_type::FieldType,
-    geometry::FromEsriError,
+    geometry::{FromEsriError, InFeatureSet},
     spatial_reference::SpatialReference,
 };
 use arrow_array::{
@@ -229,7 +229,10 @@ impl<const N: usize> FeatureSet<N> {
         let geometries = self
             .features
             .iter()
-            .map(|f| f.geometry.as_ref().map(Geometry::try_from).transpose())
+            .map(|f| {
+                let held = |geometry| InFeatureSet { geometry, has_z: self.has_z, has_m: self.has_m };
+                f.geometry.as_ref().map(held).map(Geometry::try_from).transpose()
+            })
             .collect::<Result<Vec<_>, _>>()?;
         Ok(match geometry_type {
             "esriGeometryPoint" => {

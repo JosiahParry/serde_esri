@@ -11,6 +11,7 @@ use serde_with::skip_serializing_none;
 mod de;
 mod to_enginex;
 
+pub(crate) use to_enginex::InFeatureSet;
 pub use to_enginex::FromEsriError;
 
 #[cfg(feature = "geo-traits")]

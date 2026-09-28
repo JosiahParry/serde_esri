@@ -108,11 +108,27 @@ impl MultiPath {
     }
 }
 
+/// A geometry with the `hasZ` and `hasM` of the FeatureSet holding it, used where it has none.
+pub(crate) struct InFeatureSet<'a, const N: usize> {
+    pub(crate) geometry: &'a EsriGeometry<N>,
+    pub(crate) has_z: Option<bool>,
+    pub(crate) has_m: Option<bool>,
+}
+
 impl<const N: usize> TryFrom<&EsriGeometry<N>> for Geometry {
     type Error = FromEsriError;
 
     fn try_from(geometry: &EsriGeometry<N>) -> Result<Self, Self::Error> {
-        Ok(match geometry {
+        Geometry::try_from(InFeatureSet { geometry, has_z: None, has_m: None })
+    }
+}
+
+impl<const N: usize> TryFrom<InFeatureSet<'_, N>> for Geometry {
+    type Error = FromEsriError;
+
+    fn try_from(held: InFeatureSet<'_, N>) -> Result<Self, Self::Error> {
+        let (has_z, has_m) = (held.has_z, held.has_m);
+        Ok(match held.geometry {
             EsriGeometry::Point(p) => {
                 let vertex = Vertex {
                     x: p.x,
@@ -124,17 +140,17 @@ impl<const N: usize> TryFrom<&EsriGeometry<N>> for Geometry {
                 Geometry::Point(Point((!p.x.is_nan()).then_some(vertex)))
             }
             EsriGeometry::MultiPoint(mp) => {
-                let layout = Layout::new::<N>(mp.has_z, mp.has_m)?;
+                let layout = Layout::new::<N>(mp.has_z.or(has_z), mp.has_m.or(has_m))?;
                 Geometry::MultiPoint(MultiPoint {
                     vertices: mp.points.iter().map(|c| layout.vertex(c)).collect(),
                 })
             }
             EsriGeometry::Polyline(pl) => {
-                let layout = Layout::new::<N>(pl.has_z, pl.has_m)?;
+                let layout = Layout::new::<N>(pl.has_z.or(has_z), pl.has_m.or(has_m))?;
                 Geometry::Polyline(Polyline(MultiPath::from_esri(&pl.paths, layout, PathType::Polyline)?))
             }
             EsriGeometry::Polygon(pg) => {
-                let layout = Layout::new::<N>(pg.has_z, pg.has_m)?;
+                let layout = Layout::new::<N>(pg.has_z.or(has_z), pg.has_m.or(has_m))?;
                 let rings = MultiPath::from_esri(&pg.rings, layout, PathType::Polygon)?;
                 Geometry::Polygon(Polygon::from(rings))
             }

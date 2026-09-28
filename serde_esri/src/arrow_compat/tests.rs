@@ -33,8 +33,16 @@ fn fields_and_geometry_become_columns() -> Result<(), String> {
 
     let schema = batch.schema();
     let names: Vec<_> = schema.fields().iter().map(|f| f.name().as_str()).collect();
-    assert_eq!(names, vec!["OBJECTID", "NAME", "POP", "AREA", "UPDATED", "geometry"]);
-    let types: Vec<_> = schema.fields().iter().take(5).map(|f| f.data_type().clone()).collect();
+    assert_eq!(
+        names,
+        vec!["OBJECTID", "NAME", "POP", "AREA", "UPDATED", "geometry"]
+    );
+    let types: Vec<_> = schema
+        .fields()
+        .iter()
+        .take(5)
+        .map(|f| f.data_type().clone())
+        .collect();
     assert_eq!(
         types,
         vec![
@@ -50,11 +58,17 @@ fn fields_and_geometry_become_columns() -> Result<(), String> {
 
     let geometry = schema.field(5);
     assert_eq!(
-        geometry.metadata().get("ARROW:extension:name").map(String::as_str),
+        geometry
+            .metadata()
+            .get("ARROW:extension:name")
+            .map(String::as_str),
         Some("geoarrow.multipolygon")
     );
     let extension = geometry.metadata().get("ARROW:extension:metadata");
-    assert!(extension.is_some_and(|m| m.contains("EPSG:4326")), "{extension:?}");
+    assert!(
+        extension.is_some_and(|m| m.contains("EPSG:4326")),
+        "{extension:?}"
+    );
     assert!(batch.column(5).is_null(1));
     Ok(())
 }
@@ -79,16 +93,20 @@ fn esri_wkids_become_esri_codes() -> Result<(), String> {
             "features": [{"geometry": {"x": 1, "y": 2}}]}"#,
     )?;
     let batch = RecordBatch::try_from(&feature_set).map_err(|e| e.to_string())?;
-    let extension = batch.schema().field(0).metadata().get("ARROW:extension:metadata").cloned();
+    let extension = batch
+        .schema()
+        .field(0)
+        .metadata()
+        .get("ARROW:extension:metadata")
+        .cloned();
     assert!(extension.is_some_and(|m| m.contains("ESRI:102100")));
     Ok(())
 }
 
 #[test]
 fn errors() -> Result<(), String> {
-    let blob = parse::<2>(
-        r#"{"fields": [{"name": "B", "type": "esriFieldTypeBlob"}], "features": []}"#,
-    )?;
+    let blob =
+        parse::<2>(r#"{"fields": [{"name": "B", "type": "esriFieldTypeBlob"}], "features": []}"#)?;
     assert!(matches!(
         RecordBatch::try_from(&blob),
         Err(ToArrowError::UnsupportedField { .. })
@@ -101,5 +119,23 @@ fn errors() -> Result<(), String> {
         RecordBatch::try_from(&mismatched),
         Err(ToArrowError::GeometryTypeMismatch)
     ));
+    Ok(())
+}
+
+#[test]
+fn feature_set_flags_give_geometries_their_dimension() -> Result<(), String> {
+    let feature_set = parse::<3>(
+        r#"{"geometryType": "esriGeometryPolyline", "hasM": true,
+            "features": [{"geometry": {"paths": [[[0, 0, 5], [1, 1, 6]]]}}]}"#,
+    )?;
+    let batch = RecordBatch::try_from(&feature_set).map_err(|e| e.to_string())?;
+    let streamed = RecordBatch::try_from(FeatureSetJson(
+        br#"{"geometryType": "esriGeometryPolyline", "hasM": true,
+            "features": [{"geometry": {"paths": [[[0, 0, 5], [1, 1, 6]]]}}]}"#,
+    ))
+    .map_err(|e| e.to_string())?;
+    assert!(format!("{:?}", batch.schema().field(0).data_type()).contains("xym"));
+    assert_eq!(batch.schema(), streamed.schema());
+    assert_eq!(batch.column(0), streamed.column(0));
     Ok(())
 }
