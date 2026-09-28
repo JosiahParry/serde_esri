@@ -22,6 +22,8 @@ pub enum FromPbfError {
     UnsupportedGeometry(&'static str),
     /// A feature carries a geometry but the result has no quantization transform.
     MissingTransform,
+    /// A geometry has more vertices than the engine's 32-bit path offsets hold.
+    TooLarge,
     /// Part lengths and coordinates disagree on the number of vertices.
     Coordinates { expected: usize, found: usize },
 }
@@ -38,6 +40,7 @@ impl std::fmt::Display for FromPbfError {
                 write!(f, "{name} geometries are not supported")
             }
             FromPbfError::MissingTransform => write!(f, "geometry has no quantization transform"),
+            FromPbfError::TooLarge => write!(f, "geometry exceeds 32-bit path offsets"),
             FromPbfError::Coordinates { expected, found } => write!(
                 f,
                 "part lengths need {expected} coordinate values, found {found}"

@@ -505,8 +505,10 @@ name = "esripbf"
 version = "0.1.0"
 dependencies = [
  "arrow-array",
- "arrow-ipc",
+ "arrow-schema",
  "bytes",
+ "geoarrow-array",
+ "geoarrow-schema",
  "prost",
  "serde_esri",
  "serde_json",
