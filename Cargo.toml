@@ -49,6 +49,7 @@ geoarrow = [
 places-client = ["reqwest/blocking", "reqwest/json"]
 
 [dev-dependencies]
+arrow-ipc = "59"
 geo-traits = "0.3.0"
 geo-types = "0.7.12"
 
@@ -58,4 +59,8 @@ required-features = ["geoarrow"]
 
 [[example]]
 name = "bench_featureset_arrow"
+required-features = ["geoarrow"]
+
+[[example]]
+name = "featureset_ipc"
 required-features = ["geoarrow"]
