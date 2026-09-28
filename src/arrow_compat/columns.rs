@@ -4,11 +4,13 @@
 
 use arrow_array::{
     builder::{
-        ArrayBuilder, Float32Builder, Float64Builder, Int16Builder, Int32Builder, Int64Builder,
-        LargeStringBuilder, StringBuilder, TimestampMillisecondBuilder,
+        ArrayBuilder, Date32Builder, Float32Builder, Float64Builder, Int16Builder, Int32Builder,
+        Int64Builder, LargeStringBuilder, StringBuilder, Time32MillisecondBuilder,
+        TimestampMillisecondBuilder,
     },
     ArrayRef,
 };
+use crate::arrow_compat::temporal::{DateOnly, TimeOnly, TimestampOffset};
 use serde::{
     de::{self, DeserializeSeed, Deserializer, IgnoredAny, MapAccess, SeqAccess, Visitor},
     Deserialize,
@@ -32,12 +34,17 @@ pub(super) enum ColumnBuilder {
     Float64(Float64Builder),
     Utf8(StringBuilder),
     LargeUtf8(LargeStringBuilder),
+    /// `esriFieldTypeDate`: epoch milliseconds, kept as UTC.
     Timestamp(TimestampMillisecondBuilder),
+    /// `esriFieldTypeTimestampOffset`: ISO 8601 with an offset, converted to UTC.
+    TimestampOffset(TimestampMillisecondBuilder),
+    Date32(Date32Builder),
+    Time32(Time32MillisecondBuilder),
 }
 
 impl ColumnBuilder {
     /// The builder for an Esri field type, or `None` for geometry, blob, and raster fields.
-    /// Unrecognized types, including date-only, time-only, and offset timestamps, are text.
+    /// Unrecognized types are text.
     pub(super) fn new(field_type: &str, capacity: usize) -> Option<Self> {
         Some(match field_type {
             "esriFieldTypeSmallInteger" => ColumnBuilder::Int16(Int16Builder::with_capacity(capacity)),
@@ -49,6 +56,13 @@ impl ColumnBuilder {
             "esriFieldTypeDouble" => ColumnBuilder::Float64(Float64Builder::with_capacity(capacity)),
             "esriFieldTypeDate" => {
                 ColumnBuilder::Timestamp(TimestampMillisecondBuilder::with_capacity(capacity))
+            }
+            "esriFieldTypeTimestampOffset" => {
+                ColumnBuilder::TimestampOffset(TimestampMillisecondBuilder::with_capacity(capacity))
+            }
+            "esriFieldTypeDateOnly" => ColumnBuilder::Date32(Date32Builder::with_capacity(capacity)),
+            "esriFieldTypeTimeOnly" => {
+                ColumnBuilder::Time32(Time32MillisecondBuilder::with_capacity(capacity))
             }
             "esriFieldTypeXML" => {
                 ColumnBuilder::LargeUtf8(LargeStringBuilder::with_capacity(capacity, capacity * 16))
@@ -67,7 +81,9 @@ impl ColumnBuilder {
             ColumnBuilder::Float64(b) => b.len(),
             ColumnBuilder::Utf8(b) => b.len(),
             ColumnBuilder::LargeUtf8(b) => b.len(),
-            ColumnBuilder::Timestamp(b) => b.len(),
+            ColumnBuilder::Timestamp(b) | ColumnBuilder::TimestampOffset(b) => b.len(),
+            ColumnBuilder::Date32(b) => b.len(),
+            ColumnBuilder::Time32(b) => b.len(),
         }
     }
 
@@ -80,16 +96,24 @@ impl ColumnBuilder {
             ColumnBuilder::Float64(b) => b.append_null(),
             ColumnBuilder::Utf8(b) => b.append_null(),
             ColumnBuilder::LargeUtf8(b) => b.append_null(),
-            ColumnBuilder::Timestamp(b) => b.append_null(),
+            ColumnBuilder::Timestamp(b) | ColumnBuilder::TimestampOffset(b) => b.append_null(),
+            ColumnBuilder::Date32(b) => b.append_null(),
+            ColumnBuilder::Time32(b) => b.append_null(),
         }
     }
 
+    /// Numbers in temporal columns are epoch milliseconds, or milliseconds since midnight for
+    /// times.
     fn append_i64(&mut self, v: i64) {
         match self {
             ColumnBuilder::Int16(b) => b.append_option(i16::try_from(v).ok()),
             ColumnBuilder::Int32(b) => b.append_option(i32::try_from(v).ok()),
             ColumnBuilder::Int64(b) => b.append_value(v),
-            ColumnBuilder::Timestamp(b) => b.append_value(v),
+            ColumnBuilder::Timestamp(b) | ColumnBuilder::TimestampOffset(b) => b.append_value(v),
+            ColumnBuilder::Date32(b) => {
+                b.append_option(i32::try_from(v.div_euclid(86_400_000)).ok())
+            }
+            ColumnBuilder::Time32(b) => b.append_option(i32::try_from(v).ok()),
             ColumnBuilder::Float32(b) => b.append_value(v as f32),
             ColumnBuilder::Float64(b) => b.append_value(v as f64),
             ColumnBuilder::Utf8(b) => b.append_value(v.to_string()),
@@ -97,28 +121,34 @@ impl ColumnBuilder {
         }
     }
 
-    /// Whole floats go into integer columns when they fit exactly; others become null.
+    /// Whole floats go into integer and temporal columns when they fit exactly; others are null.
     fn append_f64(&mut self, v: f64) {
         let whole = (v.fract() == 0.0).then_some(v);
         let int64 = whole.map(|w| w as i64).filter(|&i| i as f64 == v);
         match self {
-            ColumnBuilder::Int16(b) => b.append_option(int64.and_then(|i| i16::try_from(i).ok())),
-            ColumnBuilder::Int32(b) => b.append_option(int64.and_then(|i| i32::try_from(i).ok())),
-            ColumnBuilder::Int64(b) => b.append_option(int64),
-            ColumnBuilder::Timestamp(b) => b.append_option(int64),
             ColumnBuilder::Float32(b) => b.append_value(v as f32),
             ColumnBuilder::Float64(b) => b.append_value(v),
             ColumnBuilder::Utf8(b) => b.append_value(v.to_string()),
             ColumnBuilder::LargeUtf8(b) => b.append_value(v.to_string()),
+            integral => match int64 {
+                Some(i) => integral.append_i64(i),
+                None => integral.append_null(),
+            },
         }
     }
 
+    /// Text is parsed for numeric and temporal columns, as ISO 8601 for the newer date types.
     fn append_str(&mut self, v: &str) {
         match self {
             ColumnBuilder::Int16(b) => b.append_option(v.parse().ok()),
             ColumnBuilder::Int32(b) => b.append_option(v.parse().ok()),
             ColumnBuilder::Int64(b) => b.append_option(v.parse().ok()),
             ColumnBuilder::Timestamp(b) => b.append_option(v.parse().ok()),
+            ColumnBuilder::TimestampOffset(b) => {
+                b.append_option(v.parse().ok().map(|TimestampOffset(ms)| ms))
+            }
+            ColumnBuilder::Date32(b) => b.append_option(v.parse().ok().map(|DateOnly(days)| days)),
+            ColumnBuilder::Time32(b) => b.append_option(v.parse().ok().map(|TimeOnly(ms)| ms)),
             ColumnBuilder::Float32(b) => b.append_option(v.parse().ok()),
             ColumnBuilder::Float64(b) => b.append_option(v.parse().ok()),
             ColumnBuilder::Utf8(b) => b.append_value(v),
@@ -130,12 +160,15 @@ impl ColumnBuilder {
         match self {
             ColumnBuilder::Utf8(b) => b.append_value(if v { "true" } else { "false" }),
             ColumnBuilder::LargeUtf8(b) => b.append_value(if v { "true" } else { "false" }),
-            ColumnBuilder::Timestamp(b) => b.append_null(),
+            ColumnBuilder::Timestamp(_)
+            | ColumnBuilder::TimestampOffset(_)
+            | ColumnBuilder::Date32(_)
+            | ColumnBuilder::Time32(_) => self.append_null(),
             numeric => numeric.append_i64(i64::from(v)),
         }
     }
 
-    /// The finished column; dates are UTC millisecond timestamps.
+    /// The finished column; timestamps are UTC milliseconds.
     pub(super) fn finish(&mut self) -> ArrayRef {
         match self {
             ColumnBuilder::Int16(b) => Arc::new(b.finish()),
@@ -145,7 +178,11 @@ impl ColumnBuilder {
             ColumnBuilder::Float64(b) => Arc::new(b.finish()),
             ColumnBuilder::Utf8(b) => Arc::new(b.finish()),
             ColumnBuilder::LargeUtf8(b) => Arc::new(b.finish()),
-            ColumnBuilder::Timestamp(b) => Arc::new(b.finish().with_timezone("UTC")),
+            ColumnBuilder::Timestamp(b) | ColumnBuilder::TimestampOffset(b) => {
+                Arc::new(b.finish().with_timezone("UTC"))
+            }
+            ColumnBuilder::Date32(b) => Arc::new(b.finish()),
+            ColumnBuilder::Time32(b) => Arc::new(b.finish()),
         }
     }
 }

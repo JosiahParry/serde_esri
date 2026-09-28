@@ -17,6 +17,10 @@ pub enum FieldType {
     EsriFieldTypeGuid = 10,
     EsriFieldTypeGlobalId = 11,
     EsriFieldTypeXml = 12,
+    EsriFieldTypeBigInteger,
+    EsriFieldTypeDateOnly,
+    EsriFieldTypeTimeOnly,
+    EsriFieldTypeTimestampOffset,
 }
 
 impl FieldType {
@@ -39,6 +43,10 @@ impl FieldType {
             FieldType::EsriFieldTypeGuid => "esriFieldTypeGUID",
             FieldType::EsriFieldTypeGlobalId => "esriFieldTypeGlobalID",
             FieldType::EsriFieldTypeXml => "esriFieldTypeXML",
+            FieldType::EsriFieldTypeBigInteger => "esriFieldTypeBigInteger",
+            FieldType::EsriFieldTypeDateOnly => "esriFieldTypeDateOnly",
+            FieldType::EsriFieldTypeTimeOnly => "esriFieldTypeTimeOnly",
+            FieldType::EsriFieldTypeTimestampOffset => "esriFieldTypeTimestampOffset",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -57,6 +65,10 @@ impl FieldType {
             "esriFieldTypeGUID" => Some(Self::EsriFieldTypeGuid),
             "esriFieldTypeGlobalID" => Some(Self::EsriFieldTypeGlobalId),
             "esriFieldTypeXML" => Some(Self::EsriFieldTypeXml),
+            "esriFieldTypeBigInteger" => Some(Self::EsriFieldTypeBigInteger),
+            "esriFieldTypeDateOnly" => Some(Self::EsriFieldTypeDateOnly),
+            "esriFieldTypeTimeOnly" => Some(Self::EsriFieldTypeTimeOnly),
+            "esriFieldTypeTimestampOffset" => Some(Self::EsriFieldTypeTimestampOffset),
             _ => None,
         }
     }

@@ -20,7 +20,8 @@ use crate::{
     spatial_reference::SpatialReference,
 };
 use arrow_array::{
-    ArrayRef, Float32Array, Float64Array, Int16Array, Int32Array, Int64Array, LargeStringArray,
+    ArrayRef, Date32Array, Float32Array, Float64Array, Int16Array, Int32Array, Int64Array,
+    LargeStringArray, Time32MillisecondArray,
     RecordBatch, RecordBatchOptions, StringArray, TimestampMillisecondArray,
 };
 use arrow_schema::{ArrowError, Field as ArrowField, Schema};
@@ -35,8 +36,10 @@ use std::sync::Arc;
 mod columns;
 mod geometry;
 mod json;
+mod temporal;
 
 pub use json::FeatureSetJson;
+use temporal::{DateOnly, TimeOnly, TimestampOffset};
 
 #[derive(Debug)]
 pub enum ToArrowError {
@@ -145,7 +148,25 @@ impl Field {
                     .map(|v| v.and_then(|v| i32::try_from(v).ok()))
                     .collect::<Int32Array>(),
             ),
-            FieldType::EsriFieldTypeOid => Arc::new(integers.collect::<Int64Array>()),
+            FieldType::EsriFieldTypeOid | FieldType::EsriFieldTypeBigInteger => {
+                Arc::new(integers.collect::<Int64Array>())
+            }
+            FieldType::EsriFieldTypeDateOnly => Arc::new(
+                strings
+                    .map(|v| v.and_then(|v| v.parse().ok()).map(|DateOnly(days)| days))
+                    .collect::<Date32Array>(),
+            ),
+            FieldType::EsriFieldTypeTimeOnly => Arc::new(
+                strings
+                    .map(|v| v.and_then(|v| v.parse().ok()).map(|TimeOnly(ms)| ms))
+                    .collect::<Time32MillisecondArray>(),
+            ),
+            FieldType::EsriFieldTypeTimestampOffset => Arc::new(
+                strings
+                    .map(|v| v.and_then(|v| v.parse().ok()).map(|TimestampOffset(ms)| ms))
+                    .collect::<TimestampMillisecondArray>()
+                    .with_timezone("UTC"),
+            ),
             FieldType::EsriFieldTypeSingle => {
                 Arc::new(floats.map(|v| v.map(|v| v as f32)).collect::<Float32Array>())
             }

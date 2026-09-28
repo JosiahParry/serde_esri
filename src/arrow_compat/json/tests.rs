@@ -1,6 +1,6 @@
 use super::*;
 use crate::features::FeatureSet;
-use arrow_array::{Array, Int16Array, Int64Array, StringArray};
+use arrow_array::{Array, Date32Array, Int16Array, Int64Array, TimestampMillisecondArray};
 
 fn stream(json: &str) -> Result<RecordBatch, ToArrowError> {
     RecordBatch::try_from(FeatureSetJson(json.as_bytes()))
@@ -114,8 +114,41 @@ fn values_that_do_not_fit_become_null() -> Result<(), String> {
     assert_eq!(big.iter().collect::<Vec<_>>(), vec![Some(9007199254740993), None, None, None]);
 
     let day = column(2);
-    let day = day.as_any().downcast_ref::<StringArray>().ok_or("DAY is not Utf8")?;
-    assert_eq!(day.iter().collect::<Vec<_>>(), vec![Some("2024-05-01"), None, None, None]);
+    let day = day.as_any().downcast_ref::<Date32Array>().ok_or("DAY is not Date32")?;
+    assert_eq!(day.iter().collect::<Vec<_>>(), vec![Some(19_844), None, None, None]);
+    Ok(())
+}
+
+/// Every field type from the specification, including the newer date and time types.
+#[test]
+fn newer_field_types_match_the_feature_set_path() -> Result<(), String> {
+    agree::<2>(
+        r#"{"fields": [
+                {"name": "BIG", "type": "esriFieldTypeBigInteger"},
+                {"name": "DAY", "type": "esriFieldTypeDateOnly"},
+                {"name": "TIME", "type": "esriFieldTypeTimeOnly"},
+                {"name": "STAMP", "type": "esriFieldTypeTimestampOffset"},
+                {"name": "GLOBAL", "type": "esriFieldTypeGlobalID"},
+                {"name": "DOC", "type": "esriFieldTypeXML"},
+                {"name": "SHAPE", "type": "esriFieldTypeGeometry"}
+            ],
+            "features": [
+                {"attributes": {"BIG": 9007199254740993, "DAY": "2003-01-25", "TIME": "21:00:00",
+                    "STAMP": "2003-01-25T14:35:00.927-08:00", "GLOBAL": "{A1}", "DOC": "<a/>"}},
+                {"attributes": {"BIG": null, "DAY": null, "TIME": "07:30:00.5", "STAMP": null}}
+            ]}"#,
+    )?;
+    let batch = stream(
+        r#"{"fields": [{"name": "STAMP", "type": "esriFieldTypeTimestampOffset"}],
+            "features": [{"attributes": {"STAMP": "2003-01-25T14:35:00.927-08:00"}}]}"#,
+    )
+    .map_err(|e| e.to_string())?;
+    let stamp = batch.column(0).clone();
+    let stamp = stamp
+        .as_any()
+        .downcast_ref::<TimestampMillisecondArray>()
+        .ok_or("STAMP is not a timestamp")?;
+    assert_eq!(stamp.value(0), 1_043_534_100_927, "22:35:00.927 UTC");
     Ok(())
 }
 
