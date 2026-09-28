@@ -17,10 +17,10 @@ pub enum FieldType {
     EsriFieldTypeGuid = 10,
     EsriFieldTypeGlobalId = 11,
     EsriFieldTypeXml = 12,
-    EsriFieldTypeBigInteger,
-    EsriFieldTypeDateOnly,
-    EsriFieldTypeTimeOnly,
-    EsriFieldTypeTimestampOffset,
+    EsriFieldTypeBigInteger = 13,
+    EsriFieldTypeDateOnly = 14,
+    EsriFieldTypeTimeOnly = 15,
+    EsriFieldTypeTimestampOffset = 16,
 }
 
 impl FieldType {
