@@ -8,6 +8,7 @@ use crate::spatial_reference::SpatialReference;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
+mod de;
 mod to_enginex;
 
 pub use to_enginex::FromEsriError;
@@ -207,8 +208,8 @@ impl<'a, const N: usize> ExactSizeIterator for EsriPolygonIterator<'a, N> {
     }
 }
 
-/// An enum of all valid geometry types. At present this does not include `esriGeometryEnvelope`
-#[derive(Clone, Deserialize, Serialize, Debug)]
+/// An enum of all valid geometry types. Deserializing picks the variant by its keys.
+#[derive(Clone, Serialize, Debug)]
 #[serde(untagged)]
 pub enum EsriGeometry<const N: usize> {
     Point(EsriPoint),
