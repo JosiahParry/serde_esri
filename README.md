@@ -81,7 +81,7 @@ fn main() {
 
 They are encapsulated by the `EsriGeometry` enum:
 
-```rust
+```rust,ignore
 enum EsriGeometry<const N: usize> {
     Point(EsriPoint),
     MultiPoint(EsriMultiPoint<N>),
@@ -98,21 +98,21 @@ An Esri JSON [`FeatureSet`](https://developers.arcgis.com/documentation/common-d
 
 Features are a struct with a `geometry` and an `attributes` field. The geometry must be one of the possible geometry types and attributes can be an key-value pair. 
 
-```rust
+```rust,ignore
 struct Feature<const N: usize> {
     geometry: Option<EsriGeometry<N>>,
-    attributes: Option<Map<String, Value>>,
+    attributes: Option<IndexMap<String, EsriValue>>,
 }
 ```
 
 FeatureSets are defined as 
 
-```rust
+```rust,ignore
 pub struct FeatureSet<const N: usize> {
     // ... other optional fields 
     features: Vec<Feature<N>>,
     geometryType: Option<String>,
-    spatialReference: SpatialReference,
+    spatialReference: Option<SpatialReference>,
 }
 ```
 
@@ -120,13 +120,14 @@ pub struct FeatureSet<const N: usize> {
 
 [Esri Spatial Reference Objects](https://developers.arcgis.com/documentation/common-data-types/geometry-objects.htm#GUID-DFF0E738-5A42-40BC-A811-ACCB5814BABC) are represented by the `SpatialReference` struct. Note that while all fields are optional, one should always be provided. 
 
-```rust
+```rust,ignore
 struct SpatialReference {
-    wkid: Option<u32>,
-    latest_wkid: Option<u32>,
-    vcs_wkid: Option<u32>,
-    latest_vcs_wkid: Option<u32>,
+    wkid: Option<i32>,
+    latest_wkid: Option<i32>,
+    vcs_wkid: Option<i32>,
+    latest_vcs_wkid: Option<i32>,
     wkt: Option<String>,
+    wkt2: Option<String>,
 }
 ```
 
@@ -140,7 +141,7 @@ Activate the PlaceAPI client in your Cargo.toml
 serde_esri = { version = "2.0.0", features = ["places-client"] }
 ```
 
-```rust
+```rust,ignore
 let client = PlacesClient::new(
     PLACES_API_URL,
     "your-developer-credential",

@@ -1,0 +1,17 @@
+[package]
+name = "esripbf"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.70"
+license = "Apache-2.0"
+repository = "https://github.com/josiahparry/serde_esri"
+authors = ["Josiah Parry<josiah.parry@gmail.com>"]
+categories = ["encoding", "parser-implementations", "science::geo"]
+keywords = ["arcgis", "esri", "protobuf", "pbf", "gis"]
+description = "Protocol buffer types for Esri's FeatureCollection PBF format."
+readme = "README.md"
+include = ["src/**/*", "README.md"]
+
+[dependencies]
+prost = "0.12.1"
+bytes = "1.5.0"
