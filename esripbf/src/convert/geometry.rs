@@ -136,26 +136,26 @@ impl Quantization {
                     y: at(1).unwrap_or(f64::NAN),
                     z,
                     m,
-                    spatialReference: None,
+                    spatial_reference: None,
                 })
             }
             GeometryType::EsriGeometryTypeMultipoint => EsriGeometry::MultiPoint(EsriMultiPoint {
-                hasZ: None,
-                hasM: None,
+                has_z: None,
+                has_m: None,
                 points: parts.into_iter().flatten().collect(),
-                spatialReference: None,
+                spatial_reference: None,
             }),
             GeometryType::EsriGeometryTypePolyline => EsriGeometry::Polyline(EsriPolyline {
-                hasZ: None,
-                hasM: None,
+                has_z: None,
+                has_m: None,
                 paths: parts.into_iter().map(EsriLineString).collect(),
-                spatialReference: None,
+                spatial_reference: None,
             }),
             GeometryType::EsriGeometryTypePolygon => EsriGeometry::Polygon(EsriPolygon {
-                hasZ: None,
-                hasM: None,
+                has_z: None,
+                has_m: None,
                 rings: parts.into_iter().map(EsriLineString).collect(),
-                spatialReference: None,
+                spatial_reference: None,
             }),
             GeometryType::EsriGeometryTypeMultipatch => {
                 return Err(FromPbfError::UnsupportedGeometry("multipatch"))

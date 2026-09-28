@@ -36,37 +36,37 @@ pub struct Feature<const N: usize> {
 
 /// A set of geometries and their attributes
 #[skip_serializing_none]
-#[allow(non_snake_case)]
 #[derive(Debug, Deserialize, Serialize, Clone, Default)]
+#[serde(rename_all = "camelCase")]
 pub struct FeatureSet<const N: usize> {
-    pub objectIdFieldName: Option<String>,
-    pub globalIdFieldName: Option<String>,
-    pub displayFieldName: Option<String>,
-    pub geometryType: Option<String>, // TODO should this be an enum?
-    pub spatialReference: Option<SpatialReference>,
-    pub hasZ: Option<bool>,
-    pub hasM: Option<bool>,
+    pub object_id_field_name: Option<String>,
+    pub global_id_field_name: Option<String>,
+    pub display_field_name: Option<String>,
+    pub geometry_type: Option<String>, // TODO should this be an enum?
+    pub spatial_reference: Option<SpatialReference>,
+    pub has_z: Option<bool>,
+    pub has_m: Option<bool>,
     pub fields: Option<Vec<Field>>,
     pub features: Vec<Feature<N>>,
 }
 
 /// Metadata about an attribute field
 #[serde_as]
-#[derive(Clone, Debug, Deserialize, Serialize, Default)]
 #[skip_serializing_none]
+#[derive(Clone, Debug, Deserialize, Serialize, Default)]
+#[serde(rename_all = "camelCase")]
 pub struct Field {
     pub name: String,
     #[serde(rename = "type")]
     #[serde_as(as = "DisplayFromStr")]
     pub field_type: FieldType,
     pub alias: Option<String>,
-    #[serde(rename = "sqlType", default)]
+    #[serde(default)]
     #[serde_as(as = "Option<DisplayFromStr>")]
     pub sql_type: Option<SqlType>,
     // unsure what this should be
     pub domain: Option<serde_json::Value>,
     // unsure what this should be
-    #[serde(rename = "defaultValue")]
     pub default_value: Option<serde_json::Value>,
 }
 

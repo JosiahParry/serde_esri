@@ -61,13 +61,13 @@ impl<const N: usize> TryFrom<pbf::FeatureResult> for FeatureSet<N> {
         let text = |s: String| (!s.is_empty()).then_some(s);
 
         Ok(FeatureSet {
-            objectIdFieldName: text(result.object_id_field_name),
-            globalIdFieldName: text(result.global_id_field_name),
-            displayFieldName: None,
-            geometryType: geometry_type.map(String::from),
-            spatialReference: result.spatial_reference.map(Into::into),
-            hasZ: result.has_z.then_some(true),
-            hasM: result.has_m.then_some(true),
+            object_id_field_name: text(result.object_id_field_name),
+            global_id_field_name: text(result.global_id_field_name),
+            display_field_name: None,
+            geometry_type: geometry_type.map(String::from),
+            spatial_reference: result.spatial_reference.map(Into::into),
+            has_z: result.has_z.then_some(true),
+            has_m: result.has_m.then_some(true),
             fields: Some(result.fields.into_iter().map(Into::into).collect()),
             features,
         })

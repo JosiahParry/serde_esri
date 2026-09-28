@@ -121,7 +121,7 @@ impl From<pbf::Envelope> for EsriEnvelope {
             ymin: envelope.y_min,
             xmax: envelope.x_max,
             ymax: envelope.y_max,
-            spatialReference: envelope.spatial_reference.map(SpatialReference::from),
+            spatial_reference: envelope.spatial_reference.map(SpatialReference::from),
             ..Default::default()
         }
     }

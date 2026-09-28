@@ -289,9 +289,9 @@ impl<const N: usize> TryFrom<&FeatureSet<N>> for RecordBatch {
             }
         }
 
-        if let Some(geometry_type) = &feature_set.geometryType {
+        if let Some(geometry_type) = &feature_set.geometry_type {
             let crs = feature_set
-                .spatialReference
+                .spatial_reference
                 .as_ref()
                 .map(Crs::from)
                 .unwrap_or_default();

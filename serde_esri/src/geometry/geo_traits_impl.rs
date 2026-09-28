@@ -92,7 +92,7 @@ impl<const N: usize> EsriPolygon<N> {
     }
 
     fn layout(&self) -> Layout {
-        Layout::lenient::<N>(self.hasZ, self.hasM)
+        Layout::lenient::<N>(self.has_z, self.has_m)
     }
 }
 
@@ -166,7 +166,7 @@ impl<const N: usize> MultiPointTrait for EsriMultiPoint<N> {
     }
 
     unsafe fn point_unchecked(&self, i: usize) -> Point {
-        let layout = Layout::lenient::<N>(self.hasZ, self.hasM);
+        let layout = Layout::lenient::<N>(self.has_z, self.has_m);
         Point(self.points.get(i).map(|c| layout.vertex(c)))
     }
 }
@@ -184,7 +184,7 @@ impl<const N: usize> MultiLineStringTrait for EsriPolyline<N> {
     unsafe fn line_string_unchecked(&self, i: usize) -> EsriPathView<'_, N> {
         EsriPathView {
             coords: self.paths.get(i).map_or(&[], |path| &path.0),
-            layout: Layout::lenient::<N>(self.hasZ, self.hasM),
+            layout: Layout::lenient::<N>(self.has_z, self.has_m),
         }
     }
 }
@@ -239,10 +239,10 @@ geometry_trait!([const N: usize] EsriPathView<'_, N>, LineString, |p| p.layout.i
 geometry_trait!([const N: usize] EsriPolygonView<'_, N>, Polygon, |p| p.layout.into());
 geometry_trait!([] EsriPoint, Point, |p| p.coord().map_or(Dimensions::Xy, |v| v.description().into()));
 geometry_trait!([const N: usize] EsriMultiPoint<N>, MultiPoint, |mp| {
-    Layout::lenient::<N>(mp.hasZ, mp.hasM).into()
+    Layout::lenient::<N>(mp.has_z, mp.has_m).into()
 });
 geometry_trait!([const N: usize] EsriPolyline<N>, MultiLineString, |p| {
-    Layout::lenient::<N>(p.hasZ, p.hasM).into()
+    Layout::lenient::<N>(p.has_z, p.has_m).into()
 });
 geometry_trait!([const N: usize] EsriPolygon<N>, MultiPolygon, |p| p.layout().into());
 geometry_trait!([] EsriEnvelope, Rect, |e| RectTrait::min(e).description().into());

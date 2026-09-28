@@ -124,17 +124,17 @@ impl<const N: usize> TryFrom<&EsriGeometry<N>> for Geometry {
                 Geometry::Point(Point((!p.x.is_nan()).then_some(vertex)))
             }
             EsriGeometry::MultiPoint(mp) => {
-                let layout = Layout::new::<N>(mp.hasZ, mp.hasM)?;
+                let layout = Layout::new::<N>(mp.has_z, mp.has_m)?;
                 Geometry::MultiPoint(MultiPoint {
                     vertices: mp.points.iter().map(|c| layout.vertex(c)).collect(),
                 })
             }
             EsriGeometry::Polyline(pl) => {
-                let layout = Layout::new::<N>(pl.hasZ, pl.hasM)?;
+                let layout = Layout::new::<N>(pl.has_z, pl.has_m)?;
                 Geometry::Polyline(Polyline(MultiPath::from_esri(&pl.paths, layout, PathType::Polyline)?))
             }
             EsriGeometry::Polygon(pg) => {
-                let layout = Layout::new::<N>(pg.hasZ, pg.hasM)?;
+                let layout = Layout::new::<N>(pg.has_z, pg.has_m)?;
                 let rings = MultiPath::from_esri(&pg.rings, layout, PathType::Polygon)?;
                 Geometry::Polygon(Polygon::from(rings))
             }

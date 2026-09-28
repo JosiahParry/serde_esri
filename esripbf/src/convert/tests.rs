@@ -65,15 +65,15 @@ fn matches_json<const N: usize>(name: &str) -> TestResult {
     let pbf = FeatureSet::<N>::try_from(collection)?;
     let json: FeatureSet<N> = serde_json::from_slice(&fixture(&format!("{name}.json"))?)?;
 
-    assert_eq!(pbf.geometryType, json.geometryType, "{name}: geometry type");
+    assert_eq!(pbf.geometry_type, json.geometry_type, "{name}: geometry type");
     assert_eq!(
-        pbf.spatialReference, json.spatialReference,
+        pbf.spatial_reference, json.spatial_reference,
         "{name}: spatial reference"
     );
-    assert_eq!(pbf.hasZ, json.hasZ, "{name}: hasZ");
-    assert_eq!(pbf.hasM, json.hasM, "{name}: hasM");
+    assert_eq!(pbf.has_z, json.has_z, "{name}: hasZ");
+    assert_eq!(pbf.has_m, json.has_m, "{name}: hasM");
     assert_eq!(
-        pbf.objectIdFieldName, json.objectIdFieldName,
+        pbf.object_id_field_name, json.object_id_field_name,
         "{name}: object id field"
     );
     let describe = |fs: &FeatureSet<N>| -> Vec<(String, String, Option<SqlType>)> {
