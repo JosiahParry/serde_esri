@@ -75,10 +75,10 @@ fn matches_json<const N: usize>(name: &str) -> TestResult {
         pbf.objectIdFieldName, json.objectIdFieldName,
         "{name}: object id field"
     );
-    let describe = |fs: &FeatureSet<N>| -> Vec<(String, String)> {
+    let describe = |fs: &FeatureSet<N>| -> Vec<(String, String, Option<String>)> {
         let fields = fs.fields.iter().flatten();
         fields
-            .map(|f| (f.name.clone(), f.field_type.to_string()))
+            .map(|f| (f.name.clone(), f.field_type.to_string(), f.sqlType.clone()))
             .collect()
     };
     assert_eq!(describe(&pbf), describe(&json), "{name}: fields");
