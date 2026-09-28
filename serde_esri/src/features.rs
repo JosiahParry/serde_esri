@@ -7,7 +7,10 @@
 //! The Esri [`FeatureSet`](https://developers.arcgis.com/documentation/common-data-types/featureset-object.htm)
 //! object represents a collection of individual features. This is the most common representation that is encountered
 //! when working with a Feature Service via its rest API.
-use crate::{field_type::FieldType, geometry::EsriGeometry, spatial_reference::SpatialReference};
+use crate::{
+    field_type::FieldType, geometry::EsriGeometry, spatial_reference::SpatialReference,
+    sqltype::SqlType,
+};
 use serde::{Deserialize, Serialize};
 use indexmap::IndexMap;
 
@@ -48,10 +51,7 @@ pub struct FeatureSet<const N: usize> {
 }
 
 /// Metadata about an attribute field
-// esripbf has most of these defined via Prost
-// TODO sqlType, field_type need to be Enums
 #[serde_as]
-#[allow(non_snake_case)]
 #[derive(Clone, Debug, Deserialize, Serialize, Default)]
 #[skip_serializing_none]
 pub struct Field {
@@ -60,11 +60,14 @@ pub struct Field {
     #[serde_as(as = "DisplayFromStr")]
     pub field_type: FieldType,
     pub alias: Option<String>,
-    pub sqlType: Option<String>,
+    #[serde(rename = "sqlType", default)]
+    #[serde_as(as = "Option<DisplayFromStr>")]
+    pub sql_type: Option<SqlType>,
     // unsure what this should be
     pub domain: Option<serde_json::Value>,
     // unsure what this should be
-    pub defaultValue: Option<serde_json::Value>,
+    #[serde(rename = "defaultValue")]
+    pub default_value: Option<serde_json::Value>,
 }
 
 // using this query for reference

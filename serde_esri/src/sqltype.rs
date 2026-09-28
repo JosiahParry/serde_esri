@@ -1,6 +1,9 @@
-// taken from
-// https://github.com/R-ArcGIS/arcpbf/blob/main/src/rust/esripbf/src/esri_p_buffer.rs#L31
-/// FieldType
+//! Enumeration of the SQL types a field reports
+
+#[cfg(test)]
+mod tests;
+
+/// A field's `sqlType`, numbered as in Esri's FeatureCollection proto.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd)]
 pub enum SqlType {
     BigInt = 0,
@@ -100,5 +103,20 @@ impl SqlType {
             "sqlTypeTimestampWithTimezone" => Some(Self::TimestampWithTimezone),
             _ => None,
         }
+    }
+}
+
+impl std::fmt::Display for SqlType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str_name())
+    }
+}
+
+/// Names this enum does not know, such as types newer services add, read as `Other`.
+impl std::str::FromStr for SqlType {
+    type Err = std::convert::Infallible;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(SqlType::from_str_name(s).unwrap_or(SqlType::Other))
     }
 }

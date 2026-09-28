@@ -6,6 +6,7 @@ use serde_esri::{
     field_type::FieldType,
     geometry::EsriEnvelope,
     spatial_reference::SpatialReference,
+    sqltype::SqlType,
 };
 
 impl From<pbf::FieldType> for FieldType {
@@ -32,16 +33,50 @@ impl From<pbf::FieldType> for FieldType {
     }
 }
 
+impl From<pbf::SqlType> for SqlType {
+    fn from(value: pbf::SqlType) -> Self {
+        match value {
+            pbf::SqlType::BigInt => SqlType::BigInt,
+            pbf::SqlType::Binary => SqlType::Binary,
+            pbf::SqlType::Bit => SqlType::Bit,
+            pbf::SqlType::Char => SqlType::Char,
+            pbf::SqlType::Date => SqlType::Date,
+            pbf::SqlType::Decimal => SqlType::Decimal,
+            pbf::SqlType::Double => SqlType::Double,
+            pbf::SqlType::Float => SqlType::Float,
+            pbf::SqlType::Geometry => SqlType::Geometry,
+            pbf::SqlType::Guid => SqlType::Guid,
+            pbf::SqlType::Integer => SqlType::Integer,
+            pbf::SqlType::LongNVarchar => SqlType::LongNVarchar,
+            pbf::SqlType::LongVarbinary => SqlType::LongVarbinary,
+            pbf::SqlType::LongVarchar => SqlType::LongVarchar,
+            pbf::SqlType::NChar => SqlType::NChar,
+            pbf::SqlType::NVarchar => SqlType::NVarchar,
+            pbf::SqlType::Other => SqlType::Other,
+            pbf::SqlType::Real => SqlType::Real,
+            pbf::SqlType::SmallInt => SqlType::SmallInt,
+            pbf::SqlType::SqlXml => SqlType::SqlXml,
+            pbf::SqlType::Time => SqlType::Time,
+            pbf::SqlType::Timestamp => SqlType::Timestamp,
+            pbf::SqlType::Timestamp2 => SqlType::Timestamp2,
+            pbf::SqlType::TinyInt => SqlType::TinyInt,
+            pbf::SqlType::Varbinary => SqlType::Varbinary,
+            pbf::SqlType::Varchar => SqlType::Varchar,
+            pbf::SqlType::TimestampWithTimezone => SqlType::TimestampWithTimezone,
+        }
+    }
+}
+
 impl From<pbf::Field> for Field {
     fn from(field: pbf::Field) -> Self {
         let text = |s: String| (!s.is_empty()).then_some(serde_json::Value::String(s));
         Field {
             field_type: field.field_type().into(),
-            sqlType: Some(field.sql_type().as_str_name().to_string()),
+            sql_type: Some(field.sql_type().into()),
             name: field.name,
             alias: (!field.alias.is_empty()).then_some(field.alias),
             domain: text(field.domain),
-            defaultValue: text(field.default_value),
+            default_value: text(field.default_value),
         }
     }
 }

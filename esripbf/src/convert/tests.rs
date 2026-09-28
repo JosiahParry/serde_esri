@@ -4,6 +4,7 @@ use prost::Message;
 use serde_esri::{
     features::{EsriValue, FeatureSet},
     geometry::EsriGeometry,
+    sqltype::SqlType,
 };
 
 type TestResult = Result<(), Box<dyn std::error::Error>>;
@@ -75,10 +76,10 @@ fn matches_json<const N: usize>(name: &str) -> TestResult {
         pbf.objectIdFieldName, json.objectIdFieldName,
         "{name}: object id field"
     );
-    let describe = |fs: &FeatureSet<N>| -> Vec<(String, String, Option<String>)> {
+    let describe = |fs: &FeatureSet<N>| -> Vec<(String, String, Option<SqlType>)> {
         let fields = fs.fields.iter().flatten();
         fields
-            .map(|f| (f.name.clone(), f.field_type.to_string(), f.sqlType.clone()))
+            .map(|f| (f.name.clone(), f.field_type.to_string(), f.sql_type))
             .collect()
     };
     assert_eq!(describe(&pbf), describe(&json), "{name}: fields");
