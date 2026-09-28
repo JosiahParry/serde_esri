@@ -12,6 +12,17 @@ description = "Protocol buffer types for Esri's FeatureCollection PBF format."
 readme = "README.md"
 include = ["src/**/*", "README.md"]
 
+[package.metadata.docs.rs]
+all-features = true
+
 [dependencies]
 prost = "0.12.1"
 bytes = "1.5.0"
+serde_esri = { version = "2.0.0", path = "../serde_esri", optional = true }
+serde_json = { version = "1.0.108", optional = true }
+
+[features]
+serde_esri = ["dep:serde_esri", "dep:serde_json"]
+
+[dev-dependencies]
+serde_json = "1.0.108"
