@@ -141,3 +141,32 @@ fn geoarrow_values_read_back_into_the_engine() -> Result<(), String> {
     assert_eq!(Some(read_back), original);
     Ok(())
 }
+
+#[test]
+fn envelopes_become_boxes_with_z_and_m() -> Result<(), String> {
+    use crate::enginex::{Envelope, Envelope2D, Interval};
+    use geo_traits::RectTrait;
+
+    let envelopes = [
+        Some(Envelope {
+            xy: Some(Envelope2D {
+                xmin: 0.0,
+                ymin: 1.0,
+                xmax: 2.0,
+                ymax: 3.0,
+            }),
+            z: Some(Interval { min: 4.0, max: 5.0 }),
+            m: Some(Interval { min: 6.0, max: 7.0 }),
+            id: None,
+        }),
+        None,
+    ];
+    let array = RectArray::try_from(GeometryColumn(&envelopes)).map_err(|e| e.to_string())?;
+    assert!(array.is_null(1));
+    let rect = array.value(0).map_err(|e| e.to_string())?;
+    assert_eq!(rect.dim(), Dimensions::Xyzm);
+    let (min, max) = (rect.min(), rect.max());
+    assert_eq!((min.nth(2), min.nth(3)), (Some(4.0), Some(6.0)));
+    assert_eq!((max.x(), max.nth(3)), (2.0, Some(7.0)));
+    Ok(())
+}

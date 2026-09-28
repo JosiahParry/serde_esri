@@ -5,14 +5,17 @@
 //! polygons by orientation as the engine groups them. Missing ordinates and `null`, `"NaN"`
 //! values are `NaN`; ordinates beyond the column's dimension are skipped.
 
-use crate::arrow_compat::ToArrowError;
+use crate::{
+    arrow_compat::ToArrowError,
+    enginex::{Envelope, Envelope2D, GeometryColumn, Interval},
+};
 use arrow_array::ArrayRef;
 use arrow_buffer::{NullBuffer, OffsetBuffer, ScalarBuffer};
 use arrow_schema::Field;
 use geoarrow_array::{
     array::{
         CoordBuffer, InterleavedCoordBuffer, MultiLineStringArray, MultiPointArray,
-        MultiPolygonArray, PointArray,
+        MultiPolygonArray, PointArray, RectArray,
     },
     GeoArrowArray,
 };
@@ -28,6 +31,8 @@ pub(super) enum GeometryType {
     MultiPoint,
     Polyline,
     Polygon,
+    /// Envelopes become GeoArrow boxes through the engine.
+    Envelope,
 }
 
 impl TryFrom<&str> for GeometryType {
@@ -39,6 +44,7 @@ impl TryFrom<&str> for GeometryType {
             "esriGeometryMultipoint" => Ok(GeometryType::MultiPoint),
             "esriGeometryPolyline" => Ok(GeometryType::Polyline),
             "esriGeometryPolygon" => Ok(GeometryType::Polygon),
+            "esriGeometryEnvelope" => Ok(GeometryType::Envelope),
             other => Err(ToArrowError::UnsupportedGeometryType(other.to_string())),
         }
     }
@@ -56,6 +62,7 @@ pub(super) struct GeometryBuilder {
     part_offsets: Vec<i32>,
     ring_offsets: Vec<i32>,
     validity: Vec<bool>,
+    envelopes: Vec<Option<Envelope>>,
 }
 
 impl GeometryBuilder {
@@ -74,6 +81,7 @@ impl GeometryBuilder {
             part_offsets: vec![0],
             ring_offsets: vec![0],
             validity: Vec::with_capacity(capacity),
+            envelopes: Vec::new(),
         }
     }
 
@@ -85,6 +93,7 @@ impl GeometryBuilder {
         self.validity.push(false);
         match self.geometry_type {
             GeometryType::Point => self.coords.extend(std::iter::repeat_n(f64::NAN, self.width)),
+            GeometryType::Envelope => self.envelopes.push(None),
             _ => {
                 let last = self.geom_offsets.last().copied().unwrap_or(0);
                 self.geom_offsets.push(last);
@@ -139,35 +148,40 @@ impl GeometryBuilder {
         fn column(array: impl GeoArrowArray) -> (Field, ArrayRef) {
             (array.data_type().to_field("geometry", true), array.to_array_ref())
         }
+        let envelopes = self.envelopes;
         let offsets = |values: Vec<i32>| OffsetBuffer::new(ScalarBuffer::from(values));
         let has_nulls = self.validity.iter().any(|valid| !valid);
         let nulls = has_nulls.then(|| NullBuffer::from(self.validity));
-        let coords = InterleavedCoordBuffer::try_new(ScalarBuffer::from(self.coords), self.dim)
-            ?;
+        let coords = InterleavedCoordBuffer::try_new(ScalarBuffer::from(self.coords), self.dim)?;
         let coords = CoordBuffer::Interleaved(coords);
         let (geoms, parts, rings) = (self.geom_offsets, self.part_offsets, self.ring_offsets);
         Ok(match self.geometry_type {
-            GeometryType::Point => {
-                column(PointArray::try_new(coords, nulls, metadata)?)
+            GeometryType::Point => column(PointArray::try_new(coords, nulls, metadata)?),
+            GeometryType::MultiPoint => column(MultiPointArray::try_new(
+                coords,
+                offsets(geoms),
+                nulls,
+                metadata,
+            )?),
+            GeometryType::Polyline => column(MultiLineStringArray::try_new(
+                coords,
+                offsets(geoms),
+                offsets(parts),
+                nulls,
+                metadata,
+            )?),
+            GeometryType::Polygon => column(MultiPolygonArray::try_new(
+                coords,
+                offsets(geoms),
+                offsets(parts),
+                offsets(rings),
+                nulls,
+                metadata,
+            )?),
+            GeometryType::Envelope => {
+                let array = RectArray::try_from(GeometryColumn(&envelopes))?;
+                column(array.with_metadata(metadata))
             }
-            GeometryType::MultiPoint => column(
-                MultiPointArray::try_new(coords, offsets(geoms), nulls, metadata)?,
-            ),
-            GeometryType::Polyline => column(
-                MultiLineStringArray::try_new(coords, offsets(geoms), offsets(parts), nulls, metadata)
-                    ?,
-            ),
-            GeometryType::Polygon => column(
-                MultiPolygonArray::try_new(
-                    coords,
-                    offsets(geoms),
-                    offsets(parts),
-                    offsets(rings),
-                    nulls,
-                    metadata,
-                )
-                ?,
-            ),
         })
     }
 }
@@ -331,6 +345,8 @@ enum GeometryKey {
     Points,
     Paths,
     Rings,
+    /// An envelope bound, indexing xmin, ymin, xmax, ymax, zmin, zmax, mmin, mmax.
+    Bound(usize),
     Other,
 }
 
@@ -354,6 +370,14 @@ impl<'de> Deserialize<'de> for GeometryKey {
                     "points" => GeometryKey::Points,
                     "paths" => GeometryKey::Paths,
                     "rings" => GeometryKey::Rings,
+                    "xmin" => GeometryKey::Bound(0),
+                    "ymin" => GeometryKey::Bound(1),
+                    "xmax" => GeometryKey::Bound(2),
+                    "ymax" => GeometryKey::Bound(3),
+                    "zmin" => GeometryKey::Bound(4),
+                    "zmax" => GeometryKey::Bound(5),
+                    "mmin" => GeometryKey::Bound(6),
+                    "mmax" => GeometryKey::Bound(7),
                     _ => GeometryKey::Other,
                 })
             }
@@ -391,8 +415,15 @@ impl<'de> Visitor<'de> for GeometrySeed<'_> {
         let width = b.width;
         let first_ring = b.ring_offsets.len() - 1;
         let mut point = [f64::NAN; 4];
+        let mut bounds = [f64::NAN; 8];
         while let Some(key) = map.next_key::<GeometryKey>()? {
             match (b.geometry_type, key) {
+                (GeometryType::Envelope, GeometryKey::Bound(i)) => {
+                    let value = map.next_value_seed(Ordinate)?;
+                    if let Some(bound) = bounds.get_mut(i) {
+                        *bound = value;
+                    }
+                }
                 (GeometryType::Point, GeometryKey::X) => point[0] = map.next_value_seed(Ordinate)?,
                 (GeometryType::Point, GeometryKey::Y) => point[1] = map.next_value_seed(Ordinate)?,
                 (GeometryType::Point, GeometryKey::Z) => point[2] = map.next_value_seed(Ordinate)?,
@@ -445,6 +476,23 @@ impl<'de> Visitor<'de> for GeometrySeed<'_> {
                 b.group_rings(first_ring)?;
                 let count = offset(b.part_offsets.len() - 1)?;
                 b.geom_offsets.push(count);
+            }
+            GeometryType::Envelope => {
+                let [xmin, ymin, xmax, ymax, zmin, zmax, mmin, mmax] = bounds;
+                let interval = |min: f64, max: f64| {
+                    (!min.is_nan() && !max.is_nan()).then_some(Interval { min, max })
+                };
+                b.envelopes.push(Some(Envelope {
+                    xy: Some(Envelope2D {
+                        xmin,
+                        ymin,
+                        xmax,
+                        ymax,
+                    }),
+                    z: interval(zmin, zmax),
+                    m: interval(mmin, mmax),
+                    id: None,
+                }));
             }
         }
         b.validity.push(true);

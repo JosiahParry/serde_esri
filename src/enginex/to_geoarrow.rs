@@ -10,14 +10,15 @@
 //! ```
 
 use crate::enginex::{
-    Geometry, MultiPoint, Point, Polygon, Polyline, Attribute, Vertex, VertexAttributes,
+    Attribute, Envelope, Geometry, Interval, MultiPoint, Point, Polygon, Polyline, Vertex,
+    VertexAttributes,
     VertexDescription,
 };
 use arrow_buffer::{NullBuffer, OffsetBuffer, ScalarBuffer};
 use geoarrow_array::{
     array::{
         CoordBuffer, GeometryArray, InterleavedCoordBuffer, MultiLineStringArray, MultiPointArray,
-        MultiPolygonArray, PointArray,
+        MultiPolygonArray, PointArray, RectArray, SeparatedCoordBuffer,
     },
     builder::GeometryBuilder,
 };
@@ -247,6 +248,53 @@ impl TryFrom<GeometryColumn<'_, Polyline>> for MultiLineStringArray {
             column.nulls(),
             Default::default(),
         )?)
+    }
+}
+
+/// Envelopes as GeoArrow boxes, with Z and M ranges as their own dimensions.
+impl TryFrom<GeometryColumn<'_, Envelope>> for RectArray {
+    type Error = ToGeoArrowError;
+
+    fn try_from(column: GeometryColumn<'_, Envelope>) -> Result<Self, Self::Error> {
+        let dim = column.dimension(|e| {
+            let attributes = [e.z.map(|_| Attribute::Z), e.m.map(|_| Attribute::M)];
+            e.xy.map(|_| attributes.into_iter().flatten().collect())
+        })?;
+        let size = match dim {
+            Dimension::XY => 2,
+            Dimension::XYZ | Dimension::XYM => 3,
+            Dimension::XYZM => 4,
+        };
+        let mut lower = vec![Vec::with_capacity(column.0.len()); size];
+        let mut upper = vec![Vec::with_capacity(column.0.len()); size];
+        for envelope in column.0 {
+            let envelope = envelope.unwrap_or_default();
+            let xy = envelope.xy.map_or([f64::NAN; 4], |e| [e.xmin, e.ymin, e.xmax, e.ymax]);
+            let range = |i: Option<Interval<f64>>| i.map_or([f64::NAN; 2], |i| [i.min, i.max]);
+            let [zmin, zmax] = range(envelope.z);
+            let [mmin, mmax] = range(envelope.m);
+            let (mins, maxes) = match dim {
+                Dimension::XY => (vec![xy[0], xy[1]], vec![xy[2], xy[3]]),
+                Dimension::XYZ => (vec![xy[0], xy[1], zmin], vec![xy[2], xy[3], zmax]),
+                Dimension::XYM => (vec![xy[0], xy[1], mmin], vec![xy[2], xy[3], mmax]),
+                Dimension::XYZM => (vec![xy[0], xy[1], zmin, mmin], vec![xy[2], xy[3], zmax, mmax]),
+            };
+            for (buffer, value) in lower.iter_mut().zip(mins) {
+                buffer.push(value);
+            }
+            for (buffer, value) in upper.iter_mut().zip(maxes) {
+                buffer.push(value);
+            }
+        }
+        let buffers = |values: Vec<Vec<f64>>| {
+            SeparatedCoordBuffer::from_vec(values.into_iter().map(ScalarBuffer::from).collect(), dim)
+        };
+        Ok(RectArray::new(
+            buffers(lower)?,
+            buffers(upper)?,
+            column.nulls(),
+            Default::default(),
+        ))
     }
 }
 

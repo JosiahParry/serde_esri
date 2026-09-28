@@ -26,7 +26,7 @@ use arrow_array::{
 };
 use arrow_schema::{ArrowError, Field as ArrowField, Schema};
 use geoarrow_array::{
-    array::{GeometryArray, MultiLineStringArray, MultiPointArray, MultiPolygonArray, PointArray},
+    array::{MultiLineStringArray, MultiPointArray, MultiPolygonArray, PointArray, RectArray},
     GeoArrowArray,
 };
 use geoarrow_schema::{error::GeoArrowError, Crs, Metadata};
@@ -265,7 +265,11 @@ impl<const N: usize> FeatureSet<N> {
                 column(array.with_metadata(metadata))
             }
             "esriGeometryEnvelope" => {
-                let array = GeometryArray::try_from(GeometryColumn(&geometries))?;
+                let envelopes = typed(&geometries, |g| match g {
+                    Geometry::Envelope(e) => Some(e),
+                    _ => None,
+                })?;
+                let array = RectArray::try_from(GeometryColumn(&envelopes))?;
                 column(array.with_metadata(metadata))
             }
             other => return Err(ToArrowError::UnsupportedGeometryType(other.to_string())),

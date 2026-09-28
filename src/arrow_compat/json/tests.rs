@@ -178,10 +178,6 @@ fn errors() {
         Err(ToArrowError::Service { code: Some(400), .. })
     ));
     assert!(matches!(
-        stream(r#"{"geometryType": "esriGeometryEnvelope", "features": []}"#),
-        Err(ToArrowError::UnsupportedGeometryType(_))
-    ));
-    assert!(matches!(
         stream(r#"{"features": [{"attributes": {]}"#),
         Err(ToArrowError::Json(_))
     ));
@@ -196,5 +192,23 @@ fn the_latest_wkid_sets_the_crs() -> Result<(), String> {
     .map_err(|e| e.to_string())?;
     let extension = batch.schema().field(0).metadata().get("ARROW:extension:metadata").cloned();
     assert!(extension.is_some_and(|m| m.contains("EPSG:3857")));
+    Ok(())
+}
+
+#[test]
+fn envelopes_match_the_feature_set_path() -> Result<(), String> {
+    agree::<2>(
+        r#"{"geometryType": "esriGeometryEnvelope", "spatialReference": {"wkid": 4326},
+            "features": [
+                {"geometry": {"xmin": 0, "ymin": 1, "xmax": 2, "ymax": 3}},
+                {"geometry": null}
+            ]}"#,
+    )?;
+    let z = r#"{"geometryType": "esriGeometryEnvelope", "hasZ": true,
+        "features": [{"geometry": {"xmin": 0, "ymin": 1, "xmax": 2, "ymax": 3, "zmin": 4, "zmax": 5}}]}"#;
+    agree::<2>(z)?;
+    let batch = stream(z).map_err(|e| e.to_string())?;
+    let name = batch.schema().field(0).metadata().get("ARROW:extension:name").cloned();
+    assert_eq!(name.as_deref(), Some("geoarrow.box"));
     Ok(())
 }
