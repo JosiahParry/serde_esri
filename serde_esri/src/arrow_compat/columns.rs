@@ -10,7 +10,11 @@ use arrow_array::{
     },
     ArrayRef,
 };
-use crate::arrow_compat::temporal::{DateOnly, TimeOnly, TimestampOffset};
+use crate::{
+    arrow_compat::temporal::{DateOnly, TimeOnly, TimestampOffset},
+    features::EsriValue,
+    field_type::FieldType,
+};
 use serde::{
     de::{self, DeserializeSeed, Deserializer, IgnoredAny, MapAccess, SeqAccess, Visitor},
     Deserialize,
@@ -184,6 +188,31 @@ impl ColumnBuilder {
             ColumnBuilder::Date32(b) => Arc::new(b.finish()),
             ColumnBuilder::Time32(b) => Arc::new(b.finish()),
         }
+    }
+}
+
+/// One attribute column under construction, typed by its field's type. Values that do not fit
+/// the column become nulls, as in [`FeatureSetJson`](crate::arrow_compat::FeatureSetJson).
+pub struct AttributeColumn(ColumnBuilder);
+
+impl AttributeColumn {
+    /// The column for `field_type`, or `None` for geometry, blob, and raster fields.
+    pub fn new(field_type: &FieldType, capacity: usize) -> Option<Self> {
+        ColumnBuilder::new(field_type.as_str_name(), capacity).map(AttributeColumn)
+    }
+
+    pub fn push(&mut self, value: &EsriValue) {
+        match value {
+            EsriValue::Null => self.0.append_null(),
+            EsriValue::Bool(v) => self.0.append_bool(*v),
+            EsriValue::Int(v) => self.0.append_i64(*v),
+            EsriValue::Float(v) => self.0.append_f64(*v),
+            EsriValue::String(v) => self.0.append_str(v),
+        }
+    }
+
+    pub fn finish(mut self) -> ArrayRef {
+        self.0.finish()
     }
 }
 

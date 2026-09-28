@@ -37,6 +37,7 @@ mod geometry;
 mod json;
 mod temporal;
 
+pub use columns::AttributeColumn;
 pub use json::FeatureSetJson;
 use temporal::{DateOnly, TimeOnly, TimestampOffset};
 
