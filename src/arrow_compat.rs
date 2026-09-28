@@ -1,7 +1,10 @@
-//! Converts a [`FeatureSet`] into an Arrow [`RecordBatch`]: one column per field and a GeoArrow
-//! geometry column built through the engine (see [`crate::enginex`]).
+//! Converts FeatureSets into an Arrow [`RecordBatch`]: one column per field and a GeoArrow
+//! geometry column.
 //!
 //! ```ignore
+//! // From the JSON a service returns, streamed straight into Arrow; the fastest path.
+//! let batch = RecordBatch::try_from(FeatureSetJson(&bytes))?;
+//! // From a FeatureSet already parsed, through the engine (see [`crate::enginex`]).
 //! let batch = RecordBatch::try_from(&feature_set)?;
 //! ```
 //!
@@ -25,9 +28,15 @@ use geoarrow_array::{
     array::{GeometryArray, MultiLineStringArray, MultiPointArray, MultiPolygonArray, PointArray},
     GeoArrowArray,
 };
-use geoarrow_schema::{Crs, Metadata};
+use geoarrow_schema::{error::GeoArrowError, Crs, Metadata};
 use serde_json::Value;
 use std::sync::Arc;
+
+mod columns;
+mod geometry;
+mod json;
+
+pub use json::FeatureSetJson;
 
 #[derive(Debug)]
 pub enum ToArrowError {
@@ -40,6 +49,13 @@ pub enum ToArrowError {
     Geometry(FromEsriError),
     GeoArrow(ToGeoArrowError),
     Arrow(ArrowError),
+    /// The input is not valid FeatureSet JSON.
+    Json(serde_json::Error),
+    /// The service returned an error object instead of a FeatureSet.
+    Service {
+        code: Option<i64>,
+        message: String,
+    },
 }
 
 impl std::fmt::Display for ToArrowError {
@@ -55,6 +71,11 @@ impl std::fmt::Display for ToArrowError {
             ToArrowError::Geometry(e) => write!(f, "{e}"),
             ToArrowError::GeoArrow(e) => write!(f, "{e}"),
             ToArrowError::Arrow(e) => write!(f, "{e}"),
+            ToArrowError::Json(e) => write!(f, "{e}"),
+            ToArrowError::Service { code, message } => match code {
+                Some(code) => write!(f, "service error {code}: {message}"),
+                None => write!(f, "service error: {message}"),
+            },
         }
     }
 }
@@ -65,6 +86,7 @@ impl std::error::Error for ToArrowError {
             ToArrowError::Geometry(e) => Some(e),
             ToArrowError::GeoArrow(e) => Some(e),
             ToArrowError::Arrow(e) => Some(e),
+            ToArrowError::Json(e) => Some(e),
             _ => None,
         }
     }
@@ -85,6 +107,18 @@ impl From<ToGeoArrowError> for ToArrowError {
 impl From<ArrowError> for ToArrowError {
     fn from(e: ArrowError) -> Self {
         ToArrowError::Arrow(e)
+    }
+}
+
+impl From<GeoArrowError> for ToArrowError {
+    fn from(e: GeoArrowError) -> Self {
+        ToArrowError::GeoArrow(e.into())
+    }
+}
+
+impl From<serde_json::Error> for ToArrowError {
+    fn from(e: serde_json::Error) -> Self {
+        ToArrowError::Json(e)
     }
 }
 

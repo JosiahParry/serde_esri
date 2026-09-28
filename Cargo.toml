@@ -54,3 +54,7 @@ geo-types = "0.7.12"
 [[example]]
 name = "shp_to_geoarrow"
 required-features = ["geoarrow"]
+
+[[example]]
+name = "bench_featureset_arrow"
+required-features = ["geoarrow"]
