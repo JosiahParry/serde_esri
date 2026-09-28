@@ -1,5 +1,5 @@
 use super::*;
-use crate::enginex::{MultiPath, PathFlag};
+use crate::enginex::{MultiPath, PathFlag, Vertex, VertexAttributes};
 use geo_traits::{
     to_geo::{ToGeoGeometry, ToGeoMultiLineString, ToGeoMultiPoint, ToGeoMultiPolygon, ToGeoPoint},
     CoordTrait, Dimensions, GeometryTrait, MultiPointTrait, PointTrait,
