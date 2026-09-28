@@ -9,7 +9,8 @@ authors = ["Josiah Parry<josiah.parry@gmail.com>"]
 categories = ["encoding", "parser-implementations", "science::geo"]
 keywords = ["arcgis", "esri", "protobuf", "pbf", "gis"]
 description = "Protocol buffer types for Esri's FeatureCollection PBF format."
-include = ["src/**/*"]
+readme = "README.md"
+include = ["src/**/*", "README.md"]
 
 [dependencies]
 prost = "0.12.1"
