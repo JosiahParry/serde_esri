@@ -192,14 +192,16 @@ impl Field {
     }
 }
 
-/// An EPSG code for WKIDs below 100000 and an ESRI code otherwise, or the WKT.
+/// The latest WKID, else the WKID, as an EPSG code below 100000 and an ESRI code otherwise;
+/// without either, the WKT2 or WKT.
 impl From<&SpatialReference> for Crs {
     fn from(sr: &SpatialReference) -> Self {
-        match (sr.latest_wkid.or(sr.wkid), &sr.wkt) {
-            (Some(wkid), _) if wkid < 100_000 => Crs::from_authority_code(format!("EPSG:{wkid}")),
-            (Some(wkid), _) => Crs::from_authority_code(format!("ESRI:{wkid}")),
-            (None, Some(wkt)) => Crs::from_unknown_crs_type(wkt.clone()),
-            (None, None) => Crs::default(),
+        match (sr.latest_wkid.or(sr.wkid), &sr.wkt2, &sr.wkt) {
+            (Some(wkid), ..) if wkid < 100_000 => Crs::from_authority_code(format!("EPSG:{wkid}")),
+            (Some(wkid), ..) => Crs::from_authority_code(format!("ESRI:{wkid}")),
+            (None, Some(wkt2), _) => Crs::from_wkt2_2019(wkt2.clone()),
+            (None, None, Some(wkt)) => Crs::from_unknown_crs_type(wkt.clone()),
+            (None, None, None) => Crs::default(),
         }
     }
 }

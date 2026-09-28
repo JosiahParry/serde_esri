@@ -186,3 +186,15 @@ fn errors() {
         Err(ToArrowError::Json(_))
     ));
 }
+
+#[test]
+fn the_latest_wkid_sets_the_crs() -> Result<(), String> {
+    let batch = stream(
+        r#"{"geometryType": "esriGeometryPoint", "spatialReference": {"wkid": 102100, "latestWkid": 3857},
+            "features": [{"geometry": {"x": 1, "y": 2}}]}"#,
+    )
+    .map_err(|e| e.to_string())?;
+    let extension = batch.schema().field(0).metadata().get("ARROW:extension:metadata").cloned();
+    assert!(extension.is_some_and(|m| m.contains("EPSG:3857")));
+    Ok(())
+}
