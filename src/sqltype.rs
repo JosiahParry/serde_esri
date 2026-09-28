@@ -29,6 +29,7 @@ pub enum SqlType {
     TinyInt = 23,
     Varbinary = 24,
     Varchar = 25,
+    TimestampWithTimezone = 26,
 }
 
 impl SqlType {
@@ -64,6 +65,7 @@ impl SqlType {
             SqlType::TinyInt => "sqlTypeTinyInt",
             SqlType::Varbinary => "sqlTypeVarbinary",
             SqlType::Varchar => "sqlTypeVarchar",
+            SqlType::TimestampWithTimezone => "sqlTypeTimestampWithTimezone",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -95,6 +97,7 @@ impl SqlType {
             "sqlTypeTinyInt" => Some(Self::TinyInt),
             "sqlTypeVarbinary" => Some(Self::Varbinary),
             "sqlTypeVarchar" => Some(Self::Varchar),
+            "sqlTypeTimestampWithTimezone" => Some(Self::TimestampWithTimezone),
             _ => None,
         }
     }

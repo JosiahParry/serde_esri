@@ -1,7 +1,10 @@
-//! Converts a [`FeatureSet`] into an Arrow [`RecordBatch`]: one column per field and a GeoArrow
-//! geometry column built through the engine (see [`crate::enginex`]).
+//! Converts FeatureSets into an Arrow [`RecordBatch`]: one column per field and a GeoArrow
+//! geometry column.
 //!
 //! ```ignore
+//! // From the JSON a service returns, streamed straight into Arrow; the fastest path.
+//! let batch = RecordBatch::try_from(FeatureSetJson(&bytes))?;
+//! // From a FeatureSet already parsed, through the engine (see [`crate::enginex`]).
 //! let batch = RecordBatch::try_from(&feature_set)?;
 //! ```
 //!
@@ -11,23 +14,31 @@
 
 use crate::{
     enginex::{Geometry, GeometryColumn, ToGeoArrowError},
-    features::{Feature, FeatureSet, Field},
+    features::{EsriValue, Feature, FeatureSet, Field},
     field_type::FieldType,
     geometry::FromEsriError,
     spatial_reference::SpatialReference,
 };
 use arrow_array::{
-    ArrayRef, Float32Array, Float64Array, Int16Array, Int32Array, Int64Array, LargeStringArray,
+    ArrayRef, Date32Array, Float32Array, Float64Array, Int16Array, Int32Array, Int64Array,
+    LargeStringArray, Time32MillisecondArray,
     RecordBatch, RecordBatchOptions, StringArray, TimestampMillisecondArray,
 };
 use arrow_schema::{ArrowError, Field as ArrowField, Schema};
 use geoarrow_array::{
-    array::{GeometryArray, MultiLineStringArray, MultiPointArray, MultiPolygonArray, PointArray},
+    array::{MultiLineStringArray, MultiPointArray, MultiPolygonArray, PointArray, RectArray},
     GeoArrowArray,
 };
-use geoarrow_schema::{Crs, Metadata};
-use serde_json::Value;
+use geoarrow_schema::{error::GeoArrowError, Crs, Metadata};
 use std::sync::Arc;
+
+mod columns;
+mod geometry;
+mod json;
+mod temporal;
+
+pub use json::FeatureSetJson;
+use temporal::{DateOnly, TimeOnly, TimestampOffset};
 
 #[derive(Debug)]
 pub enum ToArrowError {
@@ -40,6 +51,13 @@ pub enum ToArrowError {
     Geometry(FromEsriError),
     GeoArrow(ToGeoArrowError),
     Arrow(ArrowError),
+    /// The input is not valid FeatureSet JSON.
+    Json(serde_json::Error),
+    /// The service returned an error object instead of a FeatureSet.
+    Service {
+        code: Option<i64>,
+        message: String,
+    },
 }
 
 impl std::fmt::Display for ToArrowError {
@@ -55,6 +73,11 @@ impl std::fmt::Display for ToArrowError {
             ToArrowError::Geometry(e) => write!(f, "{e}"),
             ToArrowError::GeoArrow(e) => write!(f, "{e}"),
             ToArrowError::Arrow(e) => write!(f, "{e}"),
+            ToArrowError::Json(e) => write!(f, "{e}"),
+            ToArrowError::Service { code, message } => match code {
+                Some(code) => write!(f, "service error {code}: {message}"),
+                None => write!(f, "service error: {message}"),
+            },
         }
     }
 }
@@ -65,6 +88,7 @@ impl std::error::Error for ToArrowError {
             ToArrowError::Geometry(e) => Some(e),
             ToArrowError::GeoArrow(e) => Some(e),
             ToArrowError::Arrow(e) => Some(e),
+            ToArrowError::Json(e) => Some(e),
             _ => None,
         }
     }
@@ -88,6 +112,18 @@ impl From<ArrowError> for ToArrowError {
     }
 }
 
+impl From<GeoArrowError> for ToArrowError {
+    fn from(e: GeoArrowError) -> Self {
+        ToArrowError::GeoArrow(e.into())
+    }
+}
+
+impl From<serde_json::Error> for ToArrowError {
+    fn from(e: serde_json::Error) -> Self {
+        ToArrowError::Json(e)
+    }
+}
+
 impl Field {
     /// The field's values across `features`, or `None` for geometry fields.
     fn column<const N: usize>(
@@ -97,9 +133,9 @@ impl Field {
         let values = features
             .iter()
             .map(|f| f.attributes.as_ref().and_then(|a| a.get(&self.name)));
-        let integers = values.clone().map(|v| v.and_then(Value::as_i64));
-        let floats = values.clone().map(|v| v.and_then(Value::as_f64));
-        let strings = values.map(|v| v.and_then(Value::as_str));
+        let integers = values.clone().map(|v| v.and_then(EsriValue::as_i64));
+        let floats = values.clone().map(|v| v.and_then(EsriValue::as_f64));
+        let strings = values.map(|v| v.and_then(EsriValue::as_str));
         let array: ArrayRef = match self.field_type {
             FieldType::EsriFieldTypeSmallInteger => Arc::new(
                 integers
@@ -111,7 +147,25 @@ impl Field {
                     .map(|v| v.and_then(|v| i32::try_from(v).ok()))
                     .collect::<Int32Array>(),
             ),
-            FieldType::EsriFieldTypeOid => Arc::new(integers.collect::<Int64Array>()),
+            FieldType::EsriFieldTypeOid | FieldType::EsriFieldTypeBigInteger => {
+                Arc::new(integers.collect::<Int64Array>())
+            }
+            FieldType::EsriFieldTypeDateOnly => Arc::new(
+                strings
+                    .map(|v| v.and_then(|v| v.parse().ok()).map(|DateOnly(days)| days))
+                    .collect::<Date32Array>(),
+            ),
+            FieldType::EsriFieldTypeTimeOnly => Arc::new(
+                strings
+                    .map(|v| v.and_then(|v| v.parse().ok()).map(|TimeOnly(ms)| ms))
+                    .collect::<Time32MillisecondArray>(),
+            ),
+            FieldType::EsriFieldTypeTimestampOffset => Arc::new(
+                strings
+                    .map(|v| v.and_then(|v| v.parse().ok()).map(|TimestampOffset(ms)| ms))
+                    .collect::<TimestampMillisecondArray>()
+                    .with_timezone("UTC"),
+            ),
             FieldType::EsriFieldTypeSingle => {
                 Arc::new(floats.map(|v| v.map(|v| v as f32)).collect::<Float32Array>())
             }
@@ -137,14 +191,16 @@ impl Field {
     }
 }
 
-/// An EPSG code for WKIDs below 100000 and an ESRI code otherwise, or the WKT.
+/// The latest WKID, else the WKID, as an EPSG code below 100000 and an ESRI code otherwise;
+/// without either, the WKT2 or WKT.
 impl From<&SpatialReference> for Crs {
     fn from(sr: &SpatialReference) -> Self {
-        match (sr.latest_wkid.or(sr.wkid), &sr.wkt) {
-            (Some(wkid), _) if wkid < 100_000 => Crs::from_authority_code(format!("EPSG:{wkid}")),
-            (Some(wkid), _) => Crs::from_authority_code(format!("ESRI:{wkid}")),
-            (None, Some(wkt)) => Crs::from_unknown_crs_type(wkt.clone()),
-            (None, None) => Crs::default(),
+        match (sr.latest_wkid.or(sr.wkid), &sr.wkt2, &sr.wkt) {
+            (Some(wkid), ..) if wkid < 100_000 => Crs::from_authority_code(format!("EPSG:{wkid}")),
+            (Some(wkid), ..) => Crs::from_authority_code(format!("ESRI:{wkid}")),
+            (None, Some(wkt2), _) => Crs::from_wkt2_2019(wkt2.clone()),
+            (None, None, Some(wkt)) => Crs::from_unknown_crs_type(wkt.clone()),
+            (None, None, None) => Crs::default(),
         }
     }
 }
@@ -208,7 +264,11 @@ impl<const N: usize> FeatureSet<N> {
                 column(array.with_metadata(metadata))
             }
             "esriGeometryEnvelope" => {
-                let array = GeometryArray::try_from(GeometryColumn(&geometries))?;
+                let envelopes = typed(&geometries, |g| match g {
+                    Geometry::Envelope(e) => Some(e),
+                    _ => None,
+                })?;
+                let array = RectArray::try_from(GeometryColumn(&envelopes))?;
                 column(array.with_metadata(metadata))
             }
             other => return Err(ToArrowError::UnsupportedGeometryType(other.to_string())),

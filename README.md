@@ -8,7 +8,7 @@ This crate provides representations of Esri JSON objects with [`serde::Deseriali
 
 - `geo` implements `From` for the Esri JSON objects.
 - `geo-traits` implements [`geo-traits`](https://docs.rs/geo-traits) for the Esri JSON geometries and the `enginex` geometries.
-- `geoarrow` converts a `FeatureSet` into an Arrow `RecordBatch` with a GeoArrow geometry column via `RecordBatch::try_from(&feature_set)`, and `enginex` geometries into GeoArrow arrays. It builds on `geoarrow-array` and arrow 59, replacing the earlier `featureset_to_arrow()` and `featureset_to_geoarrow()`.
+- `geoarrow` converts FeatureSets into an Arrow `RecordBatch` with a GeoArrow geometry column, and `enginex` geometries into GeoArrow arrays. `RecordBatch::try_from(FeatureSetJson(&bytes))` streams a service's JSON response straight into Arrow, typed by its `fields`; `RecordBatch::try_from(&feature_set)` converts a `FeatureSet` already parsed. It builds on `geoarrow-array` and arrow 59, replacing the earlier `featureset_to_arrow()` and `featureset_to_geoarrow()`.
 - `places-client` provides an API client for the Places Service REST API. 
 
 The `shape` module reads and writes shapefiles, and `enginex` represents geometries the way the Esri geometry engine stores them.
