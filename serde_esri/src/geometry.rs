@@ -260,13 +260,13 @@ impl<const N: usize> EsriGeometry<N> {
 #[derive(Clone, Deserialize, Serialize, Debug, Default)]
 #[skip_serializing_none]
 pub struct EsriEnvelope {
-    xmin: f64,
-    ymin: f64,
-    xmax: f64,
-    ymax: f64,
-    zmin: Option<f64>,
-    zmax: Option<f64>,
-    mmin: Option<f64>,
-    mmax: Option<f64>,
-    spatialReference: Option<SpatialReference>,
+    pub xmin: f64,
+    pub ymin: f64,
+    pub xmax: f64,
+    pub ymax: f64,
+    pub zmin: Option<f64>,
+    pub zmax: Option<f64>,
+    pub mmin: Option<f64>,
+    pub mmax: Option<f64>,
+    pub spatialReference: Option<SpatialReference>,
 }
