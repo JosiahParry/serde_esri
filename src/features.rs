@@ -9,7 +9,11 @@
 //! when working with a Feature Service via its rest API.
 use crate::{field_type::FieldType, geometry::EsriGeometry, spatial_reference::SpatialReference};
 use serde::{Deserialize, Serialize};
-use serde_json::{Map, Value};
+use indexmap::IndexMap;
+
+mod value;
+
+pub use value::EsriValue;
 use serde_with::{serde_as, skip_serializing_none, DisplayFromStr};
 
 // handy reference
@@ -24,7 +28,7 @@ use serde_with::{serde_as, skip_serializing_none, DisplayFromStr};
 #[derive(Debug, Deserialize, Serialize, Clone, Default)]
 pub struct Feature<const N: usize> {
     pub geometry: Option<EsriGeometry<N>>,
-    pub attributes: Option<Map<String, Value>>,
+    pub attributes: Option<IndexMap<String, EsriValue>>,
 }
 
 /// A set of geometries and their attributes

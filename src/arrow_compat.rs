@@ -14,7 +14,7 @@
 
 use crate::{
     enginex::{Geometry, GeometryColumn, ToGeoArrowError},
-    features::{Feature, FeatureSet, Field},
+    features::{EsriValue, Feature, FeatureSet, Field},
     field_type::FieldType,
     geometry::FromEsriError,
     spatial_reference::SpatialReference,
@@ -30,7 +30,6 @@ use geoarrow_array::{
     GeoArrowArray,
 };
 use geoarrow_schema::{error::GeoArrowError, Crs, Metadata};
-use serde_json::Value;
 use std::sync::Arc;
 
 mod columns;
@@ -134,9 +133,9 @@ impl Field {
         let values = features
             .iter()
             .map(|f| f.attributes.as_ref().and_then(|a| a.get(&self.name)));
-        let integers = values.clone().map(|v| v.and_then(Value::as_i64));
-        let floats = values.clone().map(|v| v.and_then(Value::as_f64));
-        let strings = values.map(|v| v.and_then(Value::as_str));
+        let integers = values.clone().map(|v| v.and_then(EsriValue::as_i64));
+        let floats = values.clone().map(|v| v.and_then(EsriValue::as_f64));
+        let strings = values.map(|v| v.and_then(EsriValue::as_str));
         let array: ArrayRef = match self.field_type {
             FieldType::EsriFieldTypeSmallInteger => Arc::new(
                 integers

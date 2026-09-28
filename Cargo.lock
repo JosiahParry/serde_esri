@@ -1718,6 +1718,7 @@ dependencies = [
  "geo-types",
  "geoarrow-array",
  "geoarrow-schema",
+ "indexmap 2.14.2",
  "reqwest",
  "serde",
  "serde_json",
