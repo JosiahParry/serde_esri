@@ -7,8 +7,10 @@ use crate::{
     convert::FromPbfError,
     feature_collection_p_buffer::{self as pbf, GeometryType, QuantizeOriginPostion},
 };
+#[cfg(feature = "geoarrow")]
+use serde_esri::enginex::{self, Point, Polygon, Polyline};
 use serde_esri::{
-    enginex::{self, MultiPath, Point, Polygon, Polyline, VertexAttributes},
+    enginex::{MultiPath, VertexAttributes},
     geometry::{
         EsriCoord, EsriGeometry, EsriLineString, EsriMultiPoint, EsriPoint, EsriPolygon,
         EsriPolyline,
