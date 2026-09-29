@@ -1,6 +1,6 @@
 //! Single vertices and column-wise vertex storage.
 
-use crate::enginex::{Attribute, VertexDescription};
+use crate::enginex::description::{Attribute, VertexDescription};
 
 /// A single vertex with all of its attributes.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]

@@ -6,17 +6,19 @@
 
 use crate::{
     enginex::{
-        Envelope, Envelope2D, Geometry, Interval, MultiPath, MultiPoint, Point, Polygon, Polyline,
-        Vertex,
+        geometry::{
+            Envelope, Envelope2D, Geometry, Interval, MultiPath, MultiPoint, Point, Polygon,
+            Polyline,
+        },
+        vertex::Vertex,
     },
+    features::FeatureSet,
     geometry::{EsriCoord, EsriGeometry, EsriLineString},
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum FromEsriError {
-    /// `hasZ` and `hasM` call for a different number of ordinates than each coordinate holds.
     Dimensions { expected: usize, found: usize },
-    /// A path offset does not fit the engine's 32-bit integers.
     TooLarge,
 }
 
@@ -35,7 +37,7 @@ impl std::fmt::Display for FromEsriError {
 impl std::error::Error for FromEsriError {}
 
 /// Where Z and M sit in an Esri coordinate: after x and y, Z first when both are present.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(super) struct Layout {
     pub(super) z: Option<usize>,
     pub(super) m: Option<usize>,
@@ -108,27 +110,31 @@ impl MultiPath {
     }
 }
 
-/// A geometry with the `hasZ` and `hasM` of the FeatureSet holding it, used where it has none.
-pub(crate) struct InFeatureSet<'a, const N: usize> {
-    pub(crate) geometry: &'a EsriGeometry<N>,
-    pub(crate) has_z: Option<bool>,
-    pub(crate) has_m: Option<bool>,
-}
-
 impl<const N: usize> TryFrom<&EsriGeometry<N>> for Geometry {
     type Error = FromEsriError;
 
     fn try_from(geometry: &EsriGeometry<N>) -> Result<Self, Self::Error> {
-        Geometry::try_from(InFeatureSet { geometry, has_z: None, has_m: None })
+        geometry.to_engine(None, None)
     }
 }
 
-impl<const N: usize> TryFrom<InFeatureSet<'_, N>> for Geometry {
+/// Geometries without their own `hasZ` and `hasM` take the FeatureSet's.
+impl<const N: usize> TryFrom<&FeatureSet<N>> for Vec<Option<Geometry>> {
     type Error = FromEsriError;
 
-    fn try_from(held: InFeatureSet<'_, N>) -> Result<Self, Self::Error> {
-        let (has_z, has_m) = (held.has_z, held.has_m);
-        Ok(match held.geometry {
+    fn try_from(feature_set: &FeatureSet<N>) -> Result<Self, Self::Error> {
+        let (has_z, has_m) = (feature_set.has_z, feature_set.has_m);
+        feature_set
+            .features
+            .iter()
+            .map(|f| f.geometry.as_ref().map(|g| g.to_engine(has_z, has_m)).transpose())
+            .collect()
+    }
+}
+
+impl<const N: usize> EsriGeometry<N> {
+    fn to_engine(&self, has_z: Option<bool>, has_m: Option<bool>) -> Result<Geometry, FromEsriError> {
+        Ok(match self {
             EsriGeometry::Point(p) => {
                 let vertex = Vertex {
                     x: p.x,

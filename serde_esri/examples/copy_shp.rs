@@ -4,7 +4,11 @@
 //! cargo run --example copy_shp -- in.shp out.shp
 //! ```
 
-use serde_esri::shape::{FileError, FinishedShapes, ShapeReader, ShapeWriter};
+use serde_esri::shape::{
+    error::FileError,
+    reader::ShapeReader,
+    writer::{FinishedShapes, ShapeWriter},
+};
 use std::{
     fs::File,
     io::{BufReader, BufWriter},

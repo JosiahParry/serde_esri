@@ -14,9 +14,10 @@ use crate::{
 use serde::{Deserialize, Serialize};
 use indexmap::IndexMap;
 
-mod value;
+pub mod value;
 
-pub use value::EsriValue;
+use value::EsriValue;
+
 use serde_with::{serde_as, skip_serializing_none, DisplayFromStr};
 
 // handy reference

@@ -2,13 +2,12 @@
 //! geo-traits views through geoarrow-array's builders. Vertex IDs are dropped.
 //!
 //! ```ignore
-//! let polygons: Vec<Option<Polygon>> = ...;
 //! let array = MultiPolygonArray::try_from(GeometryColumn(&polygons))?;
 //! ```
 
 use crate::enginex::{
-    Attribute, Envelope, Geometry, Interval, MultiPoint, Point, Polygon, Polyline,
-    VertexDescription,
+    description::{Attribute, VertexDescription},
+    geometry::{Envelope, Geometry, Interval, MultiPoint, Point, Polygon, Polyline},
 };
 use arrow_buffer::{NullBuffer, ScalarBuffer};
 use geoarrow_array::{
@@ -33,7 +32,6 @@ pub struct GeometryColumn<'a, G>(pub &'a [Option<G>]);
 
 #[derive(Debug)]
 pub enum ToGeoArrowError {
-    /// Geometries in the column carry different Z and M attributes.
     MixedDimensions,
     GeoArrow(GeoArrowError),
 }

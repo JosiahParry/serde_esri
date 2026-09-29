@@ -1,5 +1,9 @@
 use super::*;
-use crate::enginex::{MultiPath, PathFlag, Vertex, VertexAttributes};
+use crate::enginex::{
+    flags::PathFlag,
+    geometry::MultiPath,
+    vertex::{Vertex, VertexAttributes},
+};
 use geo_traits::{
     to_geo::{ToGeoGeometry, ToGeoMultiLineString, ToGeoMultiPoint, ToGeoMultiPolygon, ToGeoPoint},
     CoordTrait, Dimensions, GeometryTrait, MultiPointTrait, PointTrait,
@@ -144,7 +148,7 @@ fn geoarrow_values_read_back_into_the_engine() -> Result<(), String> {
 
 #[test]
 fn envelopes_become_boxes_with_z_and_m() -> Result<(), String> {
-    use crate::enginex::{Envelope, Envelope2D, Interval};
+    use crate::enginex::geometry::{Envelope, Envelope2D, Interval};
     use geo_traits::RectTrait;
 
     let envelopes = [

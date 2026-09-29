@@ -1,7 +1,10 @@
 //! Envelopes over every vertex attribute, as the engine's `queryEnvelope` computes them.
 //! Curves contribute their end points only, not their extent between them.
 
-use crate::enginex::{Envelope, Envelope2D, Geometry, Interval, Vertex};
+use crate::enginex::{
+    geometry::{Envelope, Envelope2D, Geometry, Interval},
+    vertex::Vertex,
+};
 
 /// Bounds of x/y and of each attribute any vertex carries; `NaN` values are skipped.
 impl FromIterator<Vertex> for Envelope {

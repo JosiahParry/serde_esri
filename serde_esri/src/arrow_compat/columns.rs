@@ -12,7 +12,7 @@ use arrow_array::{
 };
 use crate::{
     arrow_compat::temporal::{DateOnly, TimeOnly, TimestampOffset},
-    features::EsriValue,
+    features::value::EsriValue,
     field_type::FieldType,
 };
 use serde::{
@@ -30,7 +30,7 @@ pub(super) struct RawField {
 }
 
 /// An Arrow builder for one attribute column.
-pub(super) enum ColumnBuilder {
+pub enum ColumnBuilder {
     Int16(Int16Builder),
     Int32(Int32Builder),
     Int64(Int64Builder),
@@ -38,18 +38,20 @@ pub(super) enum ColumnBuilder {
     Float64(Float64Builder),
     Utf8(StringBuilder),
     LargeUtf8(LargeStringBuilder),
-    /// `esriFieldTypeDate`: epoch milliseconds, kept as UTC.
     Timestamp(TimestampMillisecondBuilder),
-    /// `esriFieldTypeTimestampOffset`: ISO 8601 with an offset, converted to UTC.
     TimestampOffset(TimestampMillisecondBuilder),
     Date32(Date32Builder),
     Time32(Time32MillisecondBuilder),
 }
 
 impl ColumnBuilder {
-    /// The builder for an Esri field type, or `None` for geometry, blob, and raster fields.
-    /// Unrecognized types are text.
-    pub(super) fn new(field_type: &str, capacity: usize) -> Option<Self> {
+    /// `None` for geometry, blob, and raster fields.
+    pub fn new(field_type: &FieldType, capacity: usize) -> Option<Self> {
+        ColumnBuilder::from_name(field_type.as_str_name(), capacity)
+    }
+
+    /// Unrecognized type names are text.
+    pub(super) fn from_name(field_type: &str, capacity: usize) -> Option<Self> {
         Some(match field_type {
             "esriFieldTypeSmallInteger" => ColumnBuilder::Int16(Int16Builder::with_capacity(capacity)),
             "esriFieldTypeInteger" => ColumnBuilder::Int32(Int32Builder::with_capacity(capacity)),
@@ -173,7 +175,7 @@ impl ColumnBuilder {
     }
 
     /// The finished column; timestamps are UTC milliseconds.
-    pub(super) fn finish(&mut self) -> ArrayRef {
+    pub fn finish(&mut self) -> ArrayRef {
         match self {
             ColumnBuilder::Int16(b) => Arc::new(b.finish()),
             ColumnBuilder::Int32(b) => Arc::new(b.finish()),
@@ -189,30 +191,16 @@ impl ColumnBuilder {
             ColumnBuilder::Time32(b) => Arc::new(b.finish()),
         }
     }
-}
 
-/// One attribute column under construction, typed by its field's type. Values that do not fit
-/// the column become nulls, as in [`FeatureSetJson`](crate::arrow_compat::FeatureSetJson).
-pub struct AttributeColumn(ColumnBuilder);
-
-impl AttributeColumn {
-    /// The column for `field_type`, or `None` for geometry, blob, and raster fields.
-    pub fn new(field_type: &FieldType, capacity: usize) -> Option<Self> {
-        ColumnBuilder::new(field_type.as_str_name(), capacity).map(AttributeColumn)
-    }
-
+    /// Values that do not fit the column become nulls.
     pub fn push(&mut self, value: &EsriValue) {
         match value {
-            EsriValue::Null => self.0.append_null(),
-            EsriValue::Bool(v) => self.0.append_bool(*v),
-            EsriValue::Int(v) => self.0.append_i64(*v),
-            EsriValue::Float(v) => self.0.append_f64(*v),
-            EsriValue::String(v) => self.0.append_str(v),
+            EsriValue::Null => self.append_null(),
+            EsriValue::Bool(v) => self.append_bool(*v),
+            EsriValue::Int(v) => self.append_i64(*v),
+            EsriValue::Float(v) => self.append_f64(*v),
+            EsriValue::String(v) => self.append_str(v),
         }
-    }
-
-    pub fn finish(mut self) -> ArrayRef {
-        self.0.finish()
     }
 }
 

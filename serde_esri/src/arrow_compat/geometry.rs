@@ -7,7 +7,10 @@
 
 use crate::{
     arrow_compat::ToArrowError,
-    enginex::{Envelope, Envelope2D, GeometryColumn, Interval},
+    enginex::{
+        geometry::{Envelope, Envelope2D, Interval},
+        to_geoarrow::GeometryColumn,
+    },
 };
 use arrow_array::ArrayRef;
 use arrow_buffer::{NullBuffer, OffsetBuffer, ScalarBuffer};
@@ -31,7 +34,6 @@ pub(super) enum GeometryType {
     MultiPoint,
     Polyline,
     Polygon,
-    /// Envelopes become GeoArrow boxes through the engine.
     Envelope,
 }
 
@@ -122,13 +124,13 @@ impl GeometryBuilder {
         for ring in first_ring..ring_count {
             let (start, end) = bounds(ring);
             let (x0, y0) = xy(start);
-            let area: f64 = (start..end)
+            let area = (start..end)
                 .map(|i| {
                     let (x1, y1) = xy(i);
                     let (x2, y2) = xy(if i + 1 < end { i + 1 } else { start });
                     ((x2 - x0) - (x1 - x0)) * ((y2 - y0) + (y1 - y0)) * 0.5
                 })
-                .sum();
+                .sum::<f64>();
             if first_sign == 0.0 && area != 0.0 {
                 first_sign = area.signum();
             }
@@ -345,7 +347,6 @@ enum GeometryKey {
     Points,
     Paths,
     Rings,
-    /// An envelope bound, indexing xmin, ymin, xmax, ymax, zmin, zmax, mmin, mmax.
     Bound(usize),
     Other,
 }

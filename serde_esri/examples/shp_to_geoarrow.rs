@@ -14,8 +14,11 @@ use geoarrow_array::{
     GeoArrowArray, GeoArrowArrayAccessor,
 };
 use serde_esri::{
-    enginex::{Geometry, GeometryColumn, Point, Polygon, Polyline},
-    shape::ShapeFile,
+    enginex::{
+        geometry::{Geometry, Point, Polygon, Polyline},
+        to_geoarrow::GeometryColumn,
+    },
+    shape::file::ShapeFile,
 };
 use std::error::Error;
 
@@ -56,13 +59,13 @@ fn main() -> Result<(), Box<dyn Error>> {
             mismatches += usize::from(!matches);
         }
         // Polygons and polylines also go through the native typed builders.
-        let polygons: Vec<Option<Polygon>> = geometries
+        let polygons = geometries
             .iter()
             .map(|g| match g {
                 Some(Geometry::Polygon(p)) => Some(p.clone()),
                 _ => None,
             })
-            .collect();
+            .collect::<Vec<Option<Polygon>>>();
         let native = MultiPolygonArray::try_from(GeometryColumn(&polygons))?;
         for (i, polygon) in polygons.iter().enumerate() {
             if let Some(polygon) = polygon {
@@ -70,13 +73,13 @@ fn main() -> Result<(), Box<dyn Error>> {
                 mismatches += usize::from(format!("{value:?}") != format!("{:?}", polygon.to_multi_polygon()));
             }
         }
-        let polylines: Vec<Option<Polyline>> = geometries
+        let polylines = geometries
             .iter()
             .map(|g| match g {
                 Some(Geometry::Polyline(p)) => Some(p.clone()),
                 _ => None,
             })
-            .collect();
+            .collect::<Vec<Option<Polyline>>>();
         let native = MultiLineStringArray::try_from(GeometryColumn(&polylines))?;
         for (i, polyline) in polylines.iter().enumerate() {
             if let Some(polyline) = polyline {

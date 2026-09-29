@@ -19,37 +19,23 @@
 //! Read geometries from Esri shape buffers with [`shape::EsriShape`], or convert shapefile
 //! records with `Geometry::try_from(crate::shape::Shape)`.
 
-mod description;
+pub mod description;
 mod envelope;
-mod flags;
+pub mod flags;
 #[cfg(feature = "geo-traits")]
-mod from_geo_traits;
-mod from_shape;
-mod geometry;
+pub mod from_geo_traits;
+pub mod from_shape;
+pub mod geometry;
 #[cfg(feature = "geo-traits")]
-pub(crate) mod geo_traits_impl;
+#[macro_use]
+pub mod geo_traits_impl;
 mod rings;
-mod to_shape;
+pub mod to_shape;
 #[cfg(feature = "geoarrow")]
-mod to_geoarrow;
+pub mod to_geoarrow;
 pub mod shape;
-mod vertex;
+pub mod vertex;
 
 #[cfg(test)]
 mod tests;
 
-pub use description::{Attribute, VertexDescription};
-pub use flags::{FillRule, GeometryType, PathFlag, PathFlags, SegmentFlags, SegmentType};
-pub use from_shape::FromShapeError;
-pub use to_shape::ToShapeError;
-pub use geometry::{
-    Envelope, Envelope2D, Geometry, Interval, Line, MultiPath, MultiPoint, Point, Polygon, Polyline,
-    Segments,
-};
-pub use vertex::{Vertex, VertexAttributes};
-#[cfg(feature = "geo-traits")]
-pub use geo_traits_impl::{PathView, PolygonView};
-#[cfg(feature = "geoarrow")]
-pub use to_geoarrow::{GeometryColumn, ToGeoArrowError};
-#[cfg(feature = "geo-traits")]
-pub use from_geo_traits::FromGeoTraitsError;

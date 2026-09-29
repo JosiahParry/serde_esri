@@ -9,17 +9,12 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
 mod de;
-mod to_enginex;
+pub mod to_enginex;
 
-#[cfg(feature = "geoarrow")]
-pub(crate) use to_enginex::InFeatureSet;
-pub use to_enginex::FromEsriError;
 
 #[cfg(feature = "geo-traits")]
-mod geo_traits_impl;
+pub mod geo_traits_impl;
 
-#[cfg(feature = "geo-traits")]
-pub use geo_traits_impl::{EsriPathView, EsriPolygonView};
 
 /// Represents a single coordinate used in the creation of `EsriPolygon` and `EsriPolyline`s.
 ///

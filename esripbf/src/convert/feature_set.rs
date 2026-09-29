@@ -2,12 +2,12 @@
 
 use crate::{
     convert::{geometry::Quantization, FromPbfError},
-    feature_collection_p_buffer::{
+    esri_p_buffer::feature_collection_p_buffer::{
         self as pbf, feature::CompressedGeometry, query_result::Results, GeometryType,
     },
-    FeatureCollectionPBuffer,
+    esri_p_buffer::FeatureCollectionPBuffer,
 };
-use serde_esri::features::{EsriValue, Feature, FeatureSet};
+use serde_esri::features::{value::EsriValue, Feature, FeatureSet};
 
 impl<const N: usize> TryFrom<pbf::FeatureResult> for FeatureSet<N> {
     type Error = FromPbfError;
@@ -19,7 +19,7 @@ impl<const N: usize> TryFrom<pbf::FeatureResult> for FeatureSet<N> {
         }
         let quantization = Quantization::try_from(&result);
         let geometry_type = result.geometry_type();
-        let names: Vec<String> = result.fields.iter().map(|f| f.name.clone()).collect();
+        let names = result.fields.iter().map(|f| f.name.clone()).collect::<Vec<String>>();
 
         let features = result
             .features

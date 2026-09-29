@@ -6,7 +6,7 @@ fn parse<const N: usize>(json: &str) -> Result<EsriGeometry<N>, String> {
 
 #[test]
 fn polygon_rings_drop_their_closing_vertex() -> Result<(), String> {
-    let polygon: EsriGeometry<3> = parse(
+    let polygon = parse::<3>(
         r#"{"hasZ": true, "rings": [
             [[0, 0, 1], [0, 4, 2], [4, 4, 3], [4, 0, 4], [0, 0, 1]],
             [[1, 1, 5], [2, 1, 6], [2, 2, 7], [1, 1, 5]]
@@ -27,8 +27,8 @@ fn polygon_rings_drop_their_closing_vertex() -> Result<(), String> {
 
 #[test]
 fn m_sits_after_z_or_in_its_place() -> Result<(), String> {
-    let measured: EsriGeometry<3> =
-        parse(r#"{"hasM": true, "paths": [[[0, 0, 7], [1, 1, 8]]]}"#)?;
+    let measured =
+        parse::<3>(r#"{"hasM": true, "paths": [[[0, 0, 7], [1, 1, 8]]]}"#)?;
     let Geometry::Polyline(Polyline(path)) =
         Geometry::try_from(&measured).map_err(|e| e.to_string())?
     else {
@@ -37,8 +37,8 @@ fn m_sits_after_z_or_in_its_place() -> Result<(), String> {
     assert_eq!(path.vertices.m, Some(vec![7.0, 8.0]));
     assert_eq!(path.vertices.z, None);
 
-    let both: EsriGeometry<4> =
-        parse(r#"{"hasZ": true, "hasM": true, "points": [[0, 0, 1, 2]]}"#)?;
+    let both =
+        parse::<4>(r#"{"hasZ": true, "hasM": true, "points": [[0, 0, 1, 2]]}"#)?;
     let Geometry::MultiPoint(mp) = Geometry::try_from(&both).map_err(|e| e.to_string())? else {
         return Err("expected a multipoint".into());
     };
@@ -48,7 +48,7 @@ fn m_sits_after_z_or_in_its_place() -> Result<(), String> {
 
 #[test]
 fn points_and_envelopes() -> Result<(), String> {
-    let point: EsriGeometry<2> = parse(r#"{"x": 1, "y": 2, "m": 3}"#)?;
+    let point = parse::<2>(r#"{"x": 1, "y": 2, "m": 3}"#)?;
     assert_eq!(
         Geometry::try_from(&point).map_err(|e| e.to_string())?,
         Geometry::Point(Point(Some(Vertex {
@@ -60,8 +60,8 @@ fn points_and_envelopes() -> Result<(), String> {
         })))
     );
 
-    let envelope: EsriGeometry<2> =
-        parse(r#"{"xmin": 0, "ymin": 1, "xmax": 2, "ymax": 3, "zmin": 4, "zmax": 5}"#)?;
+    let envelope =
+        parse::<2>(r#"{"xmin": 0, "ymin": 1, "xmax": 2, "ymax": 3, "zmin": 4, "zmax": 5}"#)?;
     let Geometry::Envelope(envelope) = Geometry::try_from(&envelope).map_err(|e| e.to_string())?
     else {
         return Err("expected an envelope".into());
@@ -72,7 +72,7 @@ fn points_and_envelopes() -> Result<(), String> {
 
 #[test]
 fn flags_must_match_the_coordinate_width() -> Result<(), String> {
-    let mismatched: EsriGeometry<3> = parse(r#"{"hasZ": true, "hasM": true, "points": [[0, 0, 1]]}"#)?;
+    let mismatched = parse::<3>(r#"{"hasZ": true, "hasM": true, "points": [[0, 0, 1]]}"#)?;
     assert_eq!(
         Geometry::try_from(&mismatched),
         Err(FromEsriError::Dimensions {

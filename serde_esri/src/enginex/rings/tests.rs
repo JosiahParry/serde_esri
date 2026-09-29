@@ -1,5 +1,5 @@
 use super::*;
-use crate::enginex::VertexAttributes;
+use crate::enginex::vertex::VertexAttributes;
 
 /// Builds a polygon from rings that do not repeat their first vertex.
 fn polygon(rings: &[&[[f64; 2]]]) -> Polygon {
@@ -34,12 +34,12 @@ fn ring_area_is_positive_when_clockwise() {
 #[test]
 fn exteriors_start_ogc_polygons() {
     let polygon = polygon(&[&CLOCKWISE, &HOLE, &CLOCKWISE_EAST, &HOLE_EAST]);
-    let starts: Vec<_> = polygon
+    let starts = polygon
         .rings
         .path_flags
         .iter()
         .map(|f| f.has(PathFlag::OgcStartPolygon))
-        .collect();
+        .collect::<Vec<_>>();
     assert_eq!(starts, vec![true, false, true, false]);
     assert!(polygon.rings.is_closed_path(3));
     assert_eq!(polygon.ogc_polygons().collect::<Vec<_>>(), vec![0..2, 2..4]);
@@ -47,7 +47,7 @@ fn exteriors_start_ogc_polygons() {
 
 #[test]
 fn an_inverted_first_ring_inverts_the_polygon() {
-    let counterclockwise: Vec<[f64; 2]> = CLOCKWISE.iter().rev().copied().collect();
+    let counterclockwise = CLOCKWISE.iter().rev().copied().collect::<Vec<[f64; 2]>>();
     let polygon = polygon(&[&counterclockwise, &CLOCKWISE_EAST]);
     assert_eq!(polygon.ogc_polygons().collect::<Vec<_>>(), vec![0..2]);
 }

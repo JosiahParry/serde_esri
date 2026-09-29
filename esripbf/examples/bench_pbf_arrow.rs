@@ -5,7 +5,8 @@
 //! ```
 
 use arrow_array::RecordBatch;
-use esripbf::{prost::Message, FeatureCollectionPBuffer};
+use esripbf::esri_p_buffer::FeatureCollectionPBuffer;
+use prost::Message;
 use std::{path::PathBuf, time::Instant};
 
 /// The median of five runs, in milliseconds.

@@ -1,6 +1,7 @@
 #![doc = include_str!("../README.md")]
 
 mod de_array;
+#[macro_use]
 pub mod enginex;
 pub mod features;
 pub mod field_type;

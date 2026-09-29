@@ -1,8 +1,8 @@
 use super::*;
-use crate::{feature_collection_p_buffer::query_result::Results, FeatureCollectionPBuffer};
+use crate::esri_p_buffer::{feature_collection_p_buffer::query_result::Results, FeatureCollectionPBuffer};
 use prost::Message;
 use serde_esri::{
-    features::{EsriValue, FeatureSet},
+    features::{value::EsriValue, FeatureSet},
     geometry::EsriGeometry,
     sqltype::SqlType,
 };
@@ -63,7 +63,7 @@ fn matches_json<const N: usize>(name: &str) -> TestResult {
     tolerance.extend(result.has_m.then_some(scale.m_scale));
 
     let pbf = FeatureSet::<N>::try_from(collection)?;
-    let json: FeatureSet<N> = serde_json::from_slice(&fixture(&format!("{name}.json"))?)?;
+    let json = serde_json::from_slice::<FeatureSet<N>>(&fixture(&format!("{name}.json"))?)?;
 
     assert_eq!(
         pbf.geometry_type, json.geometry_type,

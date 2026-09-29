@@ -1,7 +1,7 @@
 use super::*;
 use arrow_array::{cast::AsArray, types::Float64Type, Array};
 use prost::Message;
-use serde_esri::arrow_compat::FeatureSetJson;
+use serde_esri::arrow_compat::json::FeatureSetJson;
 
 type TestResult = Result<(), Box<dyn std::error::Error>>;
 

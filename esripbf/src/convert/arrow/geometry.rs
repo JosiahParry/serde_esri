@@ -1,8 +1,8 @@
 //! The GeoArrow geometry column, filled through geoarrow-array's builders.
 
 use crate::{
-    convert::{geometry::Quantization, FromPbfError, PbfToArrowError},
-    feature_collection_p_buffer::{self as pbf, feature::CompressedGeometry, GeometryType},
+    convert::{arrow::PbfToArrowError, geometry::Quantization, FromPbfError},
+    esri_p_buffer::feature_collection_p_buffer::{self as pbf, feature::CompressedGeometry, GeometryType},
 };
 use arrow_array::ArrayRef;
 use arrow_schema::Field;
@@ -15,7 +15,10 @@ use geoarrow_schema::{
     CoordType, Crs, Dimension, Metadata, MultiLineStringType, MultiPointType, MultiPolygonType,
     PointType,
 };
-use serde_esri::{enginex, spatial_reference::SpatialReference};
+use serde_esri::{
+    enginex::geometry::{Geometry, MultiPoint, Polygon, Polyline},
+    spatial_reference::SpatialReference,
+};
 use std::sync::Arc;
 
 enum Builder {
@@ -109,20 +112,20 @@ impl GeometryColumnBuilder {
             }
         };
         match (&mut self.builder, geometry) {
-            (Builder::Point(b), Some(enginex::Geometry::Point(g))) => b.try_push_point(Some(&g))?,
+            (Builder::Point(b), Some(Geometry::Point(g))) => b.try_push_point(Some(&g))?,
             (Builder::Point(b), _) => b.push_null(),
-            (Builder::MultiPoint(b), Some(enginex::Geometry::MultiPoint(g))) => {
+            (Builder::MultiPoint(b), Some(Geometry::MultiPoint(g))) => {
                 b.push_multi_point(Some(&g))?
             }
-            (Builder::MultiPoint(b), _) => b.push_multi_point(None::<&enginex::MultiPoint>)?,
-            (Builder::Polyline(b), Some(enginex::Geometry::Polyline(g))) => {
+            (Builder::MultiPoint(b), _) => b.push_multi_point(None::<&MultiPoint>)?,
+            (Builder::Polyline(b), Some(Geometry::Polyline(g))) => {
                 b.push_multi_line_string(Some(&g))?
             }
-            (Builder::Polyline(b), _) => b.push_multi_line_string(None::<&enginex::Polyline>)?,
-            (Builder::Polygon(b), Some(enginex::Geometry::Polygon(g))) => {
+            (Builder::Polyline(b), _) => b.push_multi_line_string(None::<&Polyline>)?,
+            (Builder::Polygon(b), Some(Geometry::Polygon(g))) => {
                 b.push_multi_polygon(Some(&g))?
             }
-            (Builder::Polygon(b), _) => b.push_multi_polygon(None::<&enginex::Polygon>)?,
+            (Builder::Polygon(b), _) => b.push_multi_polygon(None::<&Polygon>)?,
         }
         Ok(())
     }

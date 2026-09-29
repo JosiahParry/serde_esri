@@ -4,16 +4,16 @@ mod geometry;
 
 use crate::{
     convert::FromPbfError,
-    feature_collection_p_buffer::{self as pbf, query_result::Results},
-    FeatureCollectionPBuffer,
+    esri_p_buffer::feature_collection_p_buffer::{self as pbf, query_result::Results},
+    esri_p_buffer::FeatureCollectionPBuffer,
 };
-use arrow_array::{ArrayRef, RecordBatch, RecordBatchOptions};
+use arrow_array::{RecordBatch, RecordBatchOptions};
 use arrow_schema::{ArrowError, Field, Schema};
 use geoarrow_schema::error::GeoArrowError;
 use geometry::GeometryColumnBuilder;
 use serde_esri::{
-    arrow_compat::{AttributeColumn, ToArrowError},
-    features::EsriValue,
+    arrow_compat::{columns::ColumnBuilder, ToArrowError},
+    features::value::EsriValue,
 };
 use std::{collections::HashSet, sync::Arc};
 
@@ -65,8 +65,7 @@ impl From<ArrowError> for PbfToArrowError {
     }
 }
 
-/// Each value goes straight into its field's column, in field order; fields repeating an
-/// earlier name, and geometry, blob, and raster fields, have no column.
+/// Fields repeating an earlier name, and geometry, blob, and raster fields, get no column.
 impl TryFrom<pbf::FeatureResult> for RecordBatch {
     type Error = PbfToArrowError;
 
@@ -74,15 +73,15 @@ impl TryFrom<pbf::FeatureResult> for RecordBatch {
         let rows = result.features.len();
         let mut geometry = GeometryColumnBuilder::new(&result)?;
         let mut seen = HashSet::new();
-        let mut columns: Vec<Option<(String, AttributeColumn)>> = result
+        let mut columns = result
             .fields
             .iter()
             .map(|field| {
-                let column = AttributeColumn::new(&field.field_type().into(), rows)?;
+                let column = ColumnBuilder::new(&field.field_type().into(), rows)?;
                 seen.insert(field.name.as_str())
                     .then(|| (field.name.clone(), column))
             })
-            .collect();
+            .collect::<Vec<_>>();
 
         for feature in result.features {
             let mut values = feature.attributes.into_iter();
@@ -97,14 +96,14 @@ impl TryFrom<pbf::FeatureResult> for RecordBatch {
             }
         }
 
-        let (mut fields, mut arrays): (Vec<Field>, Vec<ArrayRef>) = columns
+        let (mut fields, mut arrays) = columns
             .into_iter()
             .flatten()
-            .map(|(name, column)| {
+            .map(|(name, mut column)| {
                 let array = column.finish();
                 (Field::new(name, array.data_type().clone(), true), array)
             })
-            .unzip();
+            .unzip::<_, _, Vec<_>, Vec<_>>();
         if let Some(geometry) = geometry {
             let (field, array) = geometry.finish();
             fields.push(field);

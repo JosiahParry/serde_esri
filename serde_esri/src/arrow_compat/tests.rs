@@ -1,4 +1,5 @@
 use super::*;
+use crate::arrow_compat::json::FeatureSetJson;
 use arrow_array::Array;
 use arrow_schema::{DataType, TimeUnit};
 
@@ -32,17 +33,17 @@ fn fields_and_geometry_become_columns() -> Result<(), String> {
     assert_eq!(batch.num_rows(), 2);
 
     let schema = batch.schema();
-    let names: Vec<_> = schema.fields().iter().map(|f| f.name().as_str()).collect();
+    let names = schema.fields().iter().map(|f| f.name().as_str()).collect::<Vec<_>>();
     assert_eq!(
         names,
         vec!["OBJECTID", "NAME", "POP", "AREA", "UPDATED", "geometry"]
     );
-    let types: Vec<_> = schema
+    let types = schema
         .fields()
         .iter()
         .take(5)
         .map(|f| f.data_type().clone())
-        .collect();
+        .collect::<Vec<_>>();
     assert_eq!(
         types,
         vec![

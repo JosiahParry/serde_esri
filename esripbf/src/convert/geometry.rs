@@ -5,12 +5,12 @@
 
 use crate::{
     convert::FromPbfError,
-    feature_collection_p_buffer::{self as pbf, GeometryType, QuantizeOriginPostion},
+    esri_p_buffer::feature_collection_p_buffer::{self as pbf, GeometryType, QuantizeOriginPostion},
 };
 #[cfg(feature = "geoarrow")]
-use serde_esri::enginex::{self, Point, Polygon, Polyline};
+use serde_esri::enginex::geometry::{Geometry, MultiPoint, Point, Polygon, Polyline};
 use serde_esri::{
-    enginex::{MultiPath, VertexAttributes},
+    enginex::{geometry::MultiPath, vertex::VertexAttributes},
     geometry::{
         EsriCoord, EsriGeometry, EsriLineString, EsriMultiPoint, EsriPoint, EsriPolygon,
         EsriPolyline,
@@ -152,23 +152,23 @@ impl Quantization {
         &self,
         geometry_type: GeometryType,
         geometry: &pbf::Geometry,
-    ) -> Result<enginex::Geometry, FromPbfError> {
+    ) -> Result<Geometry, FromPbfError> {
         Ok(match geometry_type {
             GeometryType::EsriGeometryTypePoint => {
                 let paths = self.multi_path(geometry, Parts::Paths)?;
-                enginex::Geometry::Point(Point(paths.vertices.get(0)))
+                Geometry::Point(Point(paths.vertices.get(0)))
             }
             GeometryType::EsriGeometryTypeMultipoint => {
                 let paths = self.multi_path(geometry, Parts::Paths)?;
-                enginex::Geometry::MultiPoint(enginex::MultiPoint {
+                Geometry::MultiPoint(MultiPoint {
                     vertices: paths.vertices,
                 })
             }
             GeometryType::EsriGeometryTypePolyline => {
-                enginex::Geometry::Polyline(Polyline(self.multi_path(geometry, Parts::Paths)?))
+                Geometry::Polyline(Polyline(self.multi_path(geometry, Parts::Paths)?))
             }
             GeometryType::EsriGeometryTypePolygon => {
-                enginex::Geometry::Polygon(Polygon::from(self.multi_path(geometry, Parts::Rings)?))
+                Geometry::Polygon(Polygon::from(self.multi_path(geometry, Parts::Rings)?))
             }
             GeometryType::EsriGeometryTypeMultipatch => {
                 return Err(FromPbfError::UnsupportedGeometry("multipatch"))

@@ -1,5 +1,5 @@
 use super::*;
-use geo_types::{coord, line_string, point, polygon, Coord, LineString, MultiPolygon, Rect};
+use geo_types::{coord, line_string, point, polygon, Coord, MultiPolygon, Rect};
 
 fn xy(path: &MultiPath, index: usize) -> Vec<[f64; 2]> {
     let range = path.path_range(index).unwrap_or(0..0);
@@ -69,7 +69,7 @@ fn engine_polygons_round_trip_through_geo_traits() -> Result<(), FromGeoTraitsEr
 
 #[test]
 fn lines_points_and_rects() -> Result<(), FromGeoTraitsError> {
-    let line: LineString = line_string![(x: 0.0, y: 0.0), (x: 1.0, y: 1.0)];
+    let line = line_string![(x: 0.0, y: 0.0), (x: 1.0, y: 1.0)];
     let Geometry::Polyline(Polyline(path)) = Geometry::from_geo_traits(&line)? else {
         panic!("expected a polyline");
     };

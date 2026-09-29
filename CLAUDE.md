@@ -21,6 +21,14 @@ comments and at most two-line `///` docs.
   go above it, or they do nothing.
 - Model Esri enumerations as enums, not strings (`Field.field_type: FieldType`,
   `Field.sql_type: Option<SqlType>`), parsed with `Display`/`FromStr` via `serde_with::DisplayFromStr`.
+- Never re-export: no `pub use`, `pub(crate) use`, or re-exported dependency crates. Make the
+  defining module public and use the item's full path.
+- Never annotate `let x: T = ...`. Let inference work, or use a turbofish
+  (`serde_json::from_str::<T>()`, `.collect::<Vec<_>>()`). Only prost-generated code is exempt.
+- Don't invent wrapper types or helper constructors to route around a design problem; expose the
+  real type or express the conversion as `TryFrom` between real types.
+- No filler doc comments ("carries", "holds", "calls for"). If a doc adds nothing, especially on
+  enum variants, leave it out.
 - Name things "type", not "kind".
 - Split code into submodules. Tests live in their own files: `foo/tests.rs` declared with
   `#[cfg(test)] mod tests;`, never inline test modules.

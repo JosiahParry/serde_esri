@@ -1,8 +1,8 @@
 //! Fields, values, spatial references, and envelopes, which convert one to one.
 
-use crate::feature_collection_p_buffer::{self as pbf, value::ValueType};
+use crate::esri_p_buffer::feature_collection_p_buffer::{self as pbf, value::ValueType};
 use serde_esri::{
-    features::{EsriValue, Field},
+    features::{value::EsriValue, Field},
     field_type::FieldType,
     geometry::EsriEnvelope,
     spatial_reference::SpatialReference,

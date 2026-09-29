@@ -1,30 +1,22 @@
 //! Converts the protocol buffer types into their `serde_esri` counterparts.
 
 #[cfg(feature = "geoarrow")]
-mod arrow;
+pub mod arrow;
 mod feature_set;
 mod geometry;
 mod scalars;
 
-#[cfg(feature = "geoarrow")]
-pub use arrow::PbfToArrowError;
 
 #[cfg(test)]
 mod tests;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum FromPbfError {
-    /// `hasZ` and `hasM` call for a different number of ordinates than the `FeatureSet<N>`.
     Dimensions { expected: usize, found: usize },
-    /// The query result holds counts, object ids, or an extent rather than features.
     NotFeatureResult,
-    /// Multipatch, envelope, and curve geometries have no `EsriGeometry` equivalent here.
     UnsupportedGeometry(&'static str),
-    /// A feature carries a geometry but the result has no quantization transform.
     MissingTransform,
-    /// A geometry has more vertices than the engine's 32-bit path offsets hold.
     TooLarge,
-    /// Part lengths and coordinates disagree on the number of vertices.
     Coordinates { expected: usize, found: usize },
 }
 

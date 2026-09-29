@@ -5,8 +5,8 @@
 //! ```
 
 use serde_esri::{
-    enginex::Geometry,
-    shape::{Shape, ShapeReader},
+    enginex::geometry::Geometry,
+    shape::{reader::ShapeReader, types::Shape},
 };
 use std::{error::Error, fs::File, io::BufReader};
 
@@ -14,7 +14,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let path = std::env::args().nth(1).unwrap_or_default();
     let reader = ShapeReader::new(BufReader::new(File::open(path)?))?;
 
-    let mut geometries: Vec<Geometry> = Vec::new();
+    let mut geometries = Vec::new();
     for record in reader {
         let shape = record?.shape;
         if shape != Shape::Null {
