@@ -1,8 +1,13 @@
-use super::*;
+use crate::enginex::{
+    description::{Attribute, VertexDescription},
+    flags::{GeometryType, PathFlag, PathFlags, SegmentFlags, SegmentType},
+    geometry::{MultiPath, Segments},
+    vertex::VertexAttributes,
+};
 
 #[test]
 fn vertex_description_bits_match_java() {
-    let d: VertexDescription = [Attribute::Z, Attribute::Id].into_iter().collect();
+    let d = [Attribute::Z, Attribute::Id].into_iter().collect::<VertexDescription>();
     assert_eq!(u16::from(d), 0b1011);
     assert!(d.has(Attribute::Position));
     assert!(!d.has(Attribute::M));

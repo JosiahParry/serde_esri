@@ -1,6 +1,6 @@
 //! The index file (`.shx`), which locates each main file record.
 
-use crate::shape::{buffer::Reader, FileHeader, ShapeError};
+use crate::shape::{buffer::Reader, error::ShapeError, file::FileHeader};
 
 /// One index file (`.shx`) record: where a main file record starts and its content length.
 /// Both are in 16-bit words; the first record's offset is 50, just past the header.

@@ -1,4 +1,10 @@
 use super::*;
+use crate::shape::{
+    error::FileError,
+    file::{FileHeader, ShapeFile},
+    reader::ShapeReader,
+    types::{Range, ShapeType},
+};
 
 #[test]
 fn shape_file() -> Result<(), FileError> {
@@ -22,7 +28,7 @@ fn shape_file() -> Result<(), FileError> {
     assert_eq!(shapes.header.m_range, Range { min: None, max: None });
 
     let records = shapes.collect::<Result<Vec<_>, _>>()?;
-    let numbers: Vec<_> = records.iter().map(|r| r.number).collect();
+    let numbers = records.iter().map(|r| r.number).collect::<Vec<_>>();
     assert_eq!(numbers, vec![1, 2, 3]);
     assert_eq!(records[1].shape, Shape::Point(Point { x: 2.0, y: 0.0 }));
     assert_eq!(records[2].shape, Shape::Null);
@@ -33,7 +39,7 @@ fn shape_file() -> Result<(), FileError> {
     assert!(streamed.next().is_none());
 
     let truncated = ShapeReader::new(&file.0[..file.0.len() - 2])?;
-    let results: Vec<_> = truncated.collect();
+    let results = truncated.collect::<Vec<_>>();
     assert_eq!(results.len(), 3);
     assert!(matches!(
         results[2],

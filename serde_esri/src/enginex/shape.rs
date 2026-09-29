@@ -2,7 +2,7 @@
 //! (`OperatorImportFromESRIShape`), into [`Geometry`].
 //!
 //! ```ignore
-//! let geometry: Option<Geometry> = EsriShape(bytes).try_into()?;
+//! let geometry = Option::<Geometry>::try_from(EsriShape(bytes))?;
 //! ```
 //!
 //! Buffers are little endian and a null shape reads as `None`. Z and M values
@@ -10,13 +10,13 @@
 //! when it equals the first vertex, and keep it otherwise.
 
 use crate::enginex::{
-    Geometry, MultiPath, MultiPoint, PathFlag, PathFlags, Point, Polygon, Polyline,
-    Vertex, VertexAttributes,
+    flags::{PathFlag, PathFlags},
+    geometry::{Geometry, MultiPath, MultiPoint, Point, Polygon, Polyline},
+    vertex::{Vertex, VertexAttributes},
 };
 
-mod writer;
+pub mod writer;
 
-pub use writer::EsriShapeBuffer;
 
 const HAS_ZS: u32 = 0x8000_0000;
 const HAS_MS: u32 = 0x4000_0000;
@@ -31,13 +31,9 @@ pub struct EsriShape<'a>(pub &'a [u8]);
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ShapeError {
-    /// The buffer ended before the geometry was fully read.
     UnexpectedEof,
-    /// The shape type is undefined, or is a multipatch, which the engine does not import.
     InvalidShapeType(u32),
-    /// Part or point counts are inconsistent.
     Corrupted,
-    /// The engine does not import curves from shape buffers, so their layout is undefined.
     UnsupportedCurves,
 }
 
@@ -316,7 +312,7 @@ impl Reader<'_> {
         }
 
         // Repeated part starts describe empty parts and are collapsed.
-        let mut starts: Vec<usize> = Vec::new();
+        let mut starts = Vec::new();
         for _ in 0..part_count {
             let start = usize::try_from(self.i32()?).map_err(|_| ShapeError::Corrupted)?;
             match starts.last() {

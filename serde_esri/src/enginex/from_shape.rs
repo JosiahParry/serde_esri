@@ -1,4 +1,4 @@
-//! Converts [`crate::shape::Shape`] records into engine geometries, following the engine's
+//! Converts [`crate::shape::types::Shape`] records into engine geometries, following the engine's
 //! shape importer (`OperatorImportFromESRIShapeCursor`).
 //!
 //! Empty parts are dropped, polygon rings drop their closing vertex when it equals the first,
@@ -6,19 +6,20 @@
 
 use crate::{
     enginex::{
-        Geometry, MultiPath, MultiPoint, PathFlag, PathFlags, Point, Polyline,
-        Vertex, VertexAttributes,
+        flags::{PathFlag, PathFlags},
+        geometry::{Geometry, MultiPath, MultiPoint, Point, Polyline},
+        vertex::{Vertex, VertexAttributes},
     },
-    shape::{self, Measures, MultiPart, Shape},
+    shape::{
+        self,
+        types::{Measures, MultiPart, Shape},
+    },
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum FromShapeError {
-    /// Null shapes carry no geometry.
     NullShape,
-    /// The engine has no MultiPatch geometry.
     MultiPatch,
-    /// Part indexes are out of order or skip the first point, or Z or M counts disagree with the points.
     Corrupted,
 }
 
@@ -118,8 +119,8 @@ impl TryFrom<Shape> for Geometry {
     }
 }
 
-impl From<shape::Point> for [f64; 2] {
-    fn from(point: shape::Point) -> Self {
+impl From<shape::types::Point> for [f64; 2] {
+    fn from(point: shape::types::Point) -> Self {
         [point.x, point.y]
     }
 }
@@ -152,7 +153,7 @@ impl MultiPart {
         }
 
         // Repeated starts, and a start at the end of the points, describe empty parts.
-        let mut starts: Vec<usize> = Vec::new();
+        let mut starts = Vec::new();
         for &part in &self.parts {
             let start = usize::try_from(part).map_err(|_| FromShapeError::Corrupted)?;
             match starts.last() {
@@ -178,7 +179,7 @@ impl MultiPart {
             Some(_) => return Err(FromShapeError::Corrupted),
         }
 
-        let xy: Vec<[f64; 2]> = self.points.into_iter().map(<[f64; 2]>::from).collect();
+        let xy = self.points.into_iter().map(<[f64; 2]>::from).collect::<Vec<_>>();
         let ends = starts[1..].iter().copied().chain([n]);
         let mut keep = vec![true; n];
         let mut path_offsets = vec![0];

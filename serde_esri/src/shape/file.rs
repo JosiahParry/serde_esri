@@ -2,7 +2,8 @@
 
 use crate::shape::{
     buffer::{Reader, Writer},
-    BoundingBox, Range, Shape, ShapeError, ShapeType,
+    error::ShapeError,
+    types::{BoundingBox, Range, Shape, ShapeType},
 };
 
 /// The 100 byte main file (`.shp`) header.

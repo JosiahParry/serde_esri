@@ -9,15 +9,12 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
 mod de;
-mod to_enginex;
+pub mod to_enginex;
 
-pub use to_enginex::FromEsriError;
-
-#[cfg(feature = "geo-traits")]
-mod geo_traits_impl;
 
 #[cfg(feature = "geo-traits")]
-pub use geo_traits_impl::{EsriPathView, EsriPolygonView};
+pub mod geo_traits_impl;
+
 
 /// Represents a single coordinate used in the creation of `EsriPolygon` and `EsriPolyline`s.
 ///
@@ -29,14 +26,14 @@ pub struct EsriCoord<const N: usize>(#[serde(with = "arrays")] pub [f64; N]);
 
 /// An `esriGeometryPoint` with fields x, y, z, and m. x and y are both required.
 #[skip_serializing_none]
-#[allow(non_snake_case)]
 #[derive(Clone, Deserialize, Serialize, Debug, Default)]
+#[serde(rename_all = "camelCase")]
 pub struct EsriPoint {
     pub x: f64,
     pub y: f64,
     pub z: Option<f64>,
     pub m: Option<f64>,
-    pub spatialReference: Option<SpatialReference>,
+    pub spatial_reference: Option<SpatialReference>,
 }
 
 /// An `esriGeometryMultipoint` defined by a vector of `EsriCoord`s.
@@ -45,13 +42,13 @@ pub struct EsriPoint {
 /// checks on the const value. If an incorrect value is provided, expect
 /// a `panic!`.
 #[skip_serializing_none]
-#[allow(non_snake_case)]
 #[derive(Clone, Deserialize, Serialize, Debug, Default)]
+#[serde(rename_all = "camelCase")]
 pub struct EsriMultiPoint<const N: usize> {
-    pub hasZ: Option<bool>,
-    pub hasM: Option<bool>,
+    pub has_z: Option<bool>,
+    pub has_m: Option<bool>,
     pub points: Vec<EsriCoord<N>>,
-    pub spatialReference: Option<SpatialReference>,
+    pub spatial_reference: Option<SpatialReference>,
 }
 
 // Implement iterators for EsriMultiPoint struct
@@ -144,13 +141,13 @@ impl<const N: usize> EsriLineString<N> {
 /// checks on the const value. If an incorrect value is provided, expect
 /// a `panic!`.
 #[skip_serializing_none]
-#[allow(non_snake_case)]
 #[derive(Clone, Deserialize, Serialize, Debug, Default)]
+#[serde(rename_all = "camelCase")]
 pub struct EsriPolyline<const N: usize> {
-    pub hasZ: Option<bool>,
-    pub hasM: Option<bool>,
+    pub has_z: Option<bool>,
+    pub has_m: Option<bool>,
     pub paths: Vec<EsriLineString<N>>,
-    pub spatialReference: Option<SpatialReference>,
+    pub spatial_reference: Option<SpatialReference>,
 }
 
 pub struct EsriPolylineIterator<'a, const N: usize> {
@@ -181,13 +178,13 @@ impl<'a, const N: usize> ExactSizeIterator for EsriPolylineIterator<'a, N> {
 /// checks on the const value. If an incorrect value is provided, expect
 /// a `panic!`.
 #[skip_serializing_none]
-#[allow(non_snake_case)]
 #[derive(Clone, Deserialize, Serialize, Debug, Default)]
+#[serde(rename_all = "camelCase")]
 pub struct EsriPolygon<const N: usize> {
-    pub hasZ: Option<bool>,
-    pub hasM: Option<bool>,
+    pub has_z: Option<bool>,
+    pub has_m: Option<bool>,
     pub rings: Vec<EsriLineString<N>>,
-    pub spatialReference: Option<SpatialReference>,
+    pub spatial_reference: Option<SpatialReference>,
 }
 
 pub struct EsriPolygonIterator<'a, const N: usize> {
@@ -256,17 +253,17 @@ impl<const N: usize> EsriGeometry<N> {
 // Completed: esriGeometryPoint | esriGeometryMultipoint | esriGeometryPolyline | esriGeometryPolygon |
 // TODO: esriGeometryEnvelope.
 
-#[allow(non_snake_case)]
-#[derive(Clone, Deserialize, Serialize, Debug, Default)]
 #[skip_serializing_none]
+#[derive(Clone, Deserialize, Serialize, Debug, Default)]
+#[serde(rename_all = "camelCase")]
 pub struct EsriEnvelope {
-    xmin: f64,
-    ymin: f64,
-    xmax: f64,
-    ymax: f64,
-    zmin: Option<f64>,
-    zmax: Option<f64>,
-    mmin: Option<f64>,
-    mmax: Option<f64>,
-    spatialReference: Option<SpatialReference>,
+    pub xmin: f64,
+    pub ymin: f64,
+    pub xmax: f64,
+    pub ymax: f64,
+    pub zmin: Option<f64>,
+    pub zmax: Option<f64>,
+    pub mmin: Option<f64>,
+    pub mmax: Option<f64>,
+    pub spatial_reference: Option<SpatialReference>,
 }

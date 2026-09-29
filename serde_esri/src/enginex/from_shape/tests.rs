@@ -1,5 +1,5 @@
 use super::*;
-use crate::shape::{BoundingBox, MultiPartZ, PointM, Range, ZValues};
+use crate::shape::types::{BoundingBox, MultiPartZ, PointM, Range, ZValues};
 
 fn multi_part(parts: Vec<i32>, xy: &[[f64; 2]]) -> MultiPart {
     MultiPart {
@@ -10,7 +10,7 @@ fn multi_part(parts: Vec<i32>, xy: &[[f64; 2]]) -> MultiPart {
             ymax: 10.0,
         },
         parts,
-        points: xy.iter().map(|&[x, y]| shape::Point { x, y }).collect(),
+        points: xy.iter().map(|&[x, y]| shape::types::Point { x, y }).collect(),
     }
 }
 
@@ -29,7 +29,7 @@ fn polygon_z_drops_closing_vertices() -> Result<(), FromShapeError> {
         [7.0, 5.0],
         [5.0, 7.0],
     ];
-    let z: Vec<f64> = (0..10).map(f64::from).collect();
+    let z = (0..10).map(f64::from).collect::<Vec<f64>>();
     let shape = Shape::PolygonZ(MultiPartZ {
         xy: multi_part(vec![0, 5], &xy),
         z: ZValues {
@@ -102,7 +102,7 @@ fn points() -> Result<(), FromShapeError> {
     assert_eq!((vertex.x, vertex.y, vertex.z), (1.0, 2.0, None));
     assert!(vertex.m.is_some_and(f64::is_nan));
 
-    let empty = Shape::Point(shape::Point {
+    let empty = Shape::Point(shape::types::Point {
         x: f64::NAN,
         y: f64::NAN,
     });

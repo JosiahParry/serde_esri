@@ -1,8 +1,11 @@
 use super::*;
-use crate::enginex::{Envelope2D, Interval, PathFlag, SegmentType, Segments};
+use crate::enginex::{
+    flags::{PathFlag, SegmentType},
+    geometry::{Envelope2D, Interval, Segments},
+};
 
-fn points(xy: &[[f64; 2]]) -> Vec<shape::Point> {
-    xy.iter().map(|&[x, y]| shape::Point { x, y }).collect()
+fn points(xy: &[[f64; 2]]) -> Vec<shape::types::Point> {
+    xy.iter().map(|&[x, y]| shape::types::Point { x, y }).collect()
 }
 
 /// Figure 2 of the specification, with Z and M, survives the engine unchanged.

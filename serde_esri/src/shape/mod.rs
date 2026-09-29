@@ -28,22 +28,13 @@
 //! when the record ends before it.
 
 mod buffer;
-mod error;
-mod file;
-mod index;
-mod reader;
-mod types;
-mod writer;
+pub mod error;
+pub mod file;
+pub mod index;
+pub mod reader;
+pub mod types;
+pub mod writer;
 
 #[cfg(test)]
 mod tests;
 
-pub use error::{FileError, ShapeError};
-pub use file::{FileHeader, Record, ShapeFile};
-pub use index::{IndexRecord, ShapeIndex};
-pub use reader::ShapeReader;
-pub use types::{
-    BoundingBox, Measures, MultiPart, MultiPartM, MultiPartZ, MultiPatch, MultiPoint, MultiPointM,
-    MultiPointZ, PartType, Point, PointM, PointZ, Range, Shape, ShapeType, ZValues,
-};
-pub use writer::{FinishedShapes, ShapeWriter};

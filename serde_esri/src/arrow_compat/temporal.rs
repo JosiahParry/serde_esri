@@ -25,9 +25,9 @@ impl FromStr for DateOnly {
     fn from_str(s: &str) -> Result<Self, ()> {
         let mut parts = s.splitn(3, '-');
         let mut next = || parts.next().ok_or(());
-        let year: i64 = next()?.parse().map_err(|_| ())?;
-        let month: i64 = next()?.parse().map_err(|_| ())?;
-        let day: i64 = next()?.parse().map_err(|_| ())?;
+        let year = next()?.parse::<i64>().map_err(|_| ())?;
+        let month = next()?.parse::<i64>().map_err(|_| ())?;
+        let day = next()?.parse::<i64>().map_err(|_| ())?;
         if !(1..=12).contains(&month) || !(1..=31).contains(&day) {
             return Err(());
         }
@@ -56,7 +56,7 @@ impl FromStr for TimeOnly {
         let millis = if fraction.is_empty() {
             0
         } else {
-            let digits: String = fraction.chars().chain("000".chars()).take(3).collect();
+            let digits = fraction.chars().chain("000".chars()).take(3).collect::<String>();
             digits.parse().map_err(|_| ())?
         };
         Ok(TimeOnly(((hours * 60 + minutes) * 60 + seconds) * 1000 + millis))
@@ -75,8 +75,8 @@ impl FromStr for TimestampOffset {
             Some(i) => {
                 let sign = if rest[i..].starts_with('-') { -1 } else { 1 };
                 let (h, m) = rest[i + 1..].split_once(':').unwrap_or((&rest[i + 1..], "0"));
-                let h: i64 = h.parse().map_err(|_| ())?;
-                let m: i64 = m.parse().map_err(|_| ())?;
+                let h = h.parse::<i64>().map_err(|_| ())?;
+                let m = m.parse::<i64>().map_err(|_| ())?;
                 (&rest[..i], sign * (h * 60 + m))
             }
             None => (rest, 0),

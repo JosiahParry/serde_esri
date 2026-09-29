@@ -1,8 +1,15 @@
 use super::*;
+use crate::shape::{
+    error::FileError,
+    index::ShapeIndex,
+    reader::ShapeReader,
+    types::ShapeType,
+    writer::{FinishedShapes, ShapeWriter},
+};
 
 #[test]
 fn shape_index_and_random_access() -> Result<(), FileError> {
-    let shapes: Vec<_> = (0..4)
+    let shapes = (0..4)
         .map(|i| match i {
             2 => Shape::Null,
             _ => Shape::Point(Point {
@@ -10,7 +17,7 @@ fn shape_index_and_random_access() -> Result<(), FileError> {
                 y: 0.0,
             }),
         })
-        .collect();
+        .collect::<Vec<_>>();
     let mut writer = ShapeWriter::new(std::io::Cursor::new(Vec::new()), ShapeType::Point)?;
     for shape in &shapes {
         writer.write(shape)?;
@@ -19,7 +26,7 @@ fn shape_index_and_random_access() -> Result<(), FileError> {
     let shp = writer.into_inner();
 
     // Point records are 8 + 20 bytes (14 words); the null record is 8 + 4 bytes (6 words).
-    let offsets: Vec<_> = index.records.iter().map(|r| r.offset).collect();
+    let offsets = index.records.iter().map(|r| r.offset).collect::<Vec<_>>();
     assert_eq!(offsets, vec![50, 64, 78, 84]);
     assert_eq!(index.header.file_length, 50 + 4 * 4);
     let shx = Vec::<u8>::from(&index);

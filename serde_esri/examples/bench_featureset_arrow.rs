@@ -6,7 +6,7 @@
 //! ```
 
 use arrow_array::RecordBatch;
-use serde_esri::{arrow_compat::FeatureSetJson, features::FeatureSet};
+use serde_esri::{arrow_compat::json::FeatureSetJson, features::FeatureSet};
 use std::time::Instant;
 
 mod common;
@@ -38,11 +38,11 @@ fn main() -> Result<(), String> {
     };
 
     time("serde_json::Value (parse only)", &|| {
-        let value: serde_json::Value = serde_json::from_str(&json).map_err(|e| e.to_string())?;
+        let value = serde_json::from_str::<serde_json::Value>(&json).map_err(|e| e.to_string())?;
         Ok(value["features"].as_array().map_or(0, Vec::len))
     })?;
     time("FeatureSet then RecordBatch", &|| {
-        let feature_set: FeatureSet<2> = serde_json::from_str(&json).map_err(|e| e.to_string())?;
+        let feature_set = serde_json::from_str::<FeatureSet<2>>(&json).map_err(|e| e.to_string())?;
         let batch = RecordBatch::try_from(&feature_set).map_err(|e| e.to_string())?;
         Ok(batch.num_rows())
     })?;

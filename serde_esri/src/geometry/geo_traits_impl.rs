@@ -7,7 +7,7 @@
 //! repeated use.
 
 use crate::{
-    enginex::{geo_traits_impl::geometry_trait, Point, Vertex},
+    enginex::{geometry::Point, vertex::Vertex},
     geometry::{
         to_enginex::Layout, EsriCoord, EsriEnvelope, EsriGeometry, EsriLineString, EsriMultiPoint,
         EsriPoint, EsriPolygon, EsriPolyline,
@@ -20,15 +20,6 @@ use geo_traits::{
     UnimplementedPolygon, UnimplementedTriangle,
 };
 use std::ops::Range;
-
-impl Layout {
-    /// The layout the flags describe, falling back to the coordinate width, then to x and y.
-    fn lenient<const N: usize>(has_z: Option<bool>, has_m: Option<bool>) -> Self {
-        Layout::new::<N>(has_z, has_m)
-            .or_else(|_| Layout::new::<N>(None, None))
-            .unwrap_or(Layout { z: None, m: None })
-    }
-}
 
 impl From<Layout> for Dimensions {
     fn from(layout: Layout) -> Self {
@@ -92,7 +83,7 @@ impl<const N: usize> EsriPolygon<N> {
     }
 
     fn layout(&self) -> Layout {
-        Layout::lenient::<N>(self.hasZ, self.hasM)
+        Layout::new::<N>(self.has_z, self.has_m).unwrap_or_default()
     }
 }
 
@@ -166,7 +157,7 @@ impl<const N: usize> MultiPointTrait for EsriMultiPoint<N> {
     }
 
     unsafe fn point_unchecked(&self, i: usize) -> Point {
-        let layout = Layout::lenient::<N>(self.hasZ, self.hasM);
+        let layout = Layout::new::<N>(self.has_z, self.has_m).unwrap_or_default();
         Point(self.points.get(i).map(|c| layout.vertex(c)))
     }
 }
@@ -184,7 +175,7 @@ impl<const N: usize> MultiLineStringTrait for EsriPolyline<N> {
     unsafe fn line_string_unchecked(&self, i: usize) -> EsriPathView<'_, N> {
         EsriPathView {
             coords: self.paths.get(i).map_or(&[], |path| &path.0),
-            layout: Layout::lenient::<N>(self.hasZ, self.hasM),
+            layout: Layout::new::<N>(self.has_z, self.has_m).unwrap_or_default(),
         }
     }
 }
@@ -239,10 +230,10 @@ geometry_trait!([const N: usize] EsriPathView<'_, N>, LineString, |p| p.layout.i
 geometry_trait!([const N: usize] EsriPolygonView<'_, N>, Polygon, |p| p.layout.into());
 geometry_trait!([] EsriPoint, Point, |p| p.coord().map_or(Dimensions::Xy, |v| v.description().into()));
 geometry_trait!([const N: usize] EsriMultiPoint<N>, MultiPoint, |mp| {
-    Layout::lenient::<N>(mp.hasZ, mp.hasM).into()
+    Layout::new::<N>(mp.has_z, mp.has_m).unwrap_or_default().into()
 });
 geometry_trait!([const N: usize] EsriPolyline<N>, MultiLineString, |p| {
-    Layout::lenient::<N>(p.hasZ, p.hasM).into()
+    Layout::new::<N>(p.has_z, p.has_m).unwrap_or_default().into()
 });
 geometry_trait!([const N: usize] EsriPolygon<N>, MultiPolygon, |p| p.layout().into());
 geometry_trait!([] EsriEnvelope, Rect, |e| RectTrait::min(e).description().into());

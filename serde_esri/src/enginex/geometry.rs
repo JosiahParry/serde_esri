@@ -1,7 +1,8 @@
 //! Points, lines, envelopes, multipoints, and multipaths.
 
 use crate::enginex::{
-    FillRule, GeometryType, PathFlag, PathFlags, SegmentFlags, SegmentType, Vertex, VertexAttributes,
+    flags::{FillRule, GeometryType, PathFlag, PathFlags, SegmentFlags, SegmentType},
+    vertex::{Vertex, VertexAttributes},
 };
 
 /// A point. `None` represents an empty point.

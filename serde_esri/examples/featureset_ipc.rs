@@ -7,7 +7,7 @@
 
 use arrow_array::RecordBatch;
 use arrow_ipc::writer::StreamWriter;
-use serde_esri::arrow_compat::FeatureSetJson;
+use serde_esri::arrow_compat::json::FeatureSetJson;
 use std::{fs::File, path::PathBuf, time::Instant};
 
 mod common;

@@ -4,7 +4,7 @@
 //! cargo run --example read_shp -- path/to/file.shp
 //! ```
 
-use serde_esri::shape::{FileError, ShapeReader};
+use serde_esri::shape::{error::FileError, reader::ShapeReader};
 use std::{fs::File, io::BufReader};
 
 fn main() -> Result<(), FileError> {
