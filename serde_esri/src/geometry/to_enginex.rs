@@ -13,7 +13,7 @@ use crate::{
         vertex::Vertex,
     },
     features::FeatureSet,
-    geometry::{EsriCoord, EsriGeometry, EsriLineString},
+    geometry::{EsriCoord, EsriEnvelope, EsriGeometry, EsriLineString},
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -163,18 +163,24 @@ impl<const N: usize> EsriGeometry<N> {
             EsriGeometry::Envelope(e) => {
                 let interval = |min: Option<f64>, max: Option<f64>| Some(Interval { min: min?, max: max? });
                 Geometry::Envelope(Envelope {
-                    xy: Some(Envelope2D {
-                        xmin: e.xmin,
-                        ymin: e.ymin,
-                        xmax: e.xmax,
-                        ymax: e.ymax,
-                    }),
+                    xy: Some(Envelope2D::from(e)),
                     z: interval(e.zmin, e.zmax),
                     m: interval(e.mmin, e.mmax),
                     id: None,
                 })
             }
         })
+    }
+}
+
+impl From<&EsriEnvelope> for Envelope2D {
+    fn from(e: &EsriEnvelope) -> Self {
+        Envelope2D {
+            xmin: e.xmin,
+            ymin: e.ymin,
+            xmax: e.xmax,
+            ymax: e.ymax,
+        }
     }
 }
 

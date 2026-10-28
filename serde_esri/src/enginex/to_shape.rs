@@ -7,14 +7,14 @@
 
 use crate::{
     enginex::{
-        geometry::{Envelope, Geometry, MultiPath, Point, Polygon, Polyline},
+        geometry::{Envelope, Envelope2D, Geometry, Interval, MultiPath, Point, Polygon, Polyline},
         vertex::{Vertex, VertexAttributes},
     },
     shape::{
         self,
         types::{
-            BoundingBox, Measures, MultiPart, MultiPartM, MultiPartZ, MultiPointM, MultiPointZ,
-            PointM, PointZ, Range, Shape, ZValues,
+            Measures, MultiPart, MultiPartM, MultiPartZ, MultiPointM, MultiPointZ,
+            PointM, PointZ, Shape, ZValues,
         },
     },
 };
@@ -80,28 +80,24 @@ impl Columns {
         })
     }
 
-    fn bbox(&self) -> BoundingBox {
-        let xy = self.envelope.xy;
-        BoundingBox {
-            xmin: xy.map_or(0.0, |e| e.xmin),
-            ymin: xy.map_or(0.0, |e| e.ymin),
-            xmax: xy.map_or(0.0, |e| e.xmax),
-            ymax: xy.map_or(0.0, |e| e.ymax),
-        }
+    fn bbox(&self) -> Envelope2D {
+        self.envelope.xy.unwrap_or(Envelope2D {
+            xmin: 0.0,
+            ymin: 0.0,
+            xmax: 0.0,
+            ymax: 0.0,
+        })
     }
 
     fn z_values(&mut self) -> Option<ZValues> {
-        let range = self.envelope.z.map_or(Range { min: 0.0, max: 0.0 }, |z| Range {
-            min: z.min,
-            max: z.max,
-        });
+        let range = self.envelope.z.unwrap_or(Interval { min: 0.0, max: 0.0 });
         self.z.take().map(|values| ZValues { range, values })
     }
 
     /// The M section, omitted when every measure is "no data" since the section is optional.
     fn measures(&mut self) -> Option<Measures> {
         let data = |m: f64| (!m.is_nan()).then_some(m);
-        let range = Range {
+        let range = Interval {
             min: self.envelope.m.and_then(|m| data(m.min)),
             max: self.envelope.m.and_then(|m| data(m.max)),
         };

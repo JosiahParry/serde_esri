@@ -1,9 +1,10 @@
 use super::*;
+use crate::enginex::geometry::Interval;
 use crate::shape::{
     file::ShapeFile,
     types::{
         Measures, MultiPart, MultiPartM, MultiPartZ, MultiPatch, MultiPoint, MultiPointM,
-        MultiPointZ, PartType, PointM, PointZ, Range, ShapeType, ZValues,
+        MultiPointZ, PartType, PointM, PointZ, ShapeType, ZValues,
     },
 };
 
@@ -98,11 +99,11 @@ fn multi_point_z_with_measures() {
                 points: points(&[[1.0, 2.0], [3.0, 4.0]]),
             },
             z: ZValues {
-                range: Range { min: 5.0, max: 6.0 },
+                range: Interval { min: 5.0, max: 6.0 },
                 values: vec![5.0, 6.0],
             },
             m: Some(Measures {
-                range: Range {
+                range: Interval {
                     min: Some(7.0),
                     max: Some(8.0)
                 },
@@ -207,11 +208,11 @@ fn shape_buffers_round_trip() -> Result<(), ShapeError> {
         points: points(&[[0.0, 0.0], [1.0, 1.0], [2.0, 2.0], [3.0, 3.0]]),
     };
     let z = ZValues {
-        range: Range { min: 1.0, max: 4.0 },
+        range: Interval { min: 1.0, max: 4.0 },
         values: vec![1.0, 2.0, 3.0, 4.0],
     };
     let m = Some(Measures {
-        range: Range {
+        range: Interval {
             min: Some(0.0),
             max: Some(2.0),
         },
@@ -239,11 +240,11 @@ fn shape_buffers_round_trip() -> Result<(), ShapeError> {
         Shape::MultiPointZ(MultiPointZ {
             xy: multi_point,
             z: ZValues {
-                range: Range { min: 1.0, max: 2.0 },
+                range: Interval { min: 1.0, max: 2.0 },
                 values: vec![1.0, 2.0],
             },
             m: Some(Measures {
-                range: Range {
+                range: Interval {
                     min: Some(1.0),
                     max: Some(1.0),
                 },
@@ -294,7 +295,7 @@ fn errors() {
             points: points(&[[1.0, 2.0]]),
         },
         z: ZValues {
-            range: Range { min: 0.0, max: 0.0 },
+            range: Interval { min: 0.0, max: 0.0 },
             values: Vec::new(),
         },
         m: None,

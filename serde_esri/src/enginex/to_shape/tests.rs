@@ -27,7 +27,7 @@ fn polygon_z_round_trips() -> Result<(), String> {
     let m = [None, Some(2.0), Some(3.0), None, None, Some(9.0), None, None, None, Some(9.0)];
     let original = Shape::PolygonZ(MultiPartZ {
         xy: MultiPart {
-            bbox: BoundingBox {
+            bbox: Envelope2D {
                 xmin: 0.0,
                 ymin: 0.0,
                 xmax: 10.0,
@@ -37,11 +37,11 @@ fn polygon_z_round_trips() -> Result<(), String> {
             points: points(&xy),
         },
         z: ZValues {
-            range: Range { min: 1.0, max: 8.0 },
+            range: Interval { min: 1.0, max: 8.0 },
             values: z.to_vec(),
         },
         m: Some(Measures {
-            range: Range {
+            range: Interval {
                 min: Some(2.0),
                 max: Some(9.0),
             },

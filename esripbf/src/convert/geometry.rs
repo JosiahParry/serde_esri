@@ -7,10 +7,12 @@ use crate::{
     convert::FromPbfError,
     esri_p_buffer::feature_collection_p_buffer::{self as pbf, GeometryType, QuantizeOriginPostion},
 };
-#[cfg(feature = "geoarrow")]
-use serde_esri::enginex::geometry::{Geometry, MultiPoint, Point, Polygon, Polyline};
 use serde_esri::{
-    enginex::{geometry::MultiPath, vertex::VertexAttributes},
+    enginex::{
+        description::{Attribute, VertexDescription},
+        geometry::{Geometry, MultiPath, MultiPoint, Point, Polygon, Polyline},
+        vertex::VertexAttributes,
+    },
     geometry::{
         EsriCoord, EsriGeometry, EsriLineString, EsriMultiPoint, EsriPoint, EsriPolygon,
         EsriPolyline,
@@ -38,7 +40,7 @@ enum Parts {
 
 /// The transform of one `FeatureResult`, with an axis per ordinate.
 #[derive(Clone, Debug)]
-pub(super) struct Quantization {
+pub struct Quantization {
     x: Axis,
     y: Axis,
     z: Option<Axis>,
@@ -53,13 +55,26 @@ impl TryFrom<&pbf::FeatureResult> for Quantization {
             .transform
             .as_ref()
             .ok_or(FromPbfError::MissingTransform)?;
+        let description = [
+            result.has_z.then_some(Attribute::Z),
+            result.has_m.then_some(Attribute::M),
+        ]
+        .into_iter()
+        .flatten()
+        .collect();
+        Ok(Quantization::new(transform, description))
+    }
+}
+
+impl Quantization {
+    pub fn new(transform: &pbf::Transform, description: VertexDescription) -> Self {
         let scale = transform.scale.clone().unwrap_or_default();
         let translate = transform.translate.clone().unwrap_or_default();
         let y_scale = match transform.quantize_origin_postion() {
             QuantizeOriginPostion::UpperLeft => -scale.y_scale,
             QuantizeOriginPostion::LowerLeft => scale.y_scale,
         };
-        Ok(Quantization {
+        Quantization {
             x: Axis {
                 scale: scale.x_scale,
                 translate: translate.x_translate,
@@ -68,21 +83,15 @@ impl TryFrom<&pbf::FeatureResult> for Quantization {
                 scale: y_scale,
                 translate: translate.y_translate,
             },
-            z: result.has_z.then_some(Axis {
+            z: description.has(Attribute::Z).then_some(Axis {
                 scale: scale.z_scale,
                 translate: translate.z_translate,
             }),
-            m: result.has_m.then_some(Axis {
+            m: description.has(Attribute::M).then_some(Axis {
                 scale: scale.m_scale,
                 translate: translate.m_translate,
             }),
-        })
-    }
-}
-
-impl Quantization {
-    fn width(&self) -> usize {
-        2 + usize::from(self.z.is_some()) + usize::from(self.m.is_some())
+        }
     }
 
     /// The vertices split into paths by `lengths`, one path when there are none.
@@ -91,7 +100,7 @@ impl Quantization {
         geometry: &pbf::Geometry,
         parts: Parts,
     ) -> Result<MultiPath, FromPbfError> {
-        let width = self.width();
+        let width = 2 + usize::from(self.z.is_some()) + usize::from(self.m.is_some());
         let lengths = match geometry.lengths.as_slice() {
             [] => vec![geometry.coords.len() / width],
             lengths => lengths.iter().map(|n| *n as usize).collect(),
@@ -147,8 +156,7 @@ impl Quantization {
         })
     }
 
-    #[cfg(feature = "geoarrow")]
-    pub(super) fn engine(
+    pub fn engine(
         &self,
         geometry_type: GeometryType,
         geometry: &pbf::Geometry,
@@ -182,11 +190,11 @@ impl Quantization {
         })
     }
 
-    /// Each part's coordinates as `[x, y, z?, m?]`, rings keeping their closing vertex.
-    fn parts<const N: usize>(
+    pub(super) fn geometry<const N: usize>(
         &self,
+        geometry_type: GeometryType,
         geometry: &pbf::Geometry,
-    ) -> Result<Vec<Vec<EsriCoord<N>>>, FromPbfError> {
+    ) -> Result<EsriGeometry<N>, FromPbfError> {
         let paths = self.multi_path(geometry, Parts::Paths)?;
         let coord = |i: usize| {
             let mut coord = [f64::NAN; N];
@@ -198,19 +206,15 @@ impl Quantization {
             }
             EsriCoord(coord)
         };
-        Ok(paths
+        let parts = paths
             .path_offsets
             .windows(2)
-            .map(|w| (w[0] as usize..w[1] as usize).map(coord).collect())
-            .collect())
-    }
-
-    pub(super) fn geometry<const N: usize>(
-        &self,
-        geometry_type: GeometryType,
-        geometry: &pbf::Geometry,
-    ) -> Result<EsriGeometry<N>, FromPbfError> {
-        let parts = self.parts::<N>(geometry)?;
+            .map(|w| {
+                (w[0] as usize..w[1] as usize)
+                    .map(coord)
+                    .collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>();
         let geometry = match geometry_type {
             GeometryType::EsriGeometryTypePoint => {
                 let coord = parts.first().and_then(|part| part.first());

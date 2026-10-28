@@ -2,7 +2,7 @@ use super::*;
 use crate::esri_p_buffer::{feature_collection_p_buffer::query_result::Results, FeatureCollectionPBuffer};
 use prost::Message;
 use serde_esri::{
-    features::{value::EsriValue, FeatureSet},
+    features::FeatureSet,
     geometry::EsriGeometry,
     sqltype::SqlType,
 };
@@ -35,13 +35,6 @@ fn parts<const N: usize>(geometry: &EsriGeometry<N>) -> Vec<Vec<Vec<f64>>> {
             .map(|ring| ring.0.iter().map(|c| c.0.to_vec()).collect())
             .collect(),
         EsriGeometry::Envelope(_) => Vec::new(),
-    }
-}
-
-fn same_value(a: &EsriValue, b: &EsriValue) -> bool {
-    match (a.as_f64(), b.as_f64()) {
-        (Some(x), Some(y)) => (x - y).abs() <= 4.0 * f64::EPSILON * x.abs().max(y.abs()),
-        _ => a == b,
     }
 }
 
@@ -102,11 +95,12 @@ fn matches_json<const N: usize>(name: &str) -> TestResult {
             b_attrs.keys().collect::<Vec<_>>()
         );
         for (key, value) in &a_attrs {
-            assert!(
-                same_value(value, &b_attrs[key]),
-                "{name} feature {i} {key}: {value:?} vs {:?}",
-                b_attrs[key]
-            );
+            let other = &b_attrs[key];
+            let same = match (value.as_f64(), other.as_f64()) {
+                (Some(x), Some(y)) => (x - y).abs() <= 4.0 * f64::EPSILON * x.abs().max(y.abs()),
+                _ => value == other,
+            };
+            assert!(same, "{name} feature {i} {key}: {value:?} vs {other:?}");
         }
 
         let (a_parts, b_parts) = (
@@ -193,4 +187,55 @@ fn attributes_without_geometry_match_json() -> TestResult {
 #[test]
 fn tables_match_json() -> TestResult {
     matches_json::<2>("table")
+}
+
+#[test]
+fn lower_left_transforms_keep_y_and_read_z_as_absolute() -> TestResult {
+    use crate::esri_p_buffer::feature_collection_p_buffer::{
+        Geometry as PbfGeometry, GeometryType, QuantizeOriginPostion, Scale, Transform, Translate,
+    };
+    use serde_esri::enginex::{
+        description::{Attribute, VertexDescription},
+        geometry::Geometry,
+    };
+
+    let transform = Transform {
+        quantize_origin_postion: QuantizeOriginPostion::LowerLeft.into(),
+        scale: Some(Scale {
+            x_scale: 0.5,
+            y_scale: 2.0,
+            z_scale: 0.1,
+            m_scale: 1.0,
+        }),
+        translate: Some(Translate {
+            x_translate: 10.0,
+            y_translate: 20.0,
+            z_translate: 100.0,
+            m_translate: 0.0,
+        }),
+    };
+    let quantization = geometry::Quantization::new(
+        &transform,
+        [Attribute::Z].into_iter().collect::<VertexDescription>(),
+    );
+    let ring = PbfGeometry {
+        lengths: vec![5],
+        coords: vec![0, 0, 1, 0, 2, 2, 2, 0, 3, 0, -2, 4, -2, 0, 1],
+        ..Default::default()
+    };
+    let Geometry::Polygon(polygon) =
+        quantization.engine(GeometryType::EsriGeometryTypePolygon, &ring)?
+    else {
+        return Err("expected a polygon".into());
+    };
+    assert_eq!(polygon.rings.path_offsets, vec![0, 4]);
+    assert_eq!(
+        polygon.rings.vertices.xy,
+        vec![[10.0, 20.0], [10.0, 24.0], [11.0, 24.0], [11.0, 20.0]]
+    );
+    assert_eq!(
+        polygon.rings.vertices.z,
+        Some(vec![100.1, 100.2, 100.3, 100.4])
+    );
+    Ok(())
 }

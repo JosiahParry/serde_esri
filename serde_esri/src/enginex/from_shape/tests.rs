@@ -1,9 +1,10 @@
 use super::*;
-use crate::shape::types::{BoundingBox, MultiPartZ, PointM, Range, ZValues};
+use crate::enginex::geometry::{Envelope2D, Interval};
+use crate::shape::types::{MultiPartZ, PointM, ZValues};
 
 fn multi_part(parts: Vec<i32>, xy: &[[f64; 2]]) -> MultiPart {
     MultiPart {
-        bbox: BoundingBox {
+        bbox: Envelope2D {
             xmin: 0.0,
             ymin: 0.0,
             xmax: 10.0,
@@ -33,11 +34,11 @@ fn polygon_z_drops_closing_vertices() -> Result<(), FromShapeError> {
     let shape = Shape::PolygonZ(MultiPartZ {
         xy: multi_part(vec![0, 5], &xy),
         z: ZValues {
-            range: Range { min: 0.0, max: 9.0 },
+            range: Interval { min: 0.0, max: 9.0 },
             values: z,
         },
         m: Some(Measures {
-            range: Range {
+            range: Interval {
                 min: Some(1.0),
                 max: Some(1.0),
             },
@@ -124,7 +125,7 @@ fn errors() {
     let short_z = Shape::PolyLineZ(MultiPartZ {
         xy: multi_part(vec![0], &[[0.0, 0.0], [1.0, 1.0]]),
         z: ZValues {
-            range: Range { min: 0.0, max: 0.0 },
+            range: Interval { min: 0.0, max: 0.0 },
             values: vec![0.0],
         },
         m: None,

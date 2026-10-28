@@ -243,7 +243,61 @@ impl TryFrom<EsriShape<'_>> for Option<Geometry> {
                 Geometry::MultiPoint(MultiPoint { vertices })
             }
             GeneralType::MultiPath(path_type) => {
-                let path = r.multipath(modifiers, path_type)?;
+                r.skip(32)?; // bounding box
+                let part_count = r.count()?;
+                let point_count = r.count()?;
+                let path = if point_count == 0 {
+                    MultiPath {
+                        vertices: modifiers.into(),
+                        ..Default::default()
+                    }
+                } else {
+                    // Repeated part starts describe empty parts and are collapsed.
+                    let mut starts = Vec::new();
+                    for _ in 0..part_count {
+                        let start = usize::try_from(r.i32()?).map_err(|_| ShapeError::Corrupted)?;
+                        match starts.last() {
+                            Some(&prev) if start < prev => return Err(ShapeError::Corrupted),
+                            Some(&prev) if start == prev => {}
+                            _ => starts.push(start),
+                        }
+                    }
+                    match (starts.first(), starts.last()) {
+                        (Some(0), Some(&last)) if last < point_count => {}
+                        _ => return Err(ShapeError::Corrupted),
+                    }
+
+                    let xy = r.xy(point_count)?;
+                    let ends = starts[1..].iter().copied().chain([point_count]);
+
+                    let mut keep = vec![true; point_count];
+                    let mut path_offsets = vec![0];
+                    let mut kept = 0;
+                    for (start, end) in starts.iter().copied().zip(ends) {
+                        let mut len = end - start;
+                        if matches!(path_type, PathType::Polygon)
+                            && len > 1
+                            && xy[end - 1] == xy[start]
+                        {
+                            keep[end - 1] = false;
+                            len -= 1;
+                        }
+                        kept += len;
+                        path_offsets.push(i32::try_from(kept).map_err(|_| ShapeError::Corrupted)?);
+                    }
+
+                    let (retained, flags) = match path_type {
+                        PathType::Polyline => (Retained(None), PathFlags::default()),
+                        PathType::Polygon => (Retained(Some(&keep)), PathFlag::Closed.into()),
+                    };
+
+                    MultiPath {
+                        vertices: r.vertex_attributes(modifiers, xy, retained)?,
+                        path_offsets,
+                        path_flags: vec![flags; starts.len()],
+                        segments: None,
+                    }
+                };
                 match path_type {
                     PathType::Polyline => Geometry::Polyline(Polyline(path)),
                     PathType::Polygon => Geometry::Polygon(Polygon::from(path)),
@@ -294,65 +348,6 @@ impl Reader<'_> {
             return Err(ShapeError::UnexpectedEof);
         }
         (0..count).map(|_| Ok([self.f64()?, self.f64()?])).collect()
-    }
-
-    fn multipath(
-        &mut self,
-        modifiers: Modifiers,
-        path_type: PathType,
-    ) -> Result<MultiPath, ShapeError> {
-        self.skip(32)?; // bounding box
-        let part_count = self.count()?;
-        let point_count = self.count()?;
-        if point_count == 0 {
-            return Ok(MultiPath {
-                vertices: modifiers.into(),
-                ..Default::default()
-            });
-        }
-
-        // Repeated part starts describe empty parts and are collapsed.
-        let mut starts = Vec::new();
-        for _ in 0..part_count {
-            let start = usize::try_from(self.i32()?).map_err(|_| ShapeError::Corrupted)?;
-            match starts.last() {
-                Some(&prev) if start < prev => return Err(ShapeError::Corrupted),
-                Some(&prev) if start == prev => {}
-                _ => starts.push(start),
-            }
-        }
-        match (starts.first(), starts.last()) {
-            (Some(0), Some(&last)) if last < point_count => {}
-            _ => return Err(ShapeError::Corrupted),
-        }
-
-        let xy = self.xy(point_count)?;
-        let ends = starts[1..].iter().copied().chain([point_count]);
-
-        let mut keep = vec![true; point_count];
-        let mut path_offsets = vec![0];
-        let mut kept = 0;
-        for (start, end) in starts.iter().copied().zip(ends) {
-            let mut len = end - start;
-            if matches!(path_type, PathType::Polygon) && len > 1 && xy[end - 1] == xy[start] {
-                keep[end - 1] = false;
-                len -= 1;
-            }
-            kept += len;
-            path_offsets.push(i32::try_from(kept).map_err(|_| ShapeError::Corrupted)?);
-        }
-
-        let (retained, flags) = match path_type {
-            PathType::Polyline => (Retained(None), PathFlags::default()),
-            PathType::Polygon => (Retained(Some(&keep)), PathFlag::Closed.into()),
-        };
-
-        Ok(MultiPath {
-            vertices: self.vertex_attributes(modifiers, xy, retained)?,
-            path_offsets,
-            path_flags: vec![flags; starts.len()],
-            segments: None,
-        })
     }
 
     /// Reads the Z, M, and ID sections that follow the xy coordinates.

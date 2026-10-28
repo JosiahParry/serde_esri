@@ -9,6 +9,7 @@ use crate::{
     arrow_compat::ToArrowError,
     enginex::{
         geometry::{Envelope, Envelope2D, Interval},
+        rings::{ogc_starts, signed_area},
         to_geoarrow::GeometryColumn,
     },
 };
@@ -101,48 +102,6 @@ impl GeometryBuilder {
                 self.geom_offsets.push(last);
             }
         }
-    }
-
-    fn coord_count(&self) -> usize {
-        self.coords.len() / self.width
-    }
-
-    /// Groups the rings from `first_ring` on into polygons: a ring with the orientation of the
-    /// first non-zero ring starts a polygon (`_updateOGCFlagsHelper`).
-    fn group_rings<E: de::Error>(&mut self, first_ring: usize) -> Result<(), E> {
-        let ring_count = self.ring_offsets.len() - 1;
-        let (coords, width) = (&self.coords, self.width);
-        let xy = |i: usize| {
-            let at = |j: usize| coords.get(i * width + j).copied().unwrap_or(f64::NAN);
-            (at(0), at(1))
-        };
-        let bounds = |ring: usize| {
-            let at = |i: usize| self.ring_offsets.get(i).map_or(0, |&o| o as usize);
-            (at(ring), at(ring + 1))
-        };
-        let mut first_sign = 0.0;
-        for ring in first_ring..ring_count {
-            let (start, end) = bounds(ring);
-            let (x0, y0) = xy(start);
-            let area = (start..end)
-                .map(|i| {
-                    let (x1, y1) = xy(i);
-                    let (x2, y2) = xy(if i + 1 < end { i + 1 } else { start });
-                    ((x2 - x0) - (x1 - x0)) * ((y2 - y0) + (y1 - y0)) * 0.5
-                })
-                .sum::<f64>();
-            if first_sign == 0.0 && area != 0.0 {
-                first_sign = area.signum();
-            }
-            let starts_polygon = first_sign == 0.0 || area * first_sign > 0.0;
-            if ring > first_ring && starts_polygon {
-                self.part_offsets.push(offset(ring)?);
-            }
-        }
-        if ring_count > first_ring {
-            self.part_offsets.push(offset(ring_count)?);
-        }
-        Ok(())
     }
 
     /// The finished column with its GeoArrow extension field.
@@ -466,7 +425,7 @@ impl<'de> Visitor<'de> for GeometrySeed<'_> {
                 }
             }
             GeometryType::MultiPoint => {
-                let count = offset(b.coord_count())?;
+                let count = offset(b.coords.len() / width)?;
                 b.geom_offsets.push(count);
             }
             GeometryType::Polyline => {
@@ -474,7 +433,25 @@ impl<'de> Visitor<'de> for GeometrySeed<'_> {
                 b.geom_offsets.push(count);
             }
             GeometryType::Polygon => {
-                b.group_rings(first_ring)?;
+                let ring_count = b.ring_offsets.len() - 1;
+                let ring = |r: usize| {
+                    let at = |i: usize| b.ring_offsets.get(i).map_or(0, |&o| o as usize);
+                    (at(r)..at(r + 1)).map(|i| {
+                        let at =
+                            |j: usize| b.coords.get(i * width + j).copied().unwrap_or(f64::NAN);
+                        [at(0), at(1)]
+                    })
+                };
+                let starts = ogc_starts((first_ring..ring_count).map(|r| signed_area(ring(r))))
+                    .collect::<Vec<_>>();
+                for (r, starts) in (first_ring..ring_count).zip(starts) {
+                    if r > first_ring && starts {
+                        b.part_offsets.push(offset(r)?);
+                    }
+                }
+                if ring_count > first_ring {
+                    b.part_offsets.push(offset(ring_count)?);
+                }
                 let count = offset(b.part_offsets.len() - 1)?;
                 b.geom_offsets.push(count);
             }

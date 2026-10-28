@@ -83,18 +83,6 @@ impl Builders {
         }
         Ok(builders)
     }
-
-    /// Ends the current row, filling nulls into columns the feature left unset.
-    fn finish_row(&mut self) {
-        let row = self.rows;
-        for column in self.columns.iter_mut().filter(|c| c.len() == row) {
-            column.append_null();
-        }
-        if let Some(geometry) = self.geometry.as_mut().filter(|g| g.len() == row) {
-            geometry.append_null();
-        }
-        self.rows += 1;
-    }
 }
 
 /// The keys of a FeatureSet object this reader uses.
@@ -240,7 +228,15 @@ impl<'de> Visitor<'de> for FeaturesSeed<'_> {
 
     fn visit_seq<A: SeqAccess<'de>>(self, mut seq: A) -> Result<(), A::Error> {
         while seq.next_element_seed(FeatureSeed(&mut *self.0))?.is_some() {
-            self.0.finish_row();
+            let builders = &mut *self.0;
+            let row = builders.rows;
+            for column in builders.columns.iter_mut().filter(|c| c.len() == row) {
+                column.append_null();
+            }
+            if let Some(geometry) = builders.geometry.as_mut().filter(|g| g.len() == row) {
+                geometry.append_null();
+            }
+            builders.rows += 1;
         }
         Ok(())
     }

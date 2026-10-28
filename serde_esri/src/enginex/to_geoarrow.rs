@@ -94,14 +94,6 @@ impl<G> GeometryColumn<'_, G> {
         }
         Ok(first)
     }
-
-    /// Validity, or `None` when no geometry is null.
-    fn nulls(&self) -> Option<NullBuffer> {
-        self.0
-            .iter()
-            .any(Option::is_none)
-            .then(|| NullBuffer::from_iter(self.0.iter().map(Option::is_some)))
-    }
 }
 
 /// Null and empty points both hold `NaN` coordinates; only nulls are marked invalid.
@@ -195,7 +187,11 @@ impl TryFrom<GeometryColumn<'_, Envelope>> for RectArray {
         Ok(RectArray::new(
             buffers(lower)?,
             buffers(upper)?,
-            column.nulls(),
+            column
+                .0
+                .iter()
+                .any(Option::is_none)
+                .then(|| NullBuffer::from_iter(column.0.iter().map(Option::is_some))),
             Default::default(),
         ))
     }

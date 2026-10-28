@@ -1,6 +1,9 @@
 //! Shape types, geometries, and the [`Shape`] enum.
 
-use crate::shape::error::ShapeError;
+use crate::{
+    enginex::geometry::{Envelope2D, Interval},
+    shape::error::ShapeError,
+};
 
 /// Shape types. Discriminants match the specification.
 #[repr(i32)]
@@ -74,21 +77,6 @@ impl TryFrom<i32> for PartType {
     }
 }
 
-/// Bounds stored in the order xmin, ymin, xmax, ymax.
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct BoundingBox {
-    pub xmin: f64,
-    pub ymin: f64,
-    pub xmax: f64,
-    pub ymax: f64,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Range<T> {
-    pub min: T,
-    pub max: T,
-}
-
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct Point {
     pub x: f64,
@@ -113,20 +101,20 @@ pub struct PointZ {
 /// A Z range followed by one Z value per point.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ZValues {
-    pub range: Range<f64>,
+    pub range: Interval<f64>,
     pub values: Vec<f64>,
 }
 
 /// An M range followed by one measure per point.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Measures {
-    pub range: Range<Option<f64>>,
+    pub range: Interval<Option<f64>>,
     pub values: Vec<Option<f64>>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct MultiPoint {
-    pub bbox: BoundingBox,
+    pub bbox: Envelope2D,
     pub points: Vec<Point>,
 }
 
@@ -147,7 +135,7 @@ pub struct MultiPointZ {
 /// first point; polygon rings repeat their first point as their last.
 #[derive(Clone, Debug, PartialEq)]
 pub struct MultiPart {
-    pub bbox: BoundingBox,
+    pub bbox: Envelope2D,
     pub parts: Vec<i32>,
     pub points: Vec<Point>,
 }
@@ -167,7 +155,7 @@ pub struct MultiPartZ {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct MultiPatch {
-    pub bbox: BoundingBox,
+    pub bbox: Envelope2D,
     pub parts: Vec<i32>,
     pub part_types: Vec<PartType>,
     pub points: Vec<Point>,

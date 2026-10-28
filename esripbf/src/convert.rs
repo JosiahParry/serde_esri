@@ -3,7 +3,7 @@
 #[cfg(feature = "geoarrow")]
 pub mod arrow;
 mod feature_set;
-mod geometry;
+pub mod geometry;
 mod scalars;
 
 

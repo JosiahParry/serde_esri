@@ -29,7 +29,7 @@ pub mod geometry;
 #[cfg(feature = "geo-traits")]
 #[macro_use]
 pub mod geo_traits_impl;
-mod rings;
+pub(crate) mod rings;
 pub mod to_shape;
 #[cfg(feature = "geoarrow")]
 pub mod to_geoarrow;

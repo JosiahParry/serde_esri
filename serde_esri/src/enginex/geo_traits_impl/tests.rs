@@ -111,7 +111,7 @@ fn geometry_dispatches_by_kind() {
 fn shapefile_polygon_round_trips_through_the_engine() -> Result<(), crate::enginex::from_shape::FromShapeError> {
     let ring = [[0.0, 0.0], [0.0, 4.0], [4.0, 4.0], [4.0, 0.0], [0.0, 0.0]];
     let shape = Shape::Polygon(MultiPart {
-        bbox: shape::types::BoundingBox {
+        bbox: crate::enginex::geometry::Envelope2D {
             xmin: 0.0,
             ymin: 0.0,
             xmax: 4.0,

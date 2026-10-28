@@ -201,13 +201,10 @@ impl From<&SpatialReference> for Crs {
     }
 }
 
-impl<const N: usize> FeatureSet<N> {
-    /// The geometry field and column as the GeoArrow array `geometryType` calls for.
-    fn geometry_column(
-        &self,
-        geometry_type: &str,
-        metadata: Arc<Metadata>,
-    ) -> Result<(ArrowField, ArrayRef), ToArrowError> {
+impl<const N: usize> TryFrom<&FeatureSet<N>> for RecordBatch {
+    type Error = ToArrowError;
+
+    fn try_from(feature_set: &FeatureSet<N>) -> Result<Self, Self::Error> {
         fn typed<T>(
             geometries: &[Option<Geometry>],
             pick: fn(Geometry) -> Option<T>,
@@ -222,56 +219,6 @@ impl<const N: usize> FeatureSet<N> {
             (array.data_type().to_field("geometry", true), array.to_array_ref())
         }
 
-        let geometries = Vec::<Option<Geometry>>::try_from(self)?;
-        Ok(match geometry_type {
-            "esriGeometryPoint" => {
-                let points = typed(&geometries, |g| match g {
-                    Geometry::Point(p) => Some(p),
-                    _ => None,
-                })?;
-                column(PointArray::try_from(GeometryColumn(&points))?.with_metadata(metadata))
-            }
-            "esriGeometryMultipoint" => {
-                let multi_points = typed(&geometries, |g| match g {
-                    Geometry::MultiPoint(mp) => Some(mp),
-                    _ => None,
-                })?;
-                let array = MultiPointArray::try_from(GeometryColumn(&multi_points))?;
-                column(array.with_metadata(metadata))
-            }
-            "esriGeometryPolyline" => {
-                let polylines = typed(&geometries, |g| match g {
-                    Geometry::Polyline(p) => Some(p),
-                    _ => None,
-                })?;
-                let array = MultiLineStringArray::try_from(GeometryColumn(&polylines))?;
-                column(array.with_metadata(metadata))
-            }
-            "esriGeometryPolygon" => {
-                let polygons = typed(&geometries, |g| match g {
-                    Geometry::Polygon(p) => Some(p),
-                    _ => None,
-                })?;
-                let array = MultiPolygonArray::try_from(GeometryColumn(&polygons))?;
-                column(array.with_metadata(metadata))
-            }
-            "esriGeometryEnvelope" => {
-                let envelopes = typed(&geometries, |g| match g {
-                    Geometry::Envelope(e) => Some(e),
-                    _ => None,
-                })?;
-                let array = RectArray::try_from(GeometryColumn(&envelopes))?;
-                column(array.with_metadata(metadata))
-            }
-            other => return Err(ToArrowError::UnsupportedGeometryType(other.to_string())),
-        })
-    }
-}
-
-impl<const N: usize> TryFrom<&FeatureSet<N>> for RecordBatch {
-    type Error = ToArrowError;
-
-    fn try_from(feature_set: &FeatureSet<N>) -> Result<Self, Self::Error> {
         let mut fields = Vec::new();
         let mut columns = Vec::new();
         for field in feature_set.fields.iter().flatten() {
@@ -288,7 +235,49 @@ impl<const N: usize> TryFrom<&FeatureSet<N>> for RecordBatch {
                 .map(Crs::from)
                 .unwrap_or_default();
             let metadata = Arc::new(Metadata::new(crs, None));
-            let (field, column) = feature_set.geometry_column(geometry_type, metadata)?;
+            let geometries = Vec::<Option<Geometry>>::try_from(feature_set)?;
+            let (field, column) = match geometry_type.as_str() {
+                "esriGeometryPoint" => {
+                    let points = typed(&geometries, |g| match g {
+                        Geometry::Point(p) => Some(p),
+                        _ => None,
+                    })?;
+                    column(PointArray::try_from(GeometryColumn(&points))?.with_metadata(metadata))
+                }
+                "esriGeometryMultipoint" => {
+                    let multi_points = typed(&geometries, |g| match g {
+                        Geometry::MultiPoint(mp) => Some(mp),
+                        _ => None,
+                    })?;
+                    let array = MultiPointArray::try_from(GeometryColumn(&multi_points))?;
+                    column(array.with_metadata(metadata))
+                }
+                "esriGeometryPolyline" => {
+                    let polylines = typed(&geometries, |g| match g {
+                        Geometry::Polyline(p) => Some(p),
+                        _ => None,
+                    })?;
+                    let array = MultiLineStringArray::try_from(GeometryColumn(&polylines))?;
+                    column(array.with_metadata(metadata))
+                }
+                "esriGeometryPolygon" => {
+                    let polygons = typed(&geometries, |g| match g {
+                        Geometry::Polygon(p) => Some(p),
+                        _ => None,
+                    })?;
+                    let array = MultiPolygonArray::try_from(GeometryColumn(&polygons))?;
+                    column(array.with_metadata(metadata))
+                }
+                "esriGeometryEnvelope" => {
+                    let envelopes = typed(&geometries, |g| match g {
+                        Geometry::Envelope(e) => Some(e),
+                        _ => None,
+                    })?;
+                    let array = RectArray::try_from(GeometryColumn(&envelopes))?;
+                    column(array.with_metadata(metadata))
+                }
+                other => return Err(ToArrowError::UnsupportedGeometryType(other.to_string())),
+            };
             fields.push(field);
             columns.push(column);
         }
