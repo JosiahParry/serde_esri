@@ -1,4 +1,10 @@
 use super::*;
+use crate::shape::{
+    error::FileError,
+    file::ShapeFile,
+    types::{PointZ, Range, ShapeType},
+    writer::ShapeWriter,
+};
 
 #[test]
 fn shape_writer() -> Result<(), FileError> {
@@ -44,9 +50,9 @@ fn shape_writer() -> Result<(), FileError> {
         }
     );
     let records = file.collect::<Result<Vec<_>, _>>()?;
-    let numbers: Vec<_> = records.iter().map(|r| r.number).collect();
+    let numbers = records.iter().map(|r| r.number).collect::<Vec<_>>();
     assert_eq!(numbers, vec![1, 2, 3]);
-    let written: Vec<_> = records.into_iter().map(|r| r.shape).collect();
+    let written = records.into_iter().map(|r| r.shape).collect::<Vec<_>>();
     assert_eq!(written, shapes);
 
     let mut mixed = ShapeWriter::new(std::io::Cursor::new(Vec::new()), ShapeType::Point)?;

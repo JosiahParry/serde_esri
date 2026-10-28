@@ -1,8 +1,12 @@
 //! Reading and writing shape buffers: the contents of one main file record.
 
 use crate::shape::{
-    BoundingBox, Measures, MultiPart, MultiPartM, MultiPartZ, MultiPatch, MultiPoint, MultiPointM,
-    MultiPointZ, PartType, Point, PointM, PointZ, Range, Shape, ShapeError, ShapeType, ZValues,
+    error::ShapeError,
+    types::{
+        BoundingBox, Measures, MultiPart, MultiPartM, MultiPartZ, MultiPatch, MultiPoint,
+        MultiPointM, MultiPointZ, PartType, Point, PointM, PointZ, Range, Shape, ShapeType,
+        ZValues,
+    },
 };
 
 /// Reads a shape buffer: the contents of one main file record.

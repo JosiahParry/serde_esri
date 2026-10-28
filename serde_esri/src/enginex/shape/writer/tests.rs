@@ -1,5 +1,8 @@
 use super::*;
-use crate::enginex::{MultiPoint, PathFlag, Polygon, SegmentType, Segments};
+use crate::enginex::{
+    flags::{PathFlag, SegmentType},
+    geometry::{MultiPoint, Polygon, Segments},
+};
 
 fn read(buffer: &EsriShapeBuffer) -> Result<Option<Geometry>, ShapeError> {
     buffer.as_shape().try_into()

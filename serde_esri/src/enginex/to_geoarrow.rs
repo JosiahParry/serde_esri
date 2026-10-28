@@ -1,29 +1,30 @@
-//! Native conversion of engine geometries into GeoArrow arrays with interleaved coordinates.
-//!
-//! Engine buffers map onto GeoArrow's directly: vertices become coordinates, path offsets become
-//! line or ring offsets, and OGC polygon groups (see [`Polygon::ogc_polygons`]) become polygon
-//! offsets. Rings and closed paths gain their closing vertex, and vertex IDs are dropped.
+//! Converts engine geometries into GeoArrow arrays with interleaved coordinates, pushing their
+//! geo-traits views through geoarrow-array's builders. Vertex IDs are dropped.
 //!
 //! ```ignore
-//! let polygons: Vec<Option<Polygon>> = ...;
 //! let array = MultiPolygonArray::try_from(GeometryColumn(&polygons))?;
 //! ```
 
 use crate::enginex::{
-    Attribute, Envelope, Geometry, Interval, MultiPoint, Point, Polygon, Polyline, Vertex,
-    VertexAttributes,
-    VertexDescription,
+    description::{Attribute, VertexDescription},
+    geometry::{Envelope, Geometry, Interval, MultiPoint, Point, Polygon, Polyline},
 };
-use arrow_buffer::{NullBuffer, OffsetBuffer, ScalarBuffer};
+use arrow_buffer::{NullBuffer, ScalarBuffer};
 use geoarrow_array::{
     array::{
-        CoordBuffer, GeometryArray, InterleavedCoordBuffer, MultiLineStringArray, MultiPointArray,
-        MultiPolygonArray, PointArray, RectArray, SeparatedCoordBuffer,
+        GeometryArray, MultiLineStringArray, MultiPointArray, MultiPolygonArray, PointArray,
+        RectArray, SeparatedCoordBuffer,
     },
-    builder::GeometryBuilder,
+    builder::{
+        GeometryBuilder, MultiLineStringBuilder, MultiPointBuilder, MultiPolygonBuilder,
+        PointBuilder,
+    },
+    capacity::{MultiLineStringCapacity, MultiPointCapacity, MultiPolygonCapacity},
 };
-use geoarrow_schema::{error::GeoArrowError, Dimension, GeometryType};
-use std::ops::Range;
+use geoarrow_schema::{
+    error::GeoArrowError, CoordType, Dimension, GeometryType, MultiLineStringType,
+    MultiPointType, MultiPolygonType, PointType,
+};
 
 /// Engine geometries of one kind, with `None` for nulls, to convert into a GeoArrow array.
 #[derive(Clone, Copy, Debug)]
@@ -31,10 +32,7 @@ pub struct GeometryColumn<'a, G>(pub &'a [Option<G>]);
 
 #[derive(Debug)]
 pub enum ToGeoArrowError {
-    /// Geometries in the column carry different Z and M attributes.
     MixedDimensions,
-    /// An offset does not fit GeoArrow's 32-bit offsets.
-    TooLarge,
     GeoArrow(GeoArrowError),
 }
 
@@ -44,7 +42,6 @@ impl std::fmt::Display for ToGeoArrowError {
             ToGeoArrowError::MixedDimensions => {
                 write!(f, "geometries in a column must share their dimensions")
             }
-            ToGeoArrowError::TooLarge => write!(f, "offsets exceed GeoArrow's 32-bit limit"),
             ToGeoArrowError::GeoArrow(e) => write!(f, "{e}"),
         }
     }
@@ -107,93 +104,18 @@ impl<G> GeometryColumn<'_, G> {
     }
 }
 
-/// Interleaved coordinates of one dimension.
-struct Coords {
-    dim: Dimension,
-    values: Vec<f64>,
-}
-
-impl Coords {
-    fn new(dim: Dimension) -> Self {
-        Coords {
-            dim,
-            values: Vec::new(),
-        }
-    }
-
-    /// Appends a vertex, with `NaN` for ordinates it lacks.
-    fn push(&mut self, vertex: Vertex) {
-        let z = vertex.z.unwrap_or(f64::NAN);
-        let m = vertex.m.unwrap_or(f64::NAN);
-        match self.dim {
-            Dimension::XY => self.values.extend([vertex.x, vertex.y]),
-            Dimension::XYZ => self.values.extend([vertex.x, vertex.y, z]),
-            Dimension::XYM => self.values.extend([vertex.x, vertex.y, m]),
-            Dimension::XYZM => self.values.extend([vertex.x, vertex.y, z, m]),
-        }
-    }
-
-    /// Appends the vertices in `range` and returns how many.
-    fn push_path(&mut self, vertices: &VertexAttributes, range: Range<usize>) -> usize {
-        let count = range.len();
-        for i in range {
-            self.push(vertices.get(i).unwrap_or_default());
-        }
-        count
-    }
-
-    /// Appends the vertices in `range` and the first again to close them, returning how many.
-    fn push_ring(&mut self, vertices: &VertexAttributes, range: Range<usize>) -> usize {
-        let first = range.start;
-        let count = self.push_path(vertices, range);
-        if count == 0 {
-            return 0;
-        }
-        self.push(vertices.get(first).unwrap_or_default());
-        count + 1
-    }
-
-    fn finish(self) -> Result<CoordBuffer, ToGeoArrowError> {
-        let coords = InterleavedCoordBuffer::try_new(ScalarBuffer::from(self.values), self.dim)?;
-        Ok(CoordBuffer::Interleaved(coords))
-    }
-}
-
-/// Offsets that start at 0 and grow by each pushed length.
-struct Offsets(Vec<i32>);
-
-impl Offsets {
-    fn new() -> Self {
-        Offsets(vec![0])
-    }
-
-    fn push(&mut self, len: usize) -> Result<(), ToGeoArrowError> {
-        let last = self.0.last().copied().unwrap_or(0);
-        let len = i32::try_from(len).map_err(|_| ToGeoArrowError::TooLarge)?;
-        self.0
-            .push(last.checked_add(len).ok_or(ToGeoArrowError::TooLarge)?);
-        Ok(())
-    }
-
-    fn finish(self) -> OffsetBuffer<i32> {
-        OffsetBuffer::new(ScalarBuffer::from(self.0))
-    }
-}
-
+/// Null and empty points both hold `NaN` coordinates; only nulls are marked invalid.
 impl TryFrom<GeometryColumn<'_, Point>> for PointArray {
     type Error = ToGeoArrowError;
 
-    /// Null and empty points both hold `NaN` coordinates; only nulls are marked invalid.
     fn try_from(column: GeometryColumn<'_, Point>) -> Result<Self, Self::Error> {
-        let mut coords = Coords::new(column.dimension(|p| p.0.map(|v| v.description()))?);
+        let dim = column.dimension(|p| p.0.map(|v| v.description()))?;
+        let typ = PointType::new(dim, Default::default()).with_coord_type(CoordType::Interleaved);
+        let mut builder = PointBuilder::with_capacity(typ, column.0.len());
         for point in column.0 {
-            coords.push(point.and_then(|p| p.0).unwrap_or(Vertex {
-                x: f64::NAN,
-                y: f64::NAN,
-                ..Default::default()
-            }));
+            builder.try_push_point(point.as_ref())?;
         }
-        Ok(PointArray::try_new(coords.finish()?, column.nulls(), Default::default())?)
+        Ok(builder.finish())
     }
 }
 
@@ -201,57 +123,38 @@ impl TryFrom<GeometryColumn<'_, MultiPoint>> for MultiPointArray {
     type Error = ToGeoArrowError;
 
     fn try_from(column: GeometryColumn<'_, MultiPoint>) -> Result<Self, Self::Error> {
-        let mut coords = Coords::new(column.dimension(|mp| Some(mp.vertices.description()))?);
-        let mut geom_offsets = Offsets::new();
+        let dim = column.dimension(|mp| Some(mp.vertices.description()))?;
+        let typ =
+            MultiPointType::new(dim, Default::default()).with_coord_type(CoordType::Interleaved);
+        let capacity = MultiPointCapacity::from_multi_points(column.0.iter().map(Option::as_ref));
+        let mut builder = MultiPointBuilder::with_capacity(typ, capacity);
         for multi_point in column.0 {
-            let len = multi_point.as_ref().map_or(0, |mp| {
-                coords.push_path(&mp.vertices, 0..mp.vertices.len())
-            });
-            geom_offsets.push(len)?;
+            builder.push_multi_point(multi_point.as_ref())?;
         }
-        Ok(MultiPointArray::try_new(
-            coords.finish()?,
-            geom_offsets.finish(),
-            column.nulls(),
-            Default::default(),
-        )?)
+        Ok(builder.finish())
     }
 }
 
+/// Closed paths repeat their first vertex.
 impl TryFrom<GeometryColumn<'_, Polyline>> for MultiLineStringArray {
     type Error = ToGeoArrowError;
 
     fn try_from(column: GeometryColumn<'_, Polyline>) -> Result<Self, Self::Error> {
-        let mut coords = Coords::new(column.dimension(|p| Some(p.0.vertices.description()))?);
-        let mut geom_offsets = Offsets::new();
-        let mut line_offsets = Offsets::new();
+        let dim = column.dimension(|p| Some(p.0.vertices.description()))?;
+        let typ = MultiLineStringType::new(dim, Default::default())
+            .with_coord_type(CoordType::Interleaved);
+        let capacity =
+            MultiLineStringCapacity::from_multi_line_strings(column.0.iter().map(Option::as_ref));
+        let mut builder = MultiLineStringBuilder::with_capacity(typ, capacity);
         for polyline in column.0 {
-            let Some(Polyline(paths)) = polyline else {
-                geom_offsets.push(0)?;
-                continue;
-            };
-            for i in 0..paths.path_count() {
-                let range = paths.path_range(i).unwrap_or(0..0);
-                let len = if paths.is_closed_path(i) {
-                    coords.push_ring(&paths.vertices, range)
-                } else {
-                    coords.push_path(&paths.vertices, range)
-                };
-                line_offsets.push(len)?;
-            }
-            geom_offsets.push(paths.path_count())?;
+            builder.push_multi_line_string(polyline.as_ref())?;
         }
-        Ok(MultiLineStringArray::try_new(
-            coords.finish()?,
-            geom_offsets.finish(),
-            line_offsets.finish(),
-            column.nulls(),
-            Default::default(),
-        )?)
+        Ok(builder.finish())
     }
 }
 
-/// Envelopes as GeoArrow boxes, with Z and M ranges as their own dimensions.
+/// Envelopes as GeoArrow boxes, with Z and M ranges as their own dimensions. `RectBuilder` only
+/// pushes infallibly, and envelopes may lack the column's Z or M, so the buffers are built here.
 impl TryFrom<GeometryColumn<'_, Envelope>> for RectArray {
     type Error = ToGeoArrowError;
 
@@ -298,38 +201,21 @@ impl TryFrom<GeometryColumn<'_, Envelope>> for RectArray {
     }
 }
 
+/// Rings are grouped into polygons by orientation (see [`Polygon::ogc_polygons`]) and closed.
 impl TryFrom<GeometryColumn<'_, Polygon>> for MultiPolygonArray {
     type Error = ToGeoArrowError;
 
     fn try_from(column: GeometryColumn<'_, Polygon>) -> Result<Self, Self::Error> {
-        let mut coords = Coords::new(column.dimension(|p| Some(p.rings.vertices.description()))?);
-        let mut geom_offsets = Offsets::new();
-        let mut polygon_offsets = Offsets::new();
-        let mut ring_offsets = Offsets::new();
+        let dim = column.dimension(|p| Some(p.rings.vertices.description()))?;
+        let typ =
+            MultiPolygonType::new(dim, Default::default()).with_coord_type(CoordType::Interleaved);
+        let capacity =
+            MultiPolygonCapacity::from_multi_polygons(column.0.iter().map(Option::as_ref));
+        let mut builder = MultiPolygonBuilder::with_capacity(typ, capacity);
         for polygon in column.0 {
-            let Some(polygon) = polygon else {
-                geom_offsets.push(0)?;
-                continue;
-            };
-            let mut count = 0;
-            for rings in polygon.ogc_polygons() {
-                polygon_offsets.push(rings.len())?;
-                for i in rings {
-                    let range = polygon.rings.path_range(i).unwrap_or(0..0);
-                    ring_offsets.push(coords.push_ring(&polygon.rings.vertices, range))?;
-                }
-                count += 1;
-            }
-            geom_offsets.push(count)?;
+            builder.push_multi_polygon(polygon.as_ref())?;
         }
-        Ok(MultiPolygonArray::try_new(
-            coords.finish()?,
-            geom_offsets.finish(),
-            polygon_offsets.finish(),
-            ring_offsets.finish(),
-            column.nulls(),
-            Default::default(),
-        )?)
+        Ok(builder.finish())
     }
 }
 

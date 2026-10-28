@@ -6,8 +6,12 @@
 //! their first and are turned clockwise when exterior and counterclockwise when holes.
 
 use crate::enginex::{
-    Envelope, Envelope2D, Geometry, Interval, Line, MultiPath, MultiPoint, PathFlag, PathFlags,
-    Point, Polygon, Polyline, Vertex, VertexAttributes,
+    flags::{PathFlag, PathFlags},
+    geometry::{
+        Envelope, Envelope2D, Geometry, Interval, Line, MultiPath, MultiPoint, Point, Polygon,
+        Polyline,
+    },
+    vertex::{Vertex, VertexAttributes},
 };
 use geo_traits::{
     CoordTrait, Dimensions, GeometryTrait, GeometryType, LineStringTrait, LineTrait,
@@ -17,9 +21,7 @@ use geo_traits::{
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum FromGeoTraitsError {
-    /// The engine has no geometry collection.
     GeometryCollection,
-    /// A path offset does not fit the engine's 32-bit integers.
     TooLarge,
 }
 
@@ -84,7 +86,7 @@ impl Paths {
 
     /// Adds a ring without the closing vertex that repeats its first.
     fn push_ring(&mut self, ring: &impl LineStringTrait<T = f64>, role: RingRole) -> Result<(), FromGeoTraitsError> {
-        let mut vertices: Vec<Vertex> = ring.coords().map(|c| Vertex::from_coord(&c)).collect();
+        let mut vertices = ring.coords().map(|c| Vertex::from_coord(&c)).collect::<Vec<_>>();
         let same = |a: f64, b: f64| a == b || (a.is_nan() && b.is_nan());
         let same_option = |a: Option<f64>, b: Option<f64>| match (a, b) {
             (Some(a), Some(b)) => same(a, b),

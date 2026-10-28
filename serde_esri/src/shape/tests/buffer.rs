@@ -1,4 +1,11 @@
 use super::*;
+use crate::shape::{
+    file::ShapeFile,
+    types::{
+        Measures, MultiPart, MultiPartM, MultiPartZ, MultiPatch, MultiPoint, MultiPointM,
+        MultiPointZ, PartType, PointM, PointZ, Range, ShapeType, ZValues,
+    },
+};
 
 #[test]
 fn null() {

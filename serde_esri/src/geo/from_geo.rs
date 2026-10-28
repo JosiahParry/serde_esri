@@ -47,7 +47,7 @@ impl Into<EsriPoint> for &Point {
             y: self.y(),
             z: None,
             m: None,
-            spatialReference: None,
+            spatial_reference: None,
         }
     }
 }
@@ -58,10 +58,10 @@ impl Into<EsriMultiPoint<2>> for &MultiPoint {
         let coords = self.coords_iter().map(Into::<EsriCoord<2>>::into).collect();
 
         EsriMultiPoint {
-            hasZ: None,
-            hasM: None,
+            has_z: None,
+            has_m: None,
             points: coords,
-            spatialReference: None,
+            spatial_reference: None,
         }
     }
 }
@@ -72,10 +72,10 @@ impl Into<EsriPolyline<2>> for &Line {
         let coords: Vec<EsriCoord<2>> = vec![self.start.into(), self.end.into()];
 
         EsriPolyline {
-            hasZ: None,
-            hasM: None,
+            has_z: None,
+            has_m: None,
             paths: vec![EsriLineString::<2>(coords)],
-            spatialReference: None,
+            spatial_reference: None,
         }
     }
 }
@@ -86,10 +86,10 @@ impl Into<EsriPolyline<2>> for &LineString {
         let line_string = Into::<EsriLineString<2>>::into(self);
 
         EsriPolyline {
-            hasZ: None,
-            hasM: None,
+            has_z: None,
+            has_m: None,
             paths: vec![line_string],
-            spatialReference: None,
+            spatial_reference: None,
         }
     }
 }
@@ -103,10 +103,10 @@ impl Into<EsriPolyline<2>> for &MultiLineString {
             .collect::<Vec<EsriLineString<2>>>();
 
         EsriPolyline {
-            hasZ: None,
-            hasM: None,
+            has_z: None,
+            has_m: None,
             paths: line_strings,
-            spatialReference: None,
+            spatial_reference: None,
         }
     }
 }
@@ -121,10 +121,10 @@ impl Into<EsriPolygon<2>> for &Polygon {
             .collect();
 
         EsriPolygon {
-            hasZ: None,
-            hasM: None,
+            has_z: None,
+            has_m: None,
             rings,
-            spatialReference: None,
+            spatial_reference: None,
         }
     }
 }
@@ -139,10 +139,10 @@ impl Into<EsriPolygon<2>> for &MultiPolygon {
             .collect();
 
         EsriPolygon {
-            hasZ: None,
-            hasM: None,
+            has_z: None,
+            has_m: None,
             rings,
-            spatialReference: None,
+            spatial_reference: None,
         }
     }
 }

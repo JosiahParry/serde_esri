@@ -1,7 +1,10 @@
 //! Streaming a main file from a buffered reader, with random access when it can seek.
 
 use crate::shape::{
-    file::RecordHeader, FileError, FileHeader, IndexRecord, Record, Shape, ShapeError, ShapeIndex,
+    error::{FileError, ShapeError},
+    file::{FileHeader, Record, RecordHeader},
+    index::{IndexRecord, ShapeIndex},
+    types::Shape,
 };
 use std::io::{BufRead, Read, Seek, SeekFrom};
 

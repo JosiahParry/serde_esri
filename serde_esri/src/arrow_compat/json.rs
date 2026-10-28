@@ -61,7 +61,7 @@ impl Builders {
             rows: 0,
         };
         for field in &header.fields {
-            let Some(column) = ColumnBuilder::new(&field.field_type, 0) else {
+            let Some(column) = ColumnBuilder::from_name(&field.field_type, 0) else {
                 continue;
             };
             if builders.lookup.contains_key(&field.name) {

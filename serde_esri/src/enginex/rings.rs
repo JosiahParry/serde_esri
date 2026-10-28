@@ -1,7 +1,10 @@
 //! Ring areas and the engine's OGC view of polygons, in which each exterior ring is followed
 //! by its holes and flagged with [`PathFlag::OgcStartPolygon`].
 
-use crate::enginex::{FillRule, MultiPath, PathFlag, PathFlags, Polygon};
+use crate::enginex::{
+    flags::{FillRule, PathFlag, PathFlags},
+    geometry::{MultiPath, Polygon},
+};
 use std::ops::Range;
 
 impl MultiPath {

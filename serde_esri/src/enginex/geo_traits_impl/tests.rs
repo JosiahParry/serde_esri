@@ -1,7 +1,13 @@
 use super::*;
 use crate::{
-    enginex::{Envelope2D, Interval, PathFlag},
-    shape::{self, MultiPart, Shape},
+    enginex::{
+        flags::PathFlag,
+        geometry::{Envelope2D, Interval},
+    },
+    shape::{
+        self,
+        types::{MultiPart, Shape},
+    },
 };
 use geo_traits::to_geo::{ToGeoGeometry, ToGeoMultiLineString, ToGeoMultiPolygon, ToGeoPoint};
 use geo_types::{coord, Coord, LineString, MultiLineString, MultiPolygon};
@@ -102,17 +108,17 @@ fn geometry_dispatches_by_kind() {
 
 /// A shapefile polygon read into the engine exposes the same rings, closed again.
 #[test]
-fn shapefile_polygon_round_trips_through_the_engine() -> Result<(), crate::enginex::FromShapeError> {
+fn shapefile_polygon_round_trips_through_the_engine() -> Result<(), crate::enginex::from_shape::FromShapeError> {
     let ring = [[0.0, 0.0], [0.0, 4.0], [4.0, 4.0], [4.0, 0.0], [0.0, 0.0]];
     let shape = Shape::Polygon(MultiPart {
-        bbox: shape::BoundingBox {
+        bbox: shape::types::BoundingBox {
             xmin: 0.0,
             ymin: 0.0,
             xmax: 4.0,
             ymax: 4.0,
         },
         parts: vec![0],
-        points: ring.iter().map(|&[x, y]| shape::Point { x, y }).collect(),
+        points: ring.iter().map(|&[x, y]| shape::types::Point { x, y }).collect(),
     });
     let geometry = Geometry::try_from(shape)?;
     assert_eq!(

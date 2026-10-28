@@ -5,9 +5,14 @@
 //! cargo run --example shp_corpus -- path/to/dir
 //! ```
 
-use serde_esri::enginex::{shape::EsriShapeBuffer, Geometry};
+use serde_esri::enginex::{geometry::Geometry, shape::writer::EsriShapeBuffer};
 use serde_esri::shape::{
-    FileError, FinishedShapes, Record, Shape, ShapeFile, ShapeIndex, ShapeReader, ShapeWriter,
+    error::{FileError, ShapeError},
+    file::{Record, ShapeFile},
+    index::ShapeIndex,
+    reader::ShapeReader,
+    types::Shape,
+    writer::{FinishedShapes, ShapeWriter},
 };
 use std::{
     io::Cursor,
@@ -101,9 +106,9 @@ fn check(path: &Path) -> String {
             unchanged += usize::from(Ok(bytes) == Vec::<u8>::try_from(&record.shape));
         }
         let buffer = EsriShapeBuffer::try_from(&geometry);
-        let read_back: Option<Option<Geometry>> = buffer
+        let read_back = buffer
             .ok()
-            .and_then(|buffer| buffer.as_shape().try_into().ok());
+            .and_then(|buffer| Option::<Geometry>::try_from(buffer.as_shape()).ok());
         engine_buffers += usize::from(format!("{read_back:?}") == format!("{:?}", Some(Some(geometry))));
     }
     line + &format!(
@@ -133,7 +138,7 @@ fn compare(original: &[u8], rewritten: &[u8]) -> String {
 fn random_access(
     shp: &[u8],
     records: &[Record],
-    index: Option<Result<ShapeIndex, serde_esri::shape::ShapeError>>,
+    index: Option<Result<ShapeIndex, ShapeError>>,
 ) -> String {
     let label = if index.is_some() { "shx" } else { "scan" };
     let reader = ShapeReader::new(Cursor::new(shp));

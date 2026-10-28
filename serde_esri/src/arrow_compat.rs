@@ -13,10 +13,13 @@
 //! comes from the spatial reference: WKIDs below 100000 as EPSG codes, others as ESRI codes.
 
 use crate::{
-    enginex::{Geometry, GeometryColumn, ToGeoArrowError},
-    features::{EsriValue, Feature, FeatureSet, Field},
+    enginex::{
+        geometry::Geometry,
+        to_geoarrow::{GeometryColumn, ToGeoArrowError},
+    },
+    features::{value::EsriValue, Feature, FeatureSet, Field},
     field_type::FieldType,
-    geometry::FromEsriError,
+    geometry::to_enginex::FromEsriError,
     spatial_reference::SpatialReference,
 };
 use arrow_array::{
@@ -32,28 +35,22 @@ use geoarrow_array::{
 use geoarrow_schema::{error::GeoArrowError, Crs, Metadata};
 use std::sync::Arc;
 
-mod columns;
+pub mod columns;
 mod geometry;
-mod json;
+pub mod json;
 mod temporal;
 
-pub use json::FeatureSetJson;
 use temporal::{DateOnly, TimeOnly, TimestampOffset};
 
 #[derive(Debug)]
 pub enum ToArrowError {
-    /// The field's type has no Arrow column.
     UnsupportedField { name: String, field_type: FieldType },
-    /// `geometryType` names no supported geometry type.
     UnsupportedGeometryType(String),
-    /// A feature's geometry differs from the feature set's `geometryType`.
     GeometryTypeMismatch,
     Geometry(FromEsriError),
     GeoArrow(ToGeoArrowError),
     Arrow(ArrowError),
-    /// The input is not valid FeatureSet JSON.
     Json(serde_json::Error),
-    /// The service returned an error object instead of a FeatureSet.
     Service {
         code: Option<i64>,
         message: String,
@@ -136,7 +133,7 @@ impl Field {
         let integers = values.clone().map(|v| v.and_then(EsriValue::as_i64));
         let floats = values.clone().map(|v| v.and_then(EsriValue::as_f64));
         let strings = values.map(|v| v.and_then(EsriValue::as_str));
-        let array: ArrayRef = match self.field_type {
+        Ok(Some(match self.field_type {
             FieldType::EsriFieldTypeSmallInteger => Arc::new(
                 integers
                     .map(|v| v.and_then(|v| i16::try_from(v).ok()))
@@ -186,8 +183,7 @@ impl Field {
                     field_type: self.field_type.clone(),
                 })
             }
-        };
-        Ok(Some(array))
+        }))
     }
 }
 
@@ -226,11 +222,7 @@ impl<const N: usize> FeatureSet<N> {
             (array.data_type().to_field("geometry", true), array.to_array_ref())
         }
 
-        let geometries = self
-            .features
-            .iter()
-            .map(|f| f.geometry.as_ref().map(Geometry::try_from).transpose())
-            .collect::<Result<Vec<_>, _>>()?;
+        let geometries = Vec::<Option<Geometry>>::try_from(self)?;
         Ok(match geometry_type {
             "esriGeometryPoint" => {
                 let points = typed(&geometries, |g| match g {
@@ -289,9 +281,9 @@ impl<const N: usize> TryFrom<&FeatureSet<N>> for RecordBatch {
             }
         }
 
-        if let Some(geometry_type) = &feature_set.geometryType {
+        if let Some(geometry_type) = &feature_set.geometry_type {
             let crs = feature_set
-                .spatialReference
+                .spatial_reference
                 .as_ref()
                 .map(Crs::from)
                 .unwrap_or_default();

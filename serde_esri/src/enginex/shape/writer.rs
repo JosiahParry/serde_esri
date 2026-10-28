@@ -6,9 +6,10 @@
 //! empty bounding boxes are `NaN`, and rings and closed paths gain their closing vertex.
 
 use crate::enginex::{
+    description::{Attribute, VertexDescription},
+    geometry::{Envelope, Geometry, MultiPath, Point, Polyline},
     shape::{EsriShape, ShapeError, ShapeType, HAS_IDS, HAS_MS, HAS_ZS},
-    Envelope, Geometry, MultiPath, Point, Polyline, Attribute, Vertex, VertexAttributes,
-    VertexDescription,
+    vertex::{Vertex, VertexAttributes},
 };
 
 /// An Esri shape buffer written from an engine geometry. The default is the null shape.
@@ -161,7 +162,7 @@ impl Writer {
             }
         }
 
-        let envelope: Envelope = path.vertices.iter().collect();
+        let envelope = path.vertices.iter().collect::<Envelope>();
         self.u32(kind.type_code(path.vertices.description()));
         self.bbox(&envelope);
         self.count(starts.len())?;
@@ -200,8 +201,8 @@ impl TryFrom<&Geometry> for EsriShapeBuffer {
                 }
             }
             Geometry::MultiPoint(mp) => {
-                let envelope: Envelope = mp.vertices.iter().collect();
-                let indexes: Vec<usize> = (0..mp.vertices.len()).collect();
+                let envelope = mp.vertices.iter().collect::<Envelope>();
+                let indexes = (0..mp.vertices.len()).collect::<Vec<_>>();
                 w.u32(Kind::MultiPoint.type_code(mp.vertices.description()));
                 w.bbox(&envelope);
                 w.count(indexes.len())?;

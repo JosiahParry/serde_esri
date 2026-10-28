@@ -6,8 +6,9 @@
 //! dimension and are not exposed.
 
 use crate::enginex::{
-    Envelope, Geometry, Line, MultiPath, MultiPoint, Point, Polygon, Polyline, Attribute, Vertex,
-    VertexAttributes, VertexDescription,
+    description::{Attribute, VertexDescription},
+    geometry::{Envelope, Geometry, Line, MultiPath, MultiPoint, Point, Polygon, Polyline},
+    vertex::{Vertex, VertexAttributes},
 };
 use geo_traits::{
     CoordTrait, Dimensions, GeometryTrait, GeometryType, LineStringTrait, LineTrait,
@@ -244,23 +245,23 @@ macro_rules! geometry_trait {
     (@pick Rect, Rect, $unimplemented:ty) => { Self };
     (@pick Line, Line, $unimplemented:ty) => { Self };
     (@pick $variant:ident, $slot:ident, $unimplemented:ty) => { $unimplemented };
-    ([$($generics:tt)*] $ty:ty, $variant:ident, $dim:expr) => {
+    ([$($generics:tt)*] $ty:ty, $variant:ident, |$this:ident| $dim:expr) => {
         impl<$($generics)*> ::geo_traits::GeometryTrait for $ty {
             type T = f64;
-            type PointType<'b> = $crate::enginex::geo_traits_impl::geometry_trait!(@pick $variant, Point, ::geo_traits::UnimplementedPoint<f64>) where Self: 'b;
-            type LineStringType<'b> = $crate::enginex::geo_traits_impl::geometry_trait!(@pick $variant, LineString, ::geo_traits::UnimplementedLineString<f64>) where Self: 'b;
-            type PolygonType<'b> = $crate::enginex::geo_traits_impl::geometry_trait!(@pick $variant, Polygon, ::geo_traits::UnimplementedPolygon<f64>) where Self: 'b;
-            type MultiPointType<'b> = $crate::enginex::geo_traits_impl::geometry_trait!(@pick $variant, MultiPoint, ::geo_traits::UnimplementedMultiPoint<f64>) where Self: 'b;
-            type MultiLineStringType<'b> = $crate::enginex::geo_traits_impl::geometry_trait!(@pick $variant, MultiLineString, ::geo_traits::UnimplementedMultiLineString<f64>) where Self: 'b;
-            type MultiPolygonType<'b> = $crate::enginex::geo_traits_impl::geometry_trait!(@pick $variant, MultiPolygon, ::geo_traits::UnimplementedMultiPolygon<f64>) where Self: 'b;
+            type PointType<'b> = geometry_trait!(@pick $variant, Point, ::geo_traits::UnimplementedPoint<f64>) where Self: 'b;
+            type LineStringType<'b> = geometry_trait!(@pick $variant, LineString, ::geo_traits::UnimplementedLineString<f64>) where Self: 'b;
+            type PolygonType<'b> = geometry_trait!(@pick $variant, Polygon, ::geo_traits::UnimplementedPolygon<f64>) where Self: 'b;
+            type MultiPointType<'b> = geometry_trait!(@pick $variant, MultiPoint, ::geo_traits::UnimplementedMultiPoint<f64>) where Self: 'b;
+            type MultiLineStringType<'b> = geometry_trait!(@pick $variant, MultiLineString, ::geo_traits::UnimplementedMultiLineString<f64>) where Self: 'b;
+            type MultiPolygonType<'b> = geometry_trait!(@pick $variant, MultiPolygon, ::geo_traits::UnimplementedMultiPolygon<f64>) where Self: 'b;
             type GeometryCollectionType<'b> = ::geo_traits::UnimplementedGeometryCollection<f64> where Self: 'b;
-            type RectType<'b> = $crate::enginex::geo_traits_impl::geometry_trait!(@pick $variant, Rect, ::geo_traits::UnimplementedRect<f64>) where Self: 'b;
+            type RectType<'b> = geometry_trait!(@pick $variant, Rect, ::geo_traits::UnimplementedRect<f64>) where Self: 'b;
             type TriangleType<'b> = ::geo_traits::UnimplementedTriangle<f64> where Self: 'b;
-            type LineType<'b> = $crate::enginex::geo_traits_impl::geometry_trait!(@pick $variant, Line, ::geo_traits::UnimplementedLine<f64>) where Self: 'b;
+            type LineType<'b> = geometry_trait!(@pick $variant, Line, ::geo_traits::UnimplementedLine<f64>) where Self: 'b;
 
             fn dim(&self) -> ::geo_traits::Dimensions {
-                let dim: fn(&Self) -> ::geo_traits::Dimensions = $dim;
-                dim(self)
+                let $this = self;
+                $dim
             }
 
             fn as_type(
@@ -284,7 +285,6 @@ macro_rules! geometry_trait {
     };
 }
 
-pub(crate) use geometry_trait;
 
 geometry_trait!([] PathView<'_>, LineString, |p| p.vertices.description().into());
 geometry_trait!([] PolygonView<'_>, Polygon, |p| p.rings.vertices.description().into());

@@ -1,22 +1,16 @@
 //! Errors from reading and writing shapes and shapefiles.
 
-use crate::shape::ShapeType;
+use crate::shape::types::ShapeType;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ShapeError {
-    /// The buffer ended before the shape was fully read.
     UnexpectedEof,
-    /// The main file header does not start with file code 9994.
     InvalidFileCode(i32),
     InvalidShapeType(i32),
     InvalidPartType(i32),
-    /// A count is negative or disagrees with the points, or a part index is out of order or range.
     Corrupted,
-    /// A non-null record's type differs from the file's shape type.
     MixedShapeTypes { expected: ShapeType, found: ShapeType },
-    /// A count or length does not fit the format's 32-bit integers.
     TooLarge,
-    /// The file has fewer records than the position sought.
     NoSuchRecord(usize),
 }
 
@@ -39,7 +33,7 @@ impl std::fmt::Display for ShapeError {
 
 impl std::error::Error for ShapeError {}
 
-/// Error from [`ShapeReader`](crate::shape::ShapeReader) or [`ShapeWriter`](crate::shape::ShapeWriter): I/O failed, or the shapes are invalid.
+/// Error from [`ShapeReader`](crate::shape::reader::ShapeReader) or [`ShapeWriter`](crate::shape::writer::ShapeWriter): I/O failed, or the shapes are invalid.
 #[derive(Debug)]
 pub enum FileError {
     Io(std::io::Error),

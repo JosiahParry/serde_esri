@@ -1,5 +1,8 @@
 use super::*;
-use crate::enginex::{Line, MultiPoint, Point, VertexAttributes};
+use crate::enginex::{
+    geometry::{Line, MultiPoint, Point},
+    vertex::VertexAttributes,
+};
 
 #[test]
 fn covers_every_attribute_and_skips_nan() {

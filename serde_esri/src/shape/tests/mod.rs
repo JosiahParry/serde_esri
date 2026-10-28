@@ -1,6 +1,9 @@
 //! Tests for [`crate::shape`], sharing buffer-building fixtures.
 
-use super::*;
+use crate::shape::{
+    error::ShapeError,
+    types::{BoundingBox, Point, Shape},
+};
 
 mod buffer;
 mod file;

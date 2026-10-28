@@ -1,6 +1,6 @@
 //! Shape types, geometries, and the [`Shape`] enum.
 
-use crate::shape::ShapeError;
+use crate::shape::error::ShapeError;
 
 /// Shape types. Discriminants match the specification.
 #[repr(i32)]

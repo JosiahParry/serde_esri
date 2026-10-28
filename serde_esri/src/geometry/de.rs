@@ -13,7 +13,7 @@ use serde::{de, Deserialize, Deserializer};
 
 /// Every key an Esri geometry object can hold.
 #[derive(Deserialize)]
-#[allow(non_snake_case)]
+#[serde(rename_all = "camelCase")]
 struct AnyGeometry<const N: usize> {
     x: Option<f64>,
     y: Option<f64>,
@@ -30,37 +30,37 @@ struct AnyGeometry<const N: usize> {
     zmax: Option<f64>,
     mmin: Option<f64>,
     mmax: Option<f64>,
-    hasZ: Option<bool>,
-    hasM: Option<bool>,
-    spatialReference: Option<SpatialReference>,
+    has_z: Option<bool>,
+    has_m: Option<bool>,
+    spatial_reference: Option<SpatialReference>,
 }
 
 impl<'de, const N: usize> Deserialize<'de> for EsriGeometry<N> {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let g = AnyGeometry::<N>::deserialize(deserializer)?;
-        let (has_z, has_m, spatial_reference) = (g.hasZ, g.hasM, g.spatialReference);
+        let (has_z, has_m, spatial_reference) = (g.has_z, g.has_m, g.spatial_reference);
         if let Some(rings) = g.rings {
             return Ok(EsriGeometry::Polygon(EsriPolygon {
-                hasZ: has_z,
-                hasM: has_m,
+                has_z,
+                has_m,
                 rings,
-                spatialReference: spatial_reference,
+                spatial_reference,
             }));
         }
         if let Some(paths) = g.paths {
             return Ok(EsriGeometry::Polyline(EsriPolyline {
-                hasZ: has_z,
-                hasM: has_m,
+                has_z,
+                has_m,
                 paths,
-                spatialReference: spatial_reference,
+                spatial_reference,
             }));
         }
         if let Some(points) = g.points {
             return Ok(EsriGeometry::MultiPoint(EsriMultiPoint {
-                hasZ: has_z,
-                hasM: has_m,
+                has_z,
+                has_m,
                 points,
-                spatialReference: spatial_reference,
+                spatial_reference,
             }));
         }
         if let (Some(xmin), Some(ymin), Some(xmax), Some(ymax)) = (g.xmin, g.ymin, g.xmax, g.ymax) {
@@ -73,7 +73,7 @@ impl<'de, const N: usize> Deserialize<'de> for EsriGeometry<N> {
                 zmax: g.zmax,
                 mmin: g.mmin,
                 mmax: g.mmax,
-                spatialReference: spatial_reference,
+                spatial_reference,
             }));
         }
         if let (Some(x), Some(y)) = (g.x, g.y) {
@@ -82,7 +82,7 @@ impl<'de, const N: usize> Deserialize<'de> for EsriGeometry<N> {
                 y,
                 z: g.z,
                 m: g.m,
-                spatialReference: spatial_reference,
+                spatial_reference,
             }));
         }
         Err(de::Error::custom(

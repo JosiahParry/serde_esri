@@ -1,4 +1,4 @@
-//! Converts engine geometries into [`crate::shape::Shape`] records the way the engine's shape
+//! Converts engine geometries into [`crate::shape::types::Shape`] records the way the engine's shape
 //! exporter (`OperatorExportToESRIShapeCursor`) writes them, using the 1998 shape types.
 //!
 //! Rings and closed paths regain their closing vertex, envelopes become one-ring polygons, lines
@@ -6,20 +6,23 @@
 //! alone the M types. Vertex IDs have no place in these types and are dropped.
 
 use crate::{
-    enginex::{Envelope, Geometry, MultiPath, Point, Polygon, Polyline, Vertex, VertexAttributes},
+    enginex::{
+        geometry::{Envelope, Geometry, MultiPath, Point, Polygon, Polyline},
+        vertex::{Vertex, VertexAttributes},
+    },
     shape::{
-        self, BoundingBox, Measures, MultiPart, MultiPartM, MultiPartZ, MultiPointM, MultiPointZ,
-        PointM, PointZ, Range, Shape, ZValues,
+        self,
+        types::{
+            BoundingBox, Measures, MultiPart, MultiPartM, MultiPartZ, MultiPointM, MultiPointZ,
+            PointM, PointZ, Range, Shape, ZValues,
+        },
     },
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ToShapeError {
-    /// Shapefiles have no curves; densify them into lines first.
     Curves,
-    /// Path offsets or attribute columns do not match the vertices.
     Corrupted,
-    /// A part index does not fit the format's 32-bit integers.
     TooLarge,
 }
 
@@ -44,7 +47,7 @@ enum PartsType {
 /// Vertices in shapefile order, with the envelope that bounds them.
 struct Columns {
     envelope: Envelope,
-    points: Vec<shape::Point>,
+    points: Vec<shape::types::Point>,
     z: Option<Vec<f64>>,
     m: Option<Vec<f64>>,
 }
@@ -69,7 +72,7 @@ impl Columns {
                 .iter()
                 .map(|&i| {
                     let &[x, y] = vertices.xy.get(i).ok_or(ToShapeError::Corrupted)?;
-                    Ok(shape::Point { x, y })
+                    Ok(shape::types::Point { x, y })
                 })
                 .collect::<Result<_, ToShapeError>>()?,
             z: column(&vertices.z)?,
@@ -166,11 +169,11 @@ impl Envelope {
             (xy.xmax, xy.ymax),
             (xy.xmax, xy.ymin),
         ];
-        let vertices: VertexAttributes = corners
+        let vertices = corners
             .into_iter()
             .enumerate()
             .map(|(i, (x, y))| {
-                let pick = |interval: crate::enginex::Interval<f64>| {
+                let pick = |interval: crate::enginex::geometry::Interval<f64>| {
                     if i % 2 == 0 {
                         interval.min
                     } else {
@@ -185,11 +188,11 @@ impl Envelope {
                     id: self.id.map(|id| if i % 2 == 0 { id.min } else { id.max }),
                 }
             })
-            .collect();
+            .collect::<VertexAttributes>();
         Polygon::from(MultiPath {
             vertices,
             path_offsets: vec![0, 4],
-            path_flags: vec![crate::enginex::PathFlag::Closed.into()],
+            path_flags: vec![crate::enginex::flags::PathFlag::Closed.into()],
             segments: None,
         })
     }
@@ -201,7 +204,7 @@ impl TryFrom<&Geometry> for Shape {
     fn try_from(geometry: &Geometry) -> Result<Self, Self::Error> {
         let data = |m: f64| (!m.is_nan()).then_some(m);
         match geometry {
-            Geometry::Point(Point(None)) => Ok(Shape::Point(shape::Point {
+            Geometry::Point(Point(None)) => Ok(Shape::Point(shape::types::Point {
                 x: f64::NAN,
                 y: f64::NAN,
             })),
@@ -217,14 +220,14 @@ impl TryFrom<&Geometry> for Shape {
                     y: v.y,
                     m: data(m),
                 }),
-                (None, None) => Shape::Point(shape::Point { x: v.x, y: v.y }),
+                (None, None) => Shape::Point(shape::types::Point { x: v.x, y: v.y }),
             }),
             Geometry::MultiPoint(mp) => {
-                let indexes: Vec<usize> = (0..mp.vertices.len()).collect();
+                let indexes = (0..mp.vertices.len()).collect::<Vec<_>>();
                 let mut columns = Columns::new(&mp.vertices, &indexes)?;
                 let has_m = columns.m.is_some();
                 let (bbox, z, m) = (columns.bbox(), columns.z_values(), columns.measures());
-                let xy = shape::MultiPoint {
+                let xy = shape::types::MultiPoint {
                     bbox,
                     points: columns.points,
                 };

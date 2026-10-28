@@ -111,8 +111,8 @@ FeatureSets are defined as
 pub struct FeatureSet<const N: usize> {
     // ... other optional fields 
     features: Vec<Feature<N>>,
-    geometryType: Option<String>,
-    spatialReference: Option<SpatialReference>,
+    geometry_type: Option<String>,
+    spatial_reference: Option<SpatialReference>,
 }
 ```
 

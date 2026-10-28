@@ -6,17 +6,19 @@
 
 use crate::{
     enginex::{
-        Envelope, Envelope2D, Geometry, Interval, MultiPath, MultiPoint, Point, Polygon, Polyline,
-        Vertex,
+        geometry::{
+            Envelope, Envelope2D, Geometry, Interval, MultiPath, MultiPoint, Point, Polygon,
+            Polyline,
+        },
+        vertex::Vertex,
     },
+    features::FeatureSet,
     geometry::{EsriCoord, EsriGeometry, EsriLineString},
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum FromEsriError {
-    /// `hasZ` and `hasM` call for a different number of ordinates than each coordinate holds.
     Dimensions { expected: usize, found: usize },
-    /// A path offset does not fit the engine's 32-bit integers.
     TooLarge,
 }
 
@@ -35,7 +37,7 @@ impl std::fmt::Display for FromEsriError {
 impl std::error::Error for FromEsriError {}
 
 /// Where Z and M sit in an Esri coordinate: after x and y, Z first when both are present.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(super) struct Layout {
     pub(super) z: Option<usize>,
     pub(super) m: Option<usize>,
@@ -112,7 +114,27 @@ impl<const N: usize> TryFrom<&EsriGeometry<N>> for Geometry {
     type Error = FromEsriError;
 
     fn try_from(geometry: &EsriGeometry<N>) -> Result<Self, Self::Error> {
-        Ok(match geometry {
+        geometry.to_engine(None, None)
+    }
+}
+
+/// Geometries without their own `hasZ` and `hasM` take the FeatureSet's.
+impl<const N: usize> TryFrom<&FeatureSet<N>> for Vec<Option<Geometry>> {
+    type Error = FromEsriError;
+
+    fn try_from(feature_set: &FeatureSet<N>) -> Result<Self, Self::Error> {
+        let (has_z, has_m) = (feature_set.has_z, feature_set.has_m);
+        feature_set
+            .features
+            .iter()
+            .map(|f| f.geometry.as_ref().map(|g| g.to_engine(has_z, has_m)).transpose())
+            .collect()
+    }
+}
+
+impl<const N: usize> EsriGeometry<N> {
+    fn to_engine(&self, has_z: Option<bool>, has_m: Option<bool>) -> Result<Geometry, FromEsriError> {
+        Ok(match self {
             EsriGeometry::Point(p) => {
                 let vertex = Vertex {
                     x: p.x,
@@ -124,17 +146,17 @@ impl<const N: usize> TryFrom<&EsriGeometry<N>> for Geometry {
                 Geometry::Point(Point((!p.x.is_nan()).then_some(vertex)))
             }
             EsriGeometry::MultiPoint(mp) => {
-                let layout = Layout::new::<N>(mp.hasZ, mp.hasM)?;
+                let layout = Layout::new::<N>(mp.has_z.or(has_z), mp.has_m.or(has_m))?;
                 Geometry::MultiPoint(MultiPoint {
                     vertices: mp.points.iter().map(|c| layout.vertex(c)).collect(),
                 })
             }
             EsriGeometry::Polyline(pl) => {
-                let layout = Layout::new::<N>(pl.hasZ, pl.hasM)?;
+                let layout = Layout::new::<N>(pl.has_z.or(has_z), pl.has_m.or(has_m))?;
                 Geometry::Polyline(Polyline(MultiPath::from_esri(&pl.paths, layout, PathType::Polyline)?))
             }
             EsriGeometry::Polygon(pg) => {
-                let layout = Layout::new::<N>(pg.hasZ, pg.hasM)?;
+                let layout = Layout::new::<N>(pg.has_z.or(has_z), pg.has_m.or(has_m))?;
                 let rings = MultiPath::from_esri(&pg.rings, layout, PathType::Polygon)?;
                 Geometry::Polygon(Polygon::from(rings))
             }

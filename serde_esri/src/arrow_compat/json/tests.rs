@@ -8,7 +8,7 @@ fn stream(json: &str) -> Result<RecordBatch, ToArrowError> {
 
 /// Streaming the JSON matches parsing a `FeatureSet` and converting it through the engine.
 fn agree<const N: usize>(json: &str) -> Result<(), String> {
-    let feature_set: FeatureSet<N> = serde_json::from_str(json).map_err(|e| e.to_string())?;
+    let feature_set = serde_json::from_str::<FeatureSet<N>>(json).map_err(|e| e.to_string())?;
     let expected = RecordBatch::try_from(&feature_set).map_err(|e| e.to_string())?;
     let streamed = stream(json).map_err(|e| e.to_string())?;
     assert_eq!(streamed, expected, "{json}");
@@ -106,7 +106,7 @@ fn values_that_do_not_fit_become_null() -> Result<(), String> {
     let column = |i: usize| batch.column(i).clone();
     let small = column(0);
     let small = small.as_any().downcast_ref::<Int16Array>().ok_or("SMALL is not Int16")?;
-    let small: Vec<_> = small.iter().collect();
+    let small = small.iter().collect::<Vec<_>>();
     assert_eq!(small, vec![None, Some(12), Some(3), None]);
 
     let big = column(1);

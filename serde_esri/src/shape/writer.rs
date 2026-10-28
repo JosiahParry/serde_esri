@@ -1,8 +1,10 @@
 //! Streaming a main file to a seekable writer, building its index.
 
 use crate::shape::{
-    BoundingBox, FileError, FileHeader, IndexRecord, Measures, Range, Shape, ShapeError, ShapeIndex,
-    ShapeType,
+    error::{FileError, ShapeError},
+    file::FileHeader,
+    index::{IndexRecord, ShapeIndex},
+    types::{BoundingBox, Measures, Range, Shape, ShapeType},
 };
 use std::io::{Seek, SeekFrom, Write};
 

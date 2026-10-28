@@ -1,5 +1,5 @@
 use super::*;
-use crate::enginex::Geometry;
+use crate::enginex::geometry::Geometry;
 use geo_traits::{to_geo::ToGeoMultiPolygon, CoordTrait};
 
 fn parse<const N: usize>(json: &str) -> Result<EsriGeometry<N>, String> {
