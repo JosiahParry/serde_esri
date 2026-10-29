@@ -7,7 +7,9 @@ use crate::enginex::{
 
 #[test]
 fn vertex_description_bits_match_java() {
-    let d = [Attribute::Z, Attribute::Id].into_iter().collect::<VertexDescription>();
+    let d = [Attribute::Z, Attribute::Id]
+        .into_iter()
+        .collect::<VertexDescription>();
     assert_eq!(u16::from(d), 0b1011);
     assert!(d.has(Attribute::Position));
     assert!(!d.has(Attribute::M));

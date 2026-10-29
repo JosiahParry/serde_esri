@@ -8,9 +8,10 @@
 use crate::{
     arrow_compat::{
         columns::{AttributesSeed, ColumnBuilder, RawField},
-        geometry::{GeometryBuilder, GeometrySeed, GeometryType},
+        geometry::{GeometryBuilder, GeometrySeed},
         ToArrowError,
     },
+    enginex::flags::GeometryType,
     spatial_reference::SpatialReference,
 };
 use arrow_array::{RecordBatch, RecordBatchOptions};
@@ -67,7 +68,9 @@ impl Builders {
             if builders.lookup.contains_key(&field.name) {
                 continue;
             }
-            builders.lookup.insert(field.name.clone(), builders.columns.len());
+            builders
+                .lookup
+                .insert(field.name.clone(), builders.columns.len());
             builders.names.push(field.name.clone());
             builders.columns.push(column);
         }
@@ -78,7 +81,9 @@ impl Builders {
                 (false, true) => Dimension::XYM,
                 (true, true) => Dimension::XYZM,
             };
-            let geometry_type = GeometryType::try_from(geometry_type.as_str())?;
+            let geometry_type = geometry_type
+                .parse::<GeometryType>()
+                .map_err(ToArrowError::UnsupportedGeometryType)?;
             builders.geometry = Some(GeometryBuilder::new(geometry_type, dim, 0));
         }
         Ok(builders)
@@ -266,7 +271,9 @@ impl<'de> Visitor<'de> for &mut Pass<'_> {
         let reads_header = self.known.is_none();
         while let Some(key) = map.next_key::<TopKey>()? {
             match key {
-                TopKey::GeometryType if reads_header => self.header.geometry_type = map.next_value()?,
+                TopKey::GeometryType if reads_header => {
+                    self.header.geometry_type = map.next_value()?
+                }
                 TopKey::HasZ if reads_header => self.header.has_z = map.next_value()?,
                 TopKey::HasM if reads_header => self.header.has_m = map.next_value()?,
                 TopKey::Fields if reads_header => {
@@ -347,7 +354,10 @@ impl TryFrom<FeatureSetJson<'_>> for RecordBatch {
             arrays.push(array);
         }
         if let Some(geometry) = builders.geometry {
-            let crs = spatial_reference.as_ref().map(Crs::from).unwrap_or_default();
+            let crs = spatial_reference
+                .as_ref()
+                .map(Crs::from)
+                .unwrap_or_default();
             let (field, array) = geometry.finish(Arc::new(Metadata::new(crs, None)))?;
             fields.push(field);
             arrays.push(array);

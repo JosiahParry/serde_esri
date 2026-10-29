@@ -155,7 +155,10 @@ fn poly_line_m_and_z_keep_their_type() {
         .i32(2)
         .i32(0)
         .f64s(&[0.0, 0.0, 1.0, 1.0]);
-    assert_eq!(line_m.shape().map(|s| s.shape_type()), Ok(ShapeType::PolyLineM));
+    assert_eq!(
+        line_m.shape().map(|s| s.shape_type()),
+        Ok(ShapeType::PolyLineM)
+    );
 
     let polygon_z = Buf::default()
         .i32(15)
@@ -190,7 +193,10 @@ fn multi_patch() -> Result<(), ShapeError> {
         panic!("expected MultiPatch, got {shape:?}");
     };
     assert_eq!(patch.parts, vec![0, 3]);
-    assert_eq!(patch.part_types, vec![PartType::TriangleStrip, PartType::Ring]);
+    assert_eq!(
+        patch.part_types,
+        vec![PartType::TriangleStrip, PartType::Ring]
+    );
     assert_eq!(patch.z.values.len(), 6);
     assert_eq!(patch.m, None);
     Ok(())
@@ -300,7 +306,10 @@ fn errors() {
         },
         m: None,
     });
-    assert_eq!(Vec::<u8>::try_from(&mismatched_z), Err(ShapeError::Corrupted));
+    assert_eq!(
+        Vec::<u8>::try_from(&mismatched_z),
+        Err(ShapeError::Corrupted)
+    );
     assert_eq!(
         Buf::default().i32(2).shape(),
         Err(ShapeError::InvalidShapeType(2))

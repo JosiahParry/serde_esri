@@ -17,7 +17,6 @@ use crate::enginex::{
 
 pub mod writer;
 
-
 const HAS_ZS: u32 = 0x8000_0000;
 const HAS_MS: u32 = 0x4000_0000;
 const HAS_CURVES: u32 = 0x2000_0000;

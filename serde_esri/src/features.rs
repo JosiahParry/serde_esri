@@ -11,8 +11,8 @@ use crate::{
     field_type::FieldType, geometry::EsriGeometry, spatial_reference::SpatialReference,
     sqltype::SqlType,
 };
-use serde::{Deserialize, Serialize};
 use indexmap::IndexMap;
+use serde::{Deserialize, Serialize};
 
 pub mod value;
 

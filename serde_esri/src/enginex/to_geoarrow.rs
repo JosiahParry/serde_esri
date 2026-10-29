@@ -22,8 +22,8 @@ use geoarrow_array::{
     capacity::{MultiLineStringCapacity, MultiPointCapacity, MultiPolygonCapacity},
 };
 use geoarrow_schema::{
-    error::GeoArrowError, CoordType, Dimension, GeometryType, MultiLineStringType,
-    MultiPointType, MultiPolygonType, PointType,
+    error::GeoArrowError, CoordType, Dimension, GeometryType, MultiLineStringType, MultiPointType,
+    MultiPolygonType, PointType,
 };
 
 /// Engine geometries of one kind, with `None` for nulls, to convert into a GeoArrow array.
@@ -164,7 +164,9 @@ impl TryFrom<GeometryColumn<'_, Envelope>> for RectArray {
         let mut upper = vec![Vec::with_capacity(column.0.len()); size];
         for envelope in column.0 {
             let envelope = envelope.unwrap_or_default();
-            let xy = envelope.xy.map_or([f64::NAN; 4], |e| [e.xmin, e.ymin, e.xmax, e.ymax]);
+            let xy = envelope
+                .xy
+                .map_or([f64::NAN; 4], |e| [e.xmin, e.ymin, e.xmax, e.ymax]);
             let range = |i: Option<Interval<f64>>| i.map_or([f64::NAN; 2], |i| [i.min, i.max]);
             let [zmin, zmax] = range(envelope.z);
             let [mmin, mmax] = range(envelope.m);
@@ -172,7 +174,10 @@ impl TryFrom<GeometryColumn<'_, Envelope>> for RectArray {
                 Dimension::XY => (vec![xy[0], xy[1]], vec![xy[2], xy[3]]),
                 Dimension::XYZ => (vec![xy[0], xy[1], zmin], vec![xy[2], xy[3], zmax]),
                 Dimension::XYM => (vec![xy[0], xy[1], mmin], vec![xy[2], xy[3], mmax]),
-                Dimension::XYZM => (vec![xy[0], xy[1], zmin, mmin], vec![xy[2], xy[3], zmax, mmax]),
+                Dimension::XYZM => (
+                    vec![xy[0], xy[1], zmin, mmin],
+                    vec![xy[2], xy[3], zmax, mmax],
+                ),
             };
             for (buffer, value) in lower.iter_mut().zip(mins) {
                 buffer.push(value);
@@ -182,7 +187,10 @@ impl TryFrom<GeometryColumn<'_, Envelope>> for RectArray {
             }
         }
         let buffers = |values: Vec<Vec<f64>>| {
-            SeparatedCoordBuffer::from_vec(values.into_iter().map(ScalarBuffer::from).collect(), dim)
+            SeparatedCoordBuffer::from_vec(
+                values.into_iter().map(ScalarBuffer::from).collect(),
+                dim,
+            )
         };
         Ok(RectArray::new(
             buffers(lower)?,
@@ -220,7 +228,10 @@ impl TryFrom<GeometryColumn<'_, Geometry>> for GeometryArray {
     type Error = ToGeoArrowError;
 
     fn try_from(column: GeometryColumn<'_, Geometry>) -> Result<Self, Self::Error> {
-        let builder = GeometryBuilder::from_nullable_geometries(column.0, GeometryType::new(Default::default()))?;
+        let builder = GeometryBuilder::from_nullable_geometries(
+            column.0,
+            GeometryType::new(Default::default()),
+        )?;
         Ok(builder.finish())
     }
 }

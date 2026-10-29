@@ -318,17 +318,7 @@ pub mod feature_collection_p_buffer {
         }
     }
     /// GeometryType
-    #[derive(
-        Clone,
-        Copy,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-        PartialOrd,
-        Ord,
-        ::prost::Enumeration
-    )]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
     #[repr(i32)]
     pub enum GeometryType {
         EsriGeometryTypePoint = 0,
@@ -370,17 +360,7 @@ pub mod feature_collection_p_buffer {
         }
     }
     /// FieldType
-    #[derive(
-        Clone,
-        Copy,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-        PartialOrd,
-        Ord,
-        ::prost::Enumeration
-    )]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
     #[repr(i32)]
     pub enum FieldType {
         EsriFieldTypeSmallInteger = 0,
@@ -446,25 +426,13 @@ pub mod feature_collection_p_buffer {
                 "esriFieldTypeBigInteger" => Some(Self::EsriFieldTypeBigInteger),
                 "esriFieldTypeDateOnly" => Some(Self::EsriFieldTypeDateOnly),
                 "esriFieldTypeTimeOnly" => Some(Self::EsriFieldTypeTimeOnly),
-                "esriFieldTypeTimestampOffset" => {
-                    Some(Self::EsriFieldTypeTimestampOffset)
-                }
+                "esriFieldTypeTimestampOffset" => Some(Self::EsriFieldTypeTimestampOffset),
                 _ => None,
             }
         }
     }
     /// FieldType
-    #[derive(
-        Clone,
-        Copy,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-        PartialOrd,
-        Ord,
-        ::prost::Enumeration
-    )]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
     #[repr(i32)]
     pub enum SqlType {
         BigInt = 0,
@@ -565,17 +533,7 @@ pub mod feature_collection_p_buffer {
             }
         }
     }
-    #[derive(
-        Clone,
-        Copy,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-        PartialOrd,
-        Ord,
-        ::prost::Enumeration
-    )]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
     #[repr(i32)]
     pub enum QuantizeOriginPostion {
         UpperLeft = 0,
@@ -602,17 +560,7 @@ pub mod feature_collection_p_buffer {
         }
     }
     /// SegmentType
-    #[derive(
-        Clone,
-        Copy,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-        PartialOrd,
-        Ord,
-        ::prost::Enumeration
-    )]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
     #[repr(i32)]
     pub enum SegmentType {
         Line = 0,

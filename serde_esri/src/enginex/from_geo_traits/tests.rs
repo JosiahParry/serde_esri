@@ -18,8 +18,14 @@ fn rings_are_reoriented_and_opened_like_the_engine() -> Result<(), FromGeoTraits
     };
     let rings = &converted.rings;
     // Reversed keeping the first vertex, as reversePath does for closed paths.
-    assert_eq!(xy(rings, 0), vec![[0.0, 0.0], [0.0, 4.0], [4.0, 4.0], [4.0, 0.0]]);
-    assert_eq!(xy(rings, 1), vec![[1.0, 1.0], [2.0, 1.0], [2.0, 2.0], [1.0, 2.0]]);
+    assert_eq!(
+        xy(rings, 0),
+        vec![[0.0, 0.0], [0.0, 4.0], [4.0, 4.0], [4.0, 0.0]]
+    );
+    assert_eq!(
+        xy(rings, 1),
+        vec![[1.0, 1.0], [2.0, 1.0], [2.0, 2.0], [1.0, 2.0]]
+    );
     assert!(rings.ring_area(0).is_some_and(|a| a > 0.0));
     assert!(rings.ring_area(1).is_some_and(|a| a < 0.0));
     assert_eq!(converted.ogc_polygons().collect::<Vec<_>>(), vec![0..2]);
@@ -28,14 +34,15 @@ fn rings_are_reoriented_and_opened_like_the_engine() -> Result<(), FromGeoTraits
 
 #[test]
 fn multi_polygons_start_an_ogc_polygon_per_exterior() -> Result<(), FromGeoTraitsError> {
-    let square = |x0: f64| {
-        polygon![(x: x0, y: 0.0), (x: x0, y: 1.0), (x: x0 + 1.0, y: 1.0), (x: x0 + 1.0, y: 0.0)]
-    };
+    let square = |x0: f64| polygon![(x: x0, y: 0.0), (x: x0, y: 1.0), (x: x0 + 1.0, y: 1.0), (x: x0 + 1.0, y: 0.0)];
     let multi_polygon = MultiPolygon::new(vec![square(0.0), square(5.0)]);
     let Geometry::Polygon(converted) = Geometry::from_geo_traits(&multi_polygon)? else {
         panic!("expected a polygon");
     };
-    assert_eq!(converted.ogc_polygons().collect::<Vec<_>>(), vec![0..1, 1..2]);
+    assert_eq!(
+        converted.ogc_polygons().collect::<Vec<_>>(),
+        vec![0..1, 1..2]
+    );
     Ok(())
 }
 

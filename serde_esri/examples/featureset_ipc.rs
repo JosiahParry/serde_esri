@@ -15,7 +15,8 @@ mod common;
 fn main() -> Result<(), String> {
     let mut args = std::env::args().skip(1);
     let mut number = |default: usize| -> Result<usize, String> {
-        args.next().map_or(Ok(default), |a| a.parse().map_err(|e| format!("{e}")))
+        args.next()
+            .map_or(Ok(default), |a| a.parse().map_err(|e| format!("{e}")))
     };
     let (features, vertices) = (number(50_000)?, number(64)?);
     let dir = PathBuf::from(std::env::args().nth(3).unwrap_or_else(|| ".".into()));
@@ -27,7 +28,9 @@ fn main() -> Result<(), String> {
     let mut batch = None;
     for _ in 0..5 {
         let start = Instant::now();
-        batch = Some(RecordBatch::try_from(FeatureSetJson(json.as_bytes())).map_err(|e| e.to_string())?);
+        batch = Some(
+            RecordBatch::try_from(FeatureSetJson(json.as_bytes())).map_err(|e| e.to_string())?,
+        );
         times.push(start.elapsed().as_secs_f64());
     }
     times.sort_by(f64::total_cmp);

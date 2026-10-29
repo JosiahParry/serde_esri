@@ -28,8 +28,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         let name = path.rsplit('/').next().unwrap_or_default().to_string();
         let geometries = match ShapeFile::try_from(bytes.as_slice())
             .map_err(|e| e.to_string())
-            .and_then(|file| file.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string()))
-        {
+            .and_then(|file| {
+                file.collect::<Result<Vec<_>, _>>()
+                    .map_err(|e| e.to_string())
+            }) {
             Ok(records) => records
                 .into_iter()
                 .map(|record| Geometry::try_from(record.shape).ok())
@@ -70,7 +72,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         for (i, polygon) in polygons.iter().enumerate() {
             if let Some(polygon) = polygon {
                 let value = native.value(i)?.to_multi_polygon();
-                mismatches += usize::from(format!("{value:?}") != format!("{:?}", polygon.to_multi_polygon()));
+                mismatches += usize::from(
+                    format!("{value:?}") != format!("{:?}", polygon.to_multi_polygon()),
+                );
             }
         }
         let polylines = geometries

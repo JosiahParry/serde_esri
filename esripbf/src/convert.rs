@@ -6,7 +6,6 @@ mod feature_set;
 pub mod geometry;
 mod scalars;
 
-
 #[cfg(test)]
 mod tests;
 
@@ -42,3 +41,20 @@ impl std::fmt::Display for FromPbfError {
 }
 
 impl std::error::Error for FromPbfError {}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum ToPbfError {
+    UnsupportedGeometry(&'static str),
+}
+
+impl std::fmt::Display for ToPbfError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ToPbfError::UnsupportedGeometry(name) => {
+                write!(f, "{name} geometries can't be encoded as esriPBF")
+            }
+        }
+    }
+}
+
+impl std::error::Error for ToPbfError {}

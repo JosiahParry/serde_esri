@@ -2,6 +2,11 @@
 //!
 //! Values that do not fit their column, such as text in an integer field, become nulls.
 
+use crate::{
+    arrow_compat::temporal::{DateOnly, TimeOnly, TimestampOffset},
+    features::value::EsriValue,
+    field_type::FieldType,
+};
 use arrow_array::{
     builder::{
         ArrayBuilder, Date32Builder, Float32Builder, Float64Builder, Int16Builder, Int32Builder,
@@ -9,11 +14,6 @@ use arrow_array::{
         TimestampMillisecondBuilder,
     },
     ArrayRef,
-};
-use crate::{
-    arrow_compat::temporal::{DateOnly, TimeOnly, TimestampOffset},
-    features::value::EsriValue,
-    field_type::FieldType,
 };
 use serde::{
     de::{self, DeserializeSeed, Deserializer, IgnoredAny, MapAccess, SeqAccess, Visitor},
@@ -53,20 +53,28 @@ impl ColumnBuilder {
     /// Unrecognized type names are text.
     pub(super) fn from_name(field_type: &str, capacity: usize) -> Option<Self> {
         Some(match field_type {
-            "esriFieldTypeSmallInteger" => ColumnBuilder::Int16(Int16Builder::with_capacity(capacity)),
+            "esriFieldTypeSmallInteger" => {
+                ColumnBuilder::Int16(Int16Builder::with_capacity(capacity))
+            }
             "esriFieldTypeInteger" => ColumnBuilder::Int32(Int32Builder::with_capacity(capacity)),
             "esriFieldTypeOID" | "esriFieldTypeBigInteger" => {
                 ColumnBuilder::Int64(Int64Builder::with_capacity(capacity))
             }
-            "esriFieldTypeSingle" => ColumnBuilder::Float32(Float32Builder::with_capacity(capacity)),
-            "esriFieldTypeDouble" => ColumnBuilder::Float64(Float64Builder::with_capacity(capacity)),
+            "esriFieldTypeSingle" => {
+                ColumnBuilder::Float32(Float32Builder::with_capacity(capacity))
+            }
+            "esriFieldTypeDouble" => {
+                ColumnBuilder::Float64(Float64Builder::with_capacity(capacity))
+            }
             "esriFieldTypeDate" => {
                 ColumnBuilder::Timestamp(TimestampMillisecondBuilder::with_capacity(capacity))
             }
             "esriFieldTypeTimestampOffset" => {
                 ColumnBuilder::TimestampOffset(TimestampMillisecondBuilder::with_capacity(capacity))
             }
-            "esriFieldTypeDateOnly" => ColumnBuilder::Date32(Date32Builder::with_capacity(capacity)),
+            "esriFieldTypeDateOnly" => {
+                ColumnBuilder::Date32(Date32Builder::with_capacity(capacity))
+            }
             "esriFieldTypeTimeOnly" => {
                 ColumnBuilder::Time32(Time32MillisecondBuilder::with_capacity(capacity))
             }

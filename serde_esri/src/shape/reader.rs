@@ -107,7 +107,11 @@ impl<R: BufRead + Seek> ShapeReader<R> {
             });
         }
 
-        let start = self.index.get(n).ok_or(ShapeError::NoSuchRecord(n))?.start()?;
+        let start = self
+            .index
+            .get(n)
+            .ok_or(ShapeError::NoSuchRecord(n))?
+            .start()?;
         self.reader.seek(SeekFrom::Start(start))?;
         self.next_record = n;
         self.position = start;

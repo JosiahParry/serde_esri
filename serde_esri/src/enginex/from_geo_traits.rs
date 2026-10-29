@@ -73,7 +73,11 @@ struct Paths {
 }
 
 impl Paths {
-    fn push_path(&mut self, vertices: impl Iterator<Item = Vertex>, flags: PathFlags) -> Result<(), FromGeoTraitsError> {
+    fn push_path(
+        &mut self,
+        vertices: impl Iterator<Item = Vertex>,
+        flags: PathFlags,
+    ) -> Result<(), FromGeoTraitsError> {
         if self.path_offsets.is_empty() {
             self.path_offsets.push(0);
         }
@@ -85,8 +89,15 @@ impl Paths {
     }
 
     /// Adds a ring without the closing vertex that repeats its first.
-    fn push_ring(&mut self, ring: &impl LineStringTrait<T = f64>, role: RingRole) -> Result<(), FromGeoTraitsError> {
-        let mut vertices = ring.coords().map(|c| Vertex::from_coord(&c)).collect::<Vec<_>>();
+    fn push_ring(
+        &mut self,
+        ring: &impl LineStringTrait<T = f64>,
+        role: RingRole,
+    ) -> Result<(), FromGeoTraitsError> {
+        let mut vertices = ring
+            .coords()
+            .map(|c| Vertex::from_coord(&c))
+            .collect::<Vec<_>>();
         let same = |a: f64, b: f64| a == b || (a.is_nan() && b.is_nan());
         let same_option = |a: Option<f64>, b: Option<f64>| match (a, b) {
             (Some(a), Some(b)) => same(a, b),
@@ -109,7 +120,10 @@ impl Paths {
         self.push_path(vertices.into_iter(), flags)
     }
 
-    fn push_polygon(&mut self, polygon: &impl PolygonTrait<T = f64>) -> Result<(), FromGeoTraitsError> {
+    fn push_polygon(
+        &mut self,
+        polygon: &impl PolygonTrait<T = f64>,
+    ) -> Result<(), FromGeoTraitsError> {
         if let Some(exterior) = polygon.exterior() {
             self.push_ring(&exterior, RingRole::Exterior)?;
         }
@@ -139,7 +153,9 @@ impl Paths {
         for (i, role) in roles.into_iter().enumerate() {
             let area = rings.ring_area(i).unwrap_or(0.0);
             let is_clockwise = area > 0.0;
-            if (role == RingRole::Exterior && area < 0.0) || (role == RingRole::Hole && is_clockwise) {
+            if (role == RingRole::Exterior && area < 0.0)
+                || (role == RingRole::Hole && is_clockwise)
+            {
                 rings.reverse_path(i);
             }
         }
@@ -152,11 +168,15 @@ impl Paths {
 
 impl Geometry {
     /// Builds an engine geometry from any geo-traits geometry with `f64` coordinates.
-    pub fn from_geo_traits(geometry: &impl GeometryTrait<T = f64>) -> Result<Self, FromGeoTraitsError> {
+    pub fn from_geo_traits(
+        geometry: &impl GeometryTrait<T = f64>,
+    ) -> Result<Self, FromGeoTraitsError> {
         let mut paths = Paths::default();
         let open = PathFlags::default();
         Ok(match geometry.as_type() {
-            GeometryType::Point(p) => Geometry::Point(Point(p.coord().map(|c| Vertex::from_coord(&c)))),
+            GeometryType::Point(p) => {
+                Geometry::Point(Point(p.coord().map(|c| Vertex::from_coord(&c))))
+            }
             GeometryType::Line(l) => Geometry::Line(Line {
                 start: Vertex::from_coord(&l.start()),
                 end: Vertex::from_coord(&l.end()),
@@ -212,7 +232,9 @@ impl Geometry {
                     id: None,
                 })
             }
-            GeometryType::GeometryCollection(_) => return Err(FromGeoTraitsError::GeometryCollection),
+            GeometryType::GeometryCollection(_) => {
+                return Err(FromGeoTraitsError::GeometryCollection)
+            }
         })
     }
 }

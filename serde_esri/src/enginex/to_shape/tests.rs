@@ -5,7 +5,9 @@ use crate::enginex::{
 };
 
 fn points(xy: &[[f64; 2]]) -> Vec<shape::types::Point> {
-    xy.iter().map(|&[x, y]| shape::types::Point { x, y }).collect()
+    xy.iter()
+        .map(|&[x, y]| shape::types::Point { x, y })
+        .collect()
 }
 
 /// Figure 2 of the specification, with Z and M, survives the engine unchanged.
@@ -24,7 +26,18 @@ fn polygon_z_round_trips() -> Result<(), String> {
         [5.0, 7.0],
     ];
     let z = [1.0, 2.0, 3.0, 4.0, 1.0, 5.0, 6.0, 7.0, 8.0, 5.0];
-    let m = [None, Some(2.0), Some(3.0), None, None, Some(9.0), None, None, None, Some(9.0)];
+    let m = [
+        None,
+        Some(2.0),
+        Some(3.0),
+        None,
+        None,
+        Some(9.0),
+        None,
+        None,
+        None,
+        Some(9.0),
+    ];
     let original = Shape::PolygonZ(MultiPartZ {
         xy: MultiPart {
             bbox: Envelope2D {
@@ -49,7 +62,10 @@ fn polygon_z_round_trips() -> Result<(), String> {
         }),
     });
     let geometry = Geometry::try_from(original.clone()).map_err(|e| e.to_string())?;
-    assert_eq!(Shape::try_from(&geometry).map_err(|e| e.to_string())?, original);
+    assert_eq!(
+        Shape::try_from(&geometry).map_err(|e| e.to_string())?,
+        original
+    );
     Ok(())
 }
 
@@ -71,7 +87,14 @@ fn polylines_close_only_closed_paths() -> Result<(), ToShapeError> {
     assert_eq!(line.parts, vec![0, 4]);
     assert_eq!(
         line.points,
-        points(&[[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 0.0], [5.0, 5.0], [6.0, 6.0]])
+        points(&[
+            [0.0, 0.0],
+            [1.0, 0.0],
+            [1.0, 1.0],
+            [0.0, 0.0],
+            [5.0, 5.0],
+            [6.0, 6.0]
+        ])
     );
     Ok(())
 }

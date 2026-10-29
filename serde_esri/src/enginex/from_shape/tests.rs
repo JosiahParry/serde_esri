@@ -11,7 +11,10 @@ fn multi_part(parts: Vec<i32>, xy: &[[f64; 2]]) -> MultiPart {
             ymax: 10.0,
         },
         parts,
-        points: xy.iter().map(|&[x, y]| shape::types::Point { x, y }).collect(),
+        points: xy
+            .iter()
+            .map(|&[x, y]| shape::types::Point { x, y })
+            .collect(),
     }
 }
 
@@ -42,7 +45,18 @@ fn polygon_z_drops_closing_vertices() -> Result<(), FromShapeError> {
                 min: Some(1.0),
                 max: Some(1.0),
             },
-            values: vec![Some(1.0), None, None, None, None, None, None, None, None, None],
+            values: vec![
+                Some(1.0),
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            ],
         }),
     });
 

@@ -4,9 +4,8 @@ use crate::enginex::geometry::{Envelope2D, Interval};
 use crate::shape::{
     error::ShapeError,
     types::{
-        Measures, MultiPart, MultiPartM, MultiPartZ, MultiPatch, MultiPoint,
-        MultiPointM, MultiPointZ, PartType, Point, PointM, PointZ, Shape, ShapeType,
-        ZValues,
+        Measures, MultiPart, MultiPartM, MultiPartZ, MultiPatch, MultiPoint, MultiPointM,
+        MultiPointZ, PartType, Point, PointM, PointZ, Shape, ShapeType, ZValues,
     },
 };
 

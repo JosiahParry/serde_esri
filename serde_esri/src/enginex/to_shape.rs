@@ -13,8 +13,8 @@ use crate::{
     shape::{
         self,
         types::{
-            Measures, MultiPart, MultiPartM, MultiPartZ, MultiPointM, MultiPointZ,
-            PointM, PointZ, Shape, ZValues,
+            Measures, MultiPart, MultiPartM, MultiPartZ, MultiPointM, MultiPointZ, PointM, PointZ,
+            Shape, ZValues,
         },
     },
 };
@@ -244,7 +244,9 @@ impl TryFrom<&Geometry> for Shape {
             }
             Geometry::Polyline(Polyline(path)) => path.to_shape(PartsType::PolyLine),
             Geometry::Polygon(polygon) => polygon.rings.to_shape(PartsType::Polygon),
-            Geometry::Envelope(envelope) => envelope.to_polygon().rings.to_shape(PartsType::Polygon),
+            Geometry::Envelope(envelope) => {
+                envelope.to_polygon().rings.to_shape(PartsType::Polygon)
+            }
         }
     }
 }

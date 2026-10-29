@@ -104,17 +104,19 @@ impl Iterator for ShapeFile<'_> {
             return None;
         }
         let mut r = Reader(self.records);
-        let record = r.take::<8>().and_then(RecordHeader::try_from).and_then(|header| {
-            let (contents, rest) = r
-                .0
-                .split_at_checked(header.content_len)
-                .ok_or(ShapeError::UnexpectedEof)?;
-            r.0 = rest;
-            Ok(Record {
-                number: header.number,
-                shape: Shape::try_from(contents)?,
-            })
-        });
+        let record = r
+            .take::<8>()
+            .and_then(RecordHeader::try_from)
+            .and_then(|header| {
+                let (contents, rest) =
+                    r.0.split_at_checked(header.content_len)
+                        .ok_or(ShapeError::UnexpectedEof)?;
+                r.0 = rest;
+                Ok(Record {
+                    number: header.number,
+                    shape: Shape::try_from(contents)?,
+                })
+            });
         self.records = if record.is_ok() { r.0 } else { &[] };
         Some(record)
     }

@@ -17,7 +17,15 @@ fn type_code(buffer: &EsriShapeBuffer) -> Option<u32> {
 fn polygon() -> Polygon {
     Polygon::from(MultiPath {
         vertices: VertexAttributes {
-            xy: vec![[0.0, 0.0], [0.0, 4.0], [4.0, 4.0], [4.0, 0.0], [1.0, 1.0], [2.0, 1.0], [2.0, 2.0]],
+            xy: vec![
+                [0.0, 0.0],
+                [0.0, 4.0],
+                [4.0, 4.0],
+                [4.0, 0.0],
+                [1.0, 1.0],
+                [2.0, 1.0],
+                [2.0, 2.0],
+            ],
             z: Some(vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0]),
             m: Some(vec![0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5]),
             id: Some(vec![10, 11, 12, 13, 14, 15, 16]),

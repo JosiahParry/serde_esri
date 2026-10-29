@@ -22,3 +22,4 @@ prost = "0.12.1"
 serde ={ version = "1.0.192", features = ["derive"] }
 serde_esri = { path = "../serde_esri", version = "2.0.0" }
 serde_json = { version = "1.0.108", features = ["raw_value"] }
+zorder = "0.2.2"

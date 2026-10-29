@@ -13,7 +13,10 @@ mod common;
 
 fn main() -> Result<(), String> {
     let mut args = std::env::args().skip(1).map(|a| a.parse::<usize>());
-    let features = args.next().unwrap_or(Ok(50_000)).map_err(|e| e.to_string())?;
+    let features = args
+        .next()
+        .unwrap_or(Ok(50_000))
+        .map_err(|e| e.to_string())?;
     let vertices = args.next().unwrap_or(Ok(64)).map_err(|e| e.to_string())?;
     let json = common::feature_set(features, vertices);
     let megabytes = json.len() as f64 / 1_000_000.0;
@@ -42,14 +45,15 @@ fn main() -> Result<(), String> {
         Ok(value["features"].as_array().map_or(0, Vec::len))
     })?;
     time("FeatureSet then RecordBatch", &|| {
-        let feature_set = serde_json::from_str::<FeatureSet<2>>(&json).map_err(|e| e.to_string())?;
+        let feature_set =
+            serde_json::from_str::<FeatureSet<2>>(&json).map_err(|e| e.to_string())?;
         let batch = RecordBatch::try_from(&feature_set).map_err(|e| e.to_string())?;
         Ok(batch.num_rows())
     })?;
     time("FeatureSetJson streamed", &|| {
-        let batch = RecordBatch::try_from(FeatureSetJson(json.as_bytes())).map_err(|e| e.to_string())?;
+        let batch =
+            RecordBatch::try_from(FeatureSetJson(json.as_bytes())).map_err(|e| e.to_string())?;
         Ok(batch.num_rows())
     })?;
     Ok(())
 }
-

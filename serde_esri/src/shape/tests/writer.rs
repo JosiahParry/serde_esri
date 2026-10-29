@@ -66,4 +66,3 @@ fn shape_writer() -> Result<(), FileError> {
     ));
     Ok(())
 }
-

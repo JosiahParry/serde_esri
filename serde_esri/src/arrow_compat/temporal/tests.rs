@@ -22,8 +22,14 @@ fn times() {
 #[test]
 fn offset_timestamps() {
     let utc = 12_077 * MS_PER_DAY + ((22 * 60 + 35) * 60) * 1000 + 927;
-    assert_eq!("2003-01-25T14:35:00.927-08:00".parse(), Ok(TimestampOffset(utc)));
+    assert_eq!(
+        "2003-01-25T14:35:00.927-08:00".parse(),
+        Ok(TimestampOffset(utc))
+    );
     assert_eq!("2003-01-25T22:35:00.927Z".parse(), Ok(TimestampOffset(utc)));
-    assert_eq!("2003-01-26 04:05:00.927+05:30".parse(), Ok(TimestampOffset(utc)));
+    assert_eq!(
+        "2003-01-26 04:05:00.927+05:30".parse(),
+        Ok(TimestampOffset(utc))
+    );
     assert_eq!("2003-01-25".parse::<TimestampOffset>(), Err(()));
 }

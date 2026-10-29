@@ -1,11 +1,9 @@
 use super::*;
-use crate::esri_p_buffer::{feature_collection_p_buffer::query_result::Results, FeatureCollectionPBuffer};
-use prost::Message;
-use serde_esri::{
-    features::FeatureSet,
-    geometry::EsriGeometry,
-    sqltype::SqlType,
+use crate::esri_p_buffer::{
+    feature_collection_p_buffer::query_result::Results, FeatureCollectionPBuffer,
 };
+use prost::Message;
+use serde_esri::{features::FeatureSet, geometry::EsriGeometry, sqltype::SqlType};
 
 type TestResult = Result<(), Box<dyn std::error::Error>>;
 
@@ -237,5 +235,134 @@ fn lower_left_transforms_keep_y_and_read_z_as_absolute() -> TestResult {
         polygon.rings.vertices.z,
         Some(vec![100.1, 100.2, 100.3, 100.4])
     );
+    Ok(())
+}
+
+fn unit_quantization(
+    description: serde_esri::enginex::description::VertexDescription,
+) -> geometry::Quantization {
+    use crate::esri_p_buffer::feature_collection_p_buffer::{
+        QuantizeOriginPostion, Scale, Transform, Translate,
+    };
+    let transform = Transform {
+        quantize_origin_postion: QuantizeOriginPostion::LowerLeft.into(),
+        scale: Some(Scale {
+            x_scale: 1.0,
+            y_scale: 1.0,
+            z_scale: 1.0,
+            m_scale: 1.0,
+        }),
+        translate: Some(Translate::default()),
+    };
+    geometry::Quantization::new(&transform, description)
+}
+
+fn multi_path(paths: &[&[[f64; 2]]]) -> serde_esri::enginex::geometry::MultiPath {
+    use serde_esri::enginex::{geometry::MultiPath, vertex::VertexAttributes};
+    let mut path_offsets = vec![0];
+    let mut xy = Vec::new();
+    for path in paths {
+        xy.extend_from_slice(path);
+        path_offsets.push(xy.len() as i32);
+    }
+    MultiPath {
+        vertices: VertexAttributes {
+            xy,
+            ..Default::default()
+        },
+        path_flags: vec![Default::default(); paths.len()],
+        path_offsets,
+        segments: None,
+    }
+}
+
+#[test]
+fn encode_closes_rings_and_delta_encodes_each_part() -> TestResult {
+    use serde_esri::enginex::geometry::{Geometry, Polygon};
+    let polygon = Geometry::Polygon(Polygon::from(multi_path(&[
+        &[
+            [256.0, 256.0],
+            [258.0, 256.0],
+            [258.0, 258.0],
+            [256.0, 258.0],
+        ],
+        &[[56.0, 56.0], [58.0, 56.0], [58.0, 58.0], [56.0, 58.0]],
+    ])));
+    let encoded = unit_quantization(Default::default()).encode(&polygon)?;
+    assert_eq!(encoded.lengths, vec![5, 5]);
+    assert_eq!(
+        encoded.coords,
+        vec![256, 256, 2, 0, 0, 2, -2, 0, 0, -2, 56, 56, 2, 0, 0, 2, -2, 0, 0, -2]
+    );
+    Ok(())
+}
+
+#[test]
+fn encode_drops_repeated_and_collinear_vertices() -> TestResult {
+    use serde_esri::enginex::geometry::{Geometry, Polyline};
+    let line = Geometry::Polyline(Polyline(multi_path(&[&[
+        [0.0, 0.0],
+        [1.2, 0.1],
+        [0.9, 0.0],
+        [2.0, 0.0],
+        [3.0, 0.0],
+        [3.0, 1.0],
+        [2.0, 0.0],
+    ]])));
+    let encoded = unit_quantization(Default::default()).encode(&line)?;
+    assert_eq!(encoded.lengths, vec![4]);
+    assert_eq!(encoded.coords, vec![0, 0, 3, 0, 0, 1, -1, -1]);
+    Ok(())
+}
+
+#[test]
+fn encode_keeps_points_and_reverses_engine() -> TestResult {
+    use crate::esri_p_buffer::feature_collection_p_buffer::{
+        Geometry as PbfGeometry, GeometryType, QuantizeOriginPostion, Scale, Transform, Translate,
+    };
+    use serde_esri::enginex::{
+        description::{Attribute, VertexDescription},
+        geometry::{Geometry, MultiPoint},
+        vertex::VertexAttributes,
+    };
+
+    let points = Geometry::MultiPoint(MultiPoint {
+        vertices: VertexAttributes {
+            xy: vec![[1.0, 1.0], [1.0, 1.0], [4.0, -2.0]],
+            ..Default::default()
+        },
+    });
+    let encoded = unit_quantization(Default::default()).encode(&points)?;
+    assert_eq!(encoded.lengths, vec![3]);
+    assert_eq!(encoded.coords, vec![1, 1, 0, 0, 3, -3]);
+
+    let transform = Transform {
+        quantize_origin_postion: QuantizeOriginPostion::LowerLeft.into(),
+        scale: Some(Scale {
+            x_scale: 0.5,
+            y_scale: 2.0,
+            z_scale: 0.1,
+            m_scale: 1.0,
+        }),
+        translate: Some(Translate {
+            x_translate: 10.0,
+            y_translate: 20.0,
+            z_translate: 100.0,
+            m_translate: 0.0,
+        }),
+    };
+    let quantization = geometry::Quantization::new(
+        &transform,
+        [Attribute::Z].into_iter().collect::<VertexDescription>(),
+    );
+    let ring = PbfGeometry {
+        lengths: vec![5],
+        coords: vec![0, 0, 1, 0, 2, 2, 2, 0, 3, 0, -2, 4, -2, 0, 1],
+        ..Default::default()
+    };
+    let polygon = quantization.engine(GeometryType::EsriGeometryTypePolygon, &ring)?;
+    let encoded = quantization.encode(&polygon)?;
+    assert_eq!(encoded.lengths, ring.lengths);
+    assert_eq!(encoded.coords, ring.coords);
     Ok(())
 }

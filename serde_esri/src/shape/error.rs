@@ -9,7 +9,10 @@ pub enum ShapeError {
     InvalidShapeType(i32),
     InvalidPartType(i32),
     Corrupted,
-    MixedShapeTypes { expected: ShapeType, found: ShapeType },
+    MixedShapeTypes {
+        expected: ShapeType,
+        found: ShapeType,
+    },
     TooLarge,
     NoSuchRecord(usize),
 }

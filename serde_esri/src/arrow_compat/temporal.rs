@@ -56,10 +56,16 @@ impl FromStr for TimeOnly {
         let millis = if fraction.is_empty() {
             0
         } else {
-            let digits = fraction.chars().chain("000".chars()).take(3).collect::<String>();
+            let digits = fraction
+                .chars()
+                .chain("000".chars())
+                .take(3)
+                .collect::<String>();
             digits.parse().map_err(|_| ())?
         };
-        Ok(TimeOnly(((hours * 60 + minutes) * 60 + seconds) * 1000 + millis))
+        Ok(TimeOnly(
+            ((hours * 60 + minutes) * 60 + seconds) * 1000 + millis,
+        ))
     }
 }
 
@@ -74,7 +80,9 @@ impl FromStr for TimestampOffset {
             Some(i) if rest[i..].starts_with('Z') => (&rest[..i], 0),
             Some(i) => {
                 let sign = if rest[i..].starts_with('-') { -1 } else { 1 };
-                let (h, m) = rest[i + 1..].split_once(':').unwrap_or((&rest[i + 1..], "0"));
+                let (h, m) = rest[i + 1..]
+                    .split_once(':')
+                    .unwrap_or((&rest[i + 1..], "0"));
                 let h = h.parse::<i64>().map_err(|_| ())?;
                 let m = m.parse::<i64>().map_err(|_| ())?;
                 (&rest[..i], sign * (h * 60 + m))

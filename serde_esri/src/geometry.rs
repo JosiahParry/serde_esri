@@ -11,10 +11,8 @@ use serde_with::skip_serializing_none;
 mod de;
 pub mod to_enginex;
 
-
 #[cfg(feature = "geo-traits")]
 pub mod geo_traits_impl;
-
 
 /// Represents a single coordinate used in the creation of `EsriPolygon` and `EsriPolyline`s.
 ///

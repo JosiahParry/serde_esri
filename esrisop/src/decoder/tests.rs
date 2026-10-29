@@ -1,26 +1,29 @@
 use super::*;
-use arrow_array::{ArrayRef, BinaryArray, Int32Array, Int64Array, StringArray, StructArray};
+use crate::xz::MaxLevel;
+use arrow_array::{
+    ArrayRef, BinaryArray, Float64Array, Int32Array, Int64Array, StringArray, StructArray,
+};
+use arrow_schema::{DataType, Field};
+use esripbf::esri_p_buffer::feature_collection_p_buffer as pbf;
 use parquet::{
     arrow::{arrow_reader::ArrowReaderOptions, ArrowWriter},
     file::{
         metadata::{KeyValue, PageIndexPolicy, ParquetMetaDataReader},
         properties::WriterProperties,
     },
+    schema::types::ColumnPath,
 };
-use serde_esri::enginex::shape::EsriShape;
+use prost::Message;
+use serde_esri::enginex::{
+    geometry::{Geometry, Point},
+    shape::EsriShape,
+};
+
+pub(crate) type TestResult<T = ()> = Result<T, Box<dyn std::error::Error>>;
 
 const SPARK_KEY: &str = "org.apache.spark.sql.parquet.row.metadata";
 
-fn to_string(e: impl std::fmt::Display) -> String {
-    e.to_string()
-}
-
-fn write(
-    batch: &RecordBatch,
-    key: &str,
-    value: &str,
-    rows_per_group: usize,
-) -> Result<Bytes, String> {
+fn write(batch: &RecordBatch, key: &str, value: &str, rows_per_group: usize) -> TestResult<Bytes> {
     let properties = WriterProperties::builder()
         .set_max_row_group_row_count(Some(rows_per_group))
         .set_data_page_row_count_limit(1)
@@ -31,32 +34,33 @@ fn write(
         )]))
         .build();
     let mut buffer = Vec::new();
-    let mut writer =
-        ArrowWriter::try_new(&mut buffer, batch.schema(), Some(properties)).map_err(to_string)?;
-    writer.write(batch).map_err(to_string)?;
-    writer.close().map_err(to_string)?;
+    let mut writer = ArrowWriter::try_new(&mut buffer, batch.schema(), Some(properties))?;
+    writer.write(batch)?;
+    writer.close()?;
     Ok(Bytes::from(buffer))
 }
 
-fn metadata(bytes: &Bytes) -> Result<ArrowReaderMetadata, String> {
+pub(crate) fn metadata(bytes: &Bytes) -> TestResult<ArrowReaderMetadata> {
     let metadata = ParquetMetaDataReader::new()
         .with_page_index_policy(PageIndexPolicy::Optional)
-        .parse_and_finish(bytes)
-        .map_err(to_string)?;
-    ArrowReaderMetadata::try_new(Arc::new(metadata), ArrowReaderOptions::new()).map_err(to_string)
+        .parse_and_finish(bytes)?;
+    Ok(ArrowReaderMetadata::try_new(
+        Arc::new(metadata),
+        ArrowReaderOptions::new(),
+    )?)
 }
 
-fn read(bytes: &Bytes, query: &Query) -> Result<(SchemaRef, Vec<RecordBatch>), String> {
-    let mut decoder = Decoder::try_new(metadata(bytes)?, query).map_err(to_string)?;
+pub(crate) fn read(bytes: &Bytes, query: &Query) -> TestResult<(SchemaRef, Vec<RecordBatch>)> {
+    let mut decoder = Decoder::try_new(metadata(bytes)?, query)?;
     let mut batches = Vec::new();
     loop {
-        match decoder.try_decode().map_err(to_string)? {
+        match decoder.try_decode()? {
             DecodeResult::NeedsData(ranges) => {
                 let data = ranges
                     .iter()
                     .map(|r| bytes.slice(r.start as usize..r.end as usize))
                     .collect();
-                decoder.push_ranges(ranges, data).map_err(to_string)?;
+                decoder.push_ranges(ranges, data)?;
             }
             DecodeResult::Data(batch) => batches.push(batch),
             DecodeResult::Finished => break,
@@ -82,7 +86,7 @@ fn names(batches: &[RecordBatch]) -> Vec<String> {
     names
 }
 
-fn geometries(batches: &[RecordBatch]) -> Result<Vec<Option<Geometry>>, String> {
+fn geometries(batches: &[RecordBatch]) -> TestResult<Vec<Option<Geometry>>> {
     let mut geometries = Vec::new();
     for batch in batches {
         let column = batch
@@ -91,7 +95,7 @@ fn geometries(batches: &[RecordBatch]) -> Result<Vec<Option<Geometry>>, String> 
             .ok_or("no binary geometry column")?;
         for bytes in column {
             geometries.push(match bytes {
-                Some(bytes) => Option::<Geometry>::try_from(EsriShape(bytes)).map_err(to_string)?,
+                Some(bytes) => Option::<Geometry>::try_from(EsriShape(bytes))?,
                 None => None,
             });
         }
@@ -119,7 +123,7 @@ fn square(x0: i64, y0: i64, x1: i64, y1: i64) -> Vec<u8> {
 
 const XZ: &str = r#"{"version":"0.1","type":"xz","wkid":3857,"geometryType":"polygon","maxLevel":2,"hasZ":false,"hasM":false,"code":["geodisplay","xz-code"],"encoding":"esriPBF","fullExtent":{"xmin":0,"ymin":0,"xmax":10,"ymax":10},"levels":[{"column":["geodisplay","multiscale-0"],"level":0,"resolution":0.01,"scale":1,"transform":{"scale":[0.01,0.01,1,1],"translate":[0,0,0,0]}}]}"#;
 
-fn polygons() -> Result<Bytes, String> {
+fn polygons() -> TestResult<Bytes> {
     let shapes = [
         square(0, 0, 1000, 1000),
         square(800, 800, 900, 900),
@@ -142,13 +146,12 @@ fn polygons() -> Result<Bytes, String> {
             Arc::new(StringArray::from(vec!["c", "d", "a", "b"])) as ArrayRef,
         ),
         ("geodisplay", Arc::new(geodisplay) as ArrayRef),
-    ])
-    .map_err(to_string)?;
+    ])?;
     write(&batch, "geodisplay", XZ, 1)
 }
 
 #[test]
-fn xz_query_prunes_row_groups_and_tests_extents() -> Result<(), String> {
+fn xz_query_prunes_row_groups_and_tests_extents() -> TestResult<()> {
     let bytes = polygons()?;
     let query = Query {
         extents: vec![extent(0.0, 0.0, 1.0, 1.0)],
@@ -157,16 +160,23 @@ fn xz_query_prunes_row_groups_and_tests_extents() -> Result<(), String> {
     };
 
     let metadata = metadata(&bytes)?;
-    let ranges = XzRanges::new(&extent(0.0, 0.0, 10.0, 10.0), &query.extents, 2);
-    let code = ColumnPath::Child("geodisplay".into(), "xz-code".into())
-        .leaf(metadata.parquet_schema())
-        .map_err(to_string)?;
+    let ranges = XzRanges::new(
+        &extent(0.0, 0.0, 10.0, 10.0),
+        &query.extents,
+        MaxLevel::try_from(2)?,
+    );
+    let index_leaf = ColumnPath::new(vec!["geodisplay".into(), "xz-code".into()])
+        .leaf(metadata.parquet_schema())?;
     assert_eq!(ranges.0, vec![0..=2]);
     let parquet_metadata = metadata.metadata();
     let plan = Plan::new(parquet_metadata, |row_group, index| {
-        rows(parquet_metadata, row_group, index, code, |[min, max]| {
-            ranges.overlaps(min, max)
-        })
+        i64::rows(
+            parquet_metadata,
+            row_group,
+            index,
+            index_leaf,
+            |[min, max]| ranges.overlaps(min, max),
+        )
     });
     assert_eq!(plan.row_groups, vec![0, 1, 2]);
 
@@ -177,7 +187,7 @@ fn xz_query_prunes_row_groups_and_tests_extents() -> Result<(), String> {
 }
 
 #[test]
-fn xz_without_resolution_filters_by_code_only() -> Result<(), String> {
+fn xz_without_resolution_filters_by_code_only() -> TestResult<()> {
     let query = Query {
         extents: vec![extent(0.0, 0.0, 1.0, 1.0)],
         ..Default::default()
@@ -189,7 +199,7 @@ fn xz_without_resolution_filters_by_code_only() -> Result<(), String> {
 }
 
 #[test]
-fn reads_every_row_without_extents() -> Result<(), String> {
+fn reads_every_row_without_extents() -> TestResult<()> {
     let query = Query {
         resolution: Some(0.01),
         ..Default::default()
@@ -197,14 +207,17 @@ fn reads_every_row_without_extents() -> Result<(), String> {
     let (schema, batches) = read(&polygons()?, &query)?;
     assert_eq!(names(&batches), vec!["c", "d", "a", "b"]);
 
-    let field = schema.field_with_name("geometry").map_err(to_string)?;
+    let field = schema.field_with_name("geometry")?;
     assert_eq!(field.data_type(), &DataType::Binary);
     let metadata = field.metadata();
     assert_eq!(
         metadata.get("esri.encoding").map(String::as_str),
         Some("EsriShape")
     );
-    assert_eq!(metadata.get("esri.sr_wkt").map(String::as_str), Some(""));
+    assert_eq!(
+        metadata.get("esri.sr_wkt").map(String::as_str),
+        Some(r#"{"wkid":3857}"#)
+    );
     assert_eq!(metadata.get("geodisplay").map(String::as_str), Some(XZ));
 
     let geometries = geometries(&batches)?;
@@ -220,7 +233,7 @@ fn reads_every_row_without_extents() -> Result<(), String> {
 }
 
 #[test]
-fn reads_requested_columns_only() -> Result<(), String> {
+fn reads_requested_columns_only() -> TestResult<()> {
     let bytes = polygons()?;
     let query = Query {
         resolution: Some(0.01),
@@ -234,13 +247,13 @@ fn reads_requested_columns_only() -> Result<(), String> {
         columns: Some(vec!["nope".into()]),
         ..Default::default()
     };
-    assert!(read(&bytes, &missing).is_err_and(|e| e.contains("`nope`")));
+    assert!(read(&bytes, &missing).is_err_and(|e| e.to_string().contains("`nope`")));
     Ok(())
 }
 
 const SPARK_Z: &str = r#"{"type":"struct","fields":[{"name":"OBJECTID","type":"integer","nullable":false,"metadata":{}},{"name":"geodisplay","type":{"type":"struct","fields":[{"name":"indexkey","type":"long","nullable":false,"metadata":{}},{"name":"xcoord","type":"double","nullable":false,"metadata":{}},{"name":"ycoord","type":"double","nullable":false,"metadata":{}}]},"nullable":true,"metadata":{"coordinatePrecision":16,"version":"0.1","fullExtent":{"xmin":-180,"ymin":-90,"xmax":180,"ymax":90},"type":"z","xColumn":"xcoord","yColumn":"ycoord","wkid":4326,"code":"indexkey"}}]}"#;
 
-fn spark_points() -> Result<Bytes, String> {
+fn spark_points() -> TestResult<Bytes> {
     let geodisplay = StructArray::from(vec![
         (
             Arc::new(Field::new("indexkey", DataType::Int64, false)),
@@ -267,8 +280,7 @@ fn spark_points() -> Result<Bytes, String> {
             Arc::new(Int32Array::from(vec![1, 2, 3, 4, 5])) as ArrayRef,
         ),
         ("geodisplay", Arc::new(geodisplay) as ArrayRef),
-    ])
-    .map_err(to_string)?;
+    ])?;
     write(&batch, SPARK_KEY, SPARK_Z, 2)
 }
 
@@ -282,7 +294,7 @@ fn ids(batches: &[RecordBatch]) -> Vec<i32> {
 }
 
 #[test]
-fn z_query_across_the_antimeridian() -> Result<(), String> {
+fn z_query_across_the_antimeridian() -> TestResult<()> {
     let query = Query {
         extents: vec![
             extent(170.0, -90.0, 180.0, 90.0),
@@ -312,9 +324,9 @@ fn z_query_across_the_antimeridian() -> Result<(), String> {
 }
 
 #[test]
-fn z_points_with_nan_coordinates_are_null() -> Result<(), String> {
+fn z_points_with_nan_coordinates_are_null() -> TestResult<()> {
     let (schema, batches) = read(&spark_points()?, &Query::default())?;
-    let field = schema.field_with_name("geometry").map_err(to_string)?;
+    let field = schema.field_with_name("geometry")?;
     let raw = field
         .metadata()
         .get("geodisplay")
