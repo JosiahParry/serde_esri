@@ -2,7 +2,9 @@
 
 use crate::{
     convert::{arrow::PbfToArrowError, geometry::Quantization, FromPbfError},
-    esri_p_buffer::feature_collection_p_buffer::{self as pbf, feature::CompressedGeometry, GeometryType},
+    esri_p_buffer::feature_collection_p_buffer::{
+        self as pbf, feature::CompressedGeometry, GeometryType,
+    },
 };
 use arrow_array::ArrayRef;
 use arrow_schema::Field;
@@ -122,9 +124,7 @@ impl GeometryColumnBuilder {
                 b.push_multi_line_string(Some(&g))?
             }
             (Builder::Polyline(b), _) => b.push_multi_line_string(None::<&Polyline>)?,
-            (Builder::Polygon(b), Some(Geometry::Polygon(g))) => {
-                b.push_multi_polygon(Some(&g))?
-            }
+            (Builder::Polygon(b), Some(Geometry::Polygon(g))) => b.push_multi_polygon(Some(&g))?,
             (Builder::Polygon(b), _) => b.push_multi_polygon(None::<&Polygon>)?,
         }
         Ok(())

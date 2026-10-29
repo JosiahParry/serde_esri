@@ -1,0 +1,25 @@
+[package]
+name = "esrisop"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+repository = "https://github.com/josiahparry/serde_esri"
+authors = ["Josiah Parry<josiah.parry@gmail.com>"]
+categories = ["parser-implementations", "science::geo"]
+keywords = ["arcgis", "esri", "gis", "parquet", "shapefile"]
+description = "Read Esri's Spatially Optimized Parquet with spatial filters, without IO."
+readme = "README.md"
+include = ["src/**/*", "README.md"]
+
+[dependencies]
+arrow-array = "59"
+arrow-schema = "59"
+arrow-select = "59"
+bytes = "1.5.0"
+esripbf = { path = "../esripbf", version = "0.1.0", features = ["serde_esri"] }
+parquet = { version = "59", default-features = false, features = ["arrow", "brotli", "flate2-zlib-rs", "lz4", "snap", "zstd"] }
+prost = "0.12.1"
+serde ={ version = "1.0.192", features = ["derive"] }
+serde_esri = { path = "../serde_esri", version = "2.0.0" }
+serde_json = { version = "1.0.108", features = ["raw_value"] }
+zorder = "0.2.2"

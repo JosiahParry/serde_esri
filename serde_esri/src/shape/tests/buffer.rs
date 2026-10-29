@@ -1,9 +1,10 @@
 use super::*;
+use crate::enginex::geometry::Interval;
 use crate::shape::{
     file::ShapeFile,
     types::{
         Measures, MultiPart, MultiPartM, MultiPartZ, MultiPatch, MultiPoint, MultiPointM,
-        MultiPointZ, PartType, PointM, PointZ, Range, ShapeType, ZValues,
+        MultiPointZ, PartType, PointM, PointZ, ShapeType, ZValues,
     },
 };
 
@@ -98,11 +99,11 @@ fn multi_point_z_with_measures() {
                 points: points(&[[1.0, 2.0], [3.0, 4.0]]),
             },
             z: ZValues {
-                range: Range { min: 5.0, max: 6.0 },
+                range: Interval { min: 5.0, max: 6.0 },
                 values: vec![5.0, 6.0],
             },
             m: Some(Measures {
-                range: Range {
+                range: Interval {
                     min: Some(7.0),
                     max: Some(8.0)
                 },
@@ -154,7 +155,10 @@ fn poly_line_m_and_z_keep_their_type() {
         .i32(2)
         .i32(0)
         .f64s(&[0.0, 0.0, 1.0, 1.0]);
-    assert_eq!(line_m.shape().map(|s| s.shape_type()), Ok(ShapeType::PolyLineM));
+    assert_eq!(
+        line_m.shape().map(|s| s.shape_type()),
+        Ok(ShapeType::PolyLineM)
+    );
 
     let polygon_z = Buf::default()
         .i32(15)
@@ -189,7 +193,10 @@ fn multi_patch() -> Result<(), ShapeError> {
         panic!("expected MultiPatch, got {shape:?}");
     };
     assert_eq!(patch.parts, vec![0, 3]);
-    assert_eq!(patch.part_types, vec![PartType::TriangleStrip, PartType::Ring]);
+    assert_eq!(
+        patch.part_types,
+        vec![PartType::TriangleStrip, PartType::Ring]
+    );
     assert_eq!(patch.z.values.len(), 6);
     assert_eq!(patch.m, None);
     Ok(())
@@ -207,11 +214,11 @@ fn shape_buffers_round_trip() -> Result<(), ShapeError> {
         points: points(&[[0.0, 0.0], [1.0, 1.0], [2.0, 2.0], [3.0, 3.0]]),
     };
     let z = ZValues {
-        range: Range { min: 1.0, max: 4.0 },
+        range: Interval { min: 1.0, max: 4.0 },
         values: vec![1.0, 2.0, 3.0, 4.0],
     };
     let m = Some(Measures {
-        range: Range {
+        range: Interval {
             min: Some(0.0),
             max: Some(2.0),
         },
@@ -239,11 +246,11 @@ fn shape_buffers_round_trip() -> Result<(), ShapeError> {
         Shape::MultiPointZ(MultiPointZ {
             xy: multi_point,
             z: ZValues {
-                range: Range { min: 1.0, max: 2.0 },
+                range: Interval { min: 1.0, max: 2.0 },
                 values: vec![1.0, 2.0],
             },
             m: Some(Measures {
-                range: Range {
+                range: Interval {
                     min: Some(1.0),
                     max: Some(1.0),
                 },
@@ -294,12 +301,15 @@ fn errors() {
             points: points(&[[1.0, 2.0]]),
         },
         z: ZValues {
-            range: Range { min: 0.0, max: 0.0 },
+            range: Interval { min: 0.0, max: 0.0 },
             values: Vec::new(),
         },
         m: None,
     });
-    assert_eq!(Vec::<u8>::try_from(&mismatched_z), Err(ShapeError::Corrupted));
+    assert_eq!(
+        Vec::<u8>::try_from(&mismatched_z),
+        Err(ShapeError::Corrupted)
+    );
     assert_eq!(
         Buf::default().i32(2).shape(),
         Err(ShapeError::InvalidShapeType(2))

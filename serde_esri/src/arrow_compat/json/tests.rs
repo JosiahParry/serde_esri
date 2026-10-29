@@ -105,17 +105,32 @@ fn values_that_do_not_fit_become_null() -> Result<(), String> {
 
     let column = |i: usize| batch.column(i).clone();
     let small = column(0);
-    let small = small.as_any().downcast_ref::<Int16Array>().ok_or("SMALL is not Int16")?;
+    let small = small
+        .as_any()
+        .downcast_ref::<Int16Array>()
+        .ok_or("SMALL is not Int16")?;
     let small = small.iter().collect::<Vec<_>>();
     assert_eq!(small, vec![None, Some(12), Some(3), None]);
 
     let big = column(1);
-    let big = big.as_any().downcast_ref::<Int64Array>().ok_or("BIG is not Int64")?;
-    assert_eq!(big.iter().collect::<Vec<_>>(), vec![Some(9007199254740993), None, None, None]);
+    let big = big
+        .as_any()
+        .downcast_ref::<Int64Array>()
+        .ok_or("BIG is not Int64")?;
+    assert_eq!(
+        big.iter().collect::<Vec<_>>(),
+        vec![Some(9007199254740993), None, None, None]
+    );
 
     let day = column(2);
-    let day = day.as_any().downcast_ref::<Date32Array>().ok_or("DAY is not Date32")?;
-    assert_eq!(day.iter().collect::<Vec<_>>(), vec![Some(19_844), None, None, None]);
+    let day = day
+        .as_any()
+        .downcast_ref::<Date32Array>()
+        .ok_or("DAY is not Date32")?;
+    assert_eq!(
+        day.iter().collect::<Vec<_>>(),
+        vec![Some(19_844), None, None, None]
+    );
     Ok(())
 }
 
@@ -175,7 +190,10 @@ fn geometries_tolerate_odd_coordinates() -> Result<(), String> {
 fn errors() {
     assert!(matches!(
         stream(r#"{"error": {"code": 400, "message": "Invalid query", "details": []}}"#),
-        Err(ToArrowError::Service { code: Some(400), .. })
+        Err(ToArrowError::Service {
+            code: Some(400),
+            ..
+        })
     ));
     assert!(matches!(
         stream(r#"{"features": [{"attributes": {]}"#),
@@ -190,7 +208,12 @@ fn the_latest_wkid_sets_the_crs() -> Result<(), String> {
             "features": [{"geometry": {"x": 1, "y": 2}}]}"#,
     )
     .map_err(|e| e.to_string())?;
-    let extension = batch.schema().field(0).metadata().get("ARROW:extension:metadata").cloned();
+    let extension = batch
+        .schema()
+        .field(0)
+        .metadata()
+        .get("ARROW:extension:metadata")
+        .cloned();
     assert!(extension.is_some_and(|m| m.contains("EPSG:3857")));
     Ok(())
 }
@@ -208,7 +231,12 @@ fn envelopes_match_the_feature_set_path() -> Result<(), String> {
         "features": [{"geometry": {"xmin": 0, "ymin": 1, "xmax": 2, "ymax": 3, "zmin": 4, "zmax": 5}}]}"#;
     agree::<2>(z)?;
     let batch = stream(z).map_err(|e| e.to_string())?;
-    let name = batch.schema().field(0).metadata().get("ARROW:extension:name").cloned();
+    let name = batch
+        .schema()
+        .field(0)
+        .metadata()
+        .get("ARROW:extension:name")
+        .cloned();
     assert_eq!(name.as_deref(), Some("geoarrow.box"));
     Ok(())
 }

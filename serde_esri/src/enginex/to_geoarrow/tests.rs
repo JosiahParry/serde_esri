@@ -33,7 +33,11 @@ const CLOCKWISE_EAST: [[f64; 2]; 4] = [[10.0, 0.0], [10.0, 4.0], [14.0, 4.0], [1
 #[test]
 fn multi_polygons_match_their_geo_traits_view() -> Result<(), ToGeoArrowError> {
     let polygons = [
-        Some(Polygon::from(multi_path(&[&CLOCKWISE, &HOLE, &CLOCKWISE_EAST]))),
+        Some(Polygon::from(multi_path(&[
+            &CLOCKWISE,
+            &HOLE,
+            &CLOCKWISE_EAST,
+        ]))),
         None,
         Some(Polygon::from(multi_path(&[]))),
     ];
@@ -42,7 +46,10 @@ fn multi_polygons_match_their_geo_traits_view() -> Result<(), ToGeoArrowError> {
     assert!(array.is_null(1));
     for (i, polygon) in polygons.iter().enumerate() {
         if let Some(polygon) = polygon {
-            assert_eq!(array.value(i)?.to_multi_polygon(), polygon.to_multi_polygon());
+            assert_eq!(
+                array.value(i)?.to_multi_polygon(),
+                polygon.to_multi_polygon()
+            );
         }
     }
     Ok(())
@@ -58,7 +65,10 @@ fn multi_line_strings_close_only_closed_paths() -> Result<(), ToGeoArrowError> {
     let Some(polyline) = &polylines[1] else {
         panic!("expected a polyline");
     };
-    assert_eq!(array.value(1)?.to_multi_line_string(), polyline.to_multi_line_string());
+    assert_eq!(
+        array.value(1)?.to_multi_line_string(),
+        polyline.to_multi_line_string()
+    );
     Ok(())
 }
 
@@ -76,7 +86,10 @@ fn multi_points_keep_z() -> Result<(), ToGeoArrowError> {
     let value = array.value(0)?;
     assert_eq!(value.dim(), Dimensions::Xyz);
     assert_eq!(value.to_multi_point(), multi_point.to_multi_point());
-    let z = value.point(1).and_then(|p| p.coord()).and_then(|c| c.nth(2));
+    let z = value
+        .point(1)
+        .and_then(|p| p.coord())
+        .and_then(|c| c.nth(2));
     assert_eq!(z, Some(6.0));
     Ok(())
 }
@@ -137,8 +150,13 @@ fn mixed_geometries_build_a_geometry_array() -> Result<(), ToGeoArrowError> {
 /// GeoArrow values read back into the engine match the geometries they were built from.
 #[test]
 fn geoarrow_values_read_back_into_the_engine() -> Result<(), String> {
-    let polygons = [Some(Polygon::from(multi_path(&[&CLOCKWISE, &HOLE, &CLOCKWISE_EAST])))];
-    let array = MultiPolygonArray::try_from(GeometryColumn(&polygons)).map_err(|e| e.to_string())?;
+    let polygons = [Some(Polygon::from(multi_path(&[
+        &CLOCKWISE,
+        &HOLE,
+        &CLOCKWISE_EAST,
+    ])))];
+    let array =
+        MultiPolygonArray::try_from(GeometryColumn(&polygons)).map_err(|e| e.to_string())?;
     let value = array.value(0).map_err(|e| e.to_string())?;
     let read_back = Geometry::from_geo_traits(&value).map_err(|e| e.to_string())?;
     let original = polygons[0].clone().map(Geometry::Polygon);

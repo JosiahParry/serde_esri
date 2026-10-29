@@ -1,89 +1,21 @@
 //! Streaming a main file to a seekable writer, building its index.
 
+use crate::enginex::geometry::{Envelope, Envelope2D, Interval};
 use crate::shape::{
     error::{FileError, ShapeError},
     file::FileHeader,
     index::{IndexRecord, ShapeIndex},
-    types::{BoundingBox, Measures, Range, Shape, ShapeType},
+    types::{Measures, Shape, ShapeType},
 };
 use std::io::{Seek, SeekFrom, Write};
 
 impl Measures {
     /// The M range, or `None` when either bound is "no data".
-    fn defined_range(&self) -> Option<Range<f64>> {
-        Some(Range {
+    fn defined_range(&self) -> Option<Interval<f64>> {
+        Some(Interval {
             min: self.range.min?,
             max: self.range.max?,
         })
-    }
-}
-
-/// Running union of record extents, which the main file header stores.
-#[derive(Debug, Default)]
-struct Extent {
-    bbox: Option<BoundingBox>,
-    z: Option<Range<f64>>,
-    m: Option<Range<f64>>,
-}
-
-impl Extent {
-    fn include(&mut self, shape: &Shape) {
-        if shape.is_empty() {
-            return;
-        }
-        let point = |x: f64, y: f64| BoundingBox {
-            xmin: x,
-            ymin: y,
-            xmax: x,
-            ymax: y,
-        };
-        let value = |v: f64| Range { min: v, max: v };
-        let (bbox, z, m) = match shape {
-            Shape::Null => return,
-            Shape::Point(p) => (point(p.x, p.y), None, None),
-            Shape::PointM(p) => (point(p.x, p.y), None, p.m.map(value)),
-            Shape::PointZ(p) => (point(p.x, p.y), Some(value(p.z)), p.m.map(value)),
-            Shape::MultiPoint(mp) => (mp.bbox, None, None),
-            Shape::MultiPointM(mp) => (mp.xy.bbox, None, mp.m.as_ref().and_then(Measures::defined_range)),
-            Shape::MultiPointZ(mp) => (
-                mp.xy.bbox,
-                Some(mp.z.range),
-                mp.m.as_ref().and_then(Measures::defined_range),
-            ),
-            Shape::PolyLine(p) | Shape::Polygon(p) => (p.bbox, None, None),
-            Shape::PolyLineM(p) | Shape::PolygonM(p) => {
-                (p.xy.bbox, None, p.m.as_ref().and_then(Measures::defined_range))
-            }
-            Shape::PolyLineZ(p) | Shape::PolygonZ(p) => (
-                p.xy.bbox,
-                Some(p.z.range),
-                p.m.as_ref().and_then(Measures::defined_range),
-            ),
-            Shape::MultiPatch(p) => (
-                p.bbox,
-                Some(p.z.range),
-                p.m.as_ref().and_then(Measures::defined_range),
-            ),
-        };
-
-        let union = |a: Option<Range<f64>>, b: Option<Range<f64>>| match (a, b) {
-            (Some(a), Some(b)) => Some(Range {
-                min: a.min.min(b.min),
-                max: a.max.max(b.max),
-            }),
-            (a, b) => a.or(b),
-        };
-        self.bbox = Some(match self.bbox {
-            Some(b) => BoundingBox {
-                xmin: b.xmin.min(bbox.xmin),
-                ymin: b.ymin.min(bbox.ymin),
-                xmax: b.xmax.max(bbox.xmax),
-                ymax: b.ymax.max(bbox.ymax),
-            },
-            None => bbox,
-        });
-        self.z = union(self.z, z);
-        self.m = union(self.m, m);
     }
 }
 
@@ -93,7 +25,7 @@ impl Extent {
 pub struct ShapeWriter<W> {
     writer: W,
     shape_type: ShapeType,
-    extent: Extent,
+    extent: Envelope,
     file_len: usize,
     index: Vec<IndexRecord>,
 }
@@ -105,7 +37,7 @@ impl<W: Write + Seek> ShapeWriter<W> {
         Ok(Self {
             writer,
             shape_type,
-            extent: Extent::default(),
+            extent: Envelope::default(),
             file_len: 100,
             index: Vec::new(),
         })
@@ -133,7 +65,69 @@ impl<W: Write + Seek> ShapeWriter<W> {
         self.writer.write_all(&contents)?;
         self.file_len += 8 + contents.len();
         self.index.push(entry);
-        self.extent.include(shape);
+
+        let point = |x: f64, y: f64| Envelope2D {
+            xmin: x,
+            ymin: y,
+            xmax: x,
+            ymax: y,
+        };
+        let value = |v: f64| Interval { min: v, max: v };
+        let bounds = match shape {
+            _ if shape.is_empty() => None,
+            Shape::Null => None,
+            Shape::Point(p) => Some((point(p.x, p.y), None, None)),
+            Shape::PointM(p) => Some((point(p.x, p.y), None, p.m.map(value))),
+            Shape::PointZ(p) => Some((point(p.x, p.y), Some(value(p.z)), p.m.map(value))),
+            Shape::MultiPoint(mp) => Some((mp.bbox, None, None)),
+            Shape::MultiPointM(mp) => Some((
+                mp.xy.bbox,
+                None,
+                mp.m.as_ref().and_then(Measures::defined_range),
+            )),
+            Shape::MultiPointZ(mp) => Some((
+                mp.xy.bbox,
+                Some(mp.z.range),
+                mp.m.as_ref().and_then(Measures::defined_range),
+            )),
+            Shape::PolyLine(p) | Shape::Polygon(p) => Some((p.bbox, None, None)),
+            Shape::PolyLineM(p) | Shape::PolygonM(p) => Some((
+                p.xy.bbox,
+                None,
+                p.m.as_ref().and_then(Measures::defined_range),
+            )),
+            Shape::PolyLineZ(p) | Shape::PolygonZ(p) => Some((
+                p.xy.bbox,
+                Some(p.z.range),
+                p.m.as_ref().and_then(Measures::defined_range),
+            )),
+            Shape::MultiPatch(p) => Some((
+                p.bbox,
+                Some(p.z.range),
+                p.m.as_ref().and_then(Measures::defined_range),
+            )),
+        };
+        if let Some((bbox, z, m)) = bounds {
+            let union = |a: Option<Interval<f64>>, b: Option<Interval<f64>>| match (a, b) {
+                (Some(a), Some(b)) => Some(Interval {
+                    min: a.min.min(b.min),
+                    max: a.max.max(b.max),
+                }),
+                (a, b) => a.or(b),
+            };
+            let extent = &mut self.extent;
+            extent.xy = Some(match extent.xy {
+                Some(b) => Envelope2D {
+                    xmin: b.xmin.min(bbox.xmin),
+                    ymin: b.ymin.min(bbox.ymin),
+                    xmax: b.xmax.max(bbox.xmax),
+                    ymax: b.ymax.max(bbox.ymax),
+                },
+                None => bbox,
+            });
+            extent.z = union(extent.z, z);
+            extent.m = union(extent.m, m);
+        }
         Ok(())
     }
 
@@ -149,15 +143,15 @@ impl<W: Write + Seek> ShapeWriter<W> {
         );
         // Unused ranges are 0.0; a measured file without measures stores "no data", as Esri writes it.
         let m_range = match self.extent.m {
-            Some(m) => Range {
+            Some(m) => Interval {
                 min: Some(m.min),
                 max: Some(m.max),
             },
-            None if is_measured => Range {
+            None if is_measured => Interval {
                 min: None,
                 max: None,
             },
-            None => Range {
+            None => Interval {
                 min: Some(0.0),
                 max: Some(0.0),
             },
@@ -166,13 +160,13 @@ impl<W: Write + Seek> ShapeWriter<W> {
             file_length: i32::try_from(self.file_len / 2).map_err(|_| ShapeError::TooLarge)?,
             version: 1000,
             shape_type: self.shape_type,
-            bbox: self.extent.bbox.unwrap_or(BoundingBox {
+            bbox: self.extent.xy.unwrap_or(Envelope2D {
                 xmin: 0.0,
                 ymin: 0.0,
                 xmax: 0.0,
                 ymax: 0.0,
             }),
-            z_range: self.extent.z.unwrap_or(Range { min: 0.0, max: 0.0 }),
+            z_range: self.extent.z.unwrap_or(Interval { min: 0.0, max: 0.0 }),
             m_range,
         };
         self.writer.seek(SeekFrom::Start(0))?;

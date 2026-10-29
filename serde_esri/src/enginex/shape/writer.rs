@@ -108,7 +108,9 @@ impl Writer {
 
     /// The x/y bounds of every vertex, `NaN` when there are none.
     fn bbox(&mut self, envelope: &Envelope) {
-        let bounds = envelope.xy.map_or([f64::NAN; 4], |e| [e.xmin, e.ymin, e.xmax, e.ymax]);
+        let bounds = envelope
+            .xy
+            .map_or([f64::NAN; 4], |e| [e.xmin, e.ymin, e.xmax, e.ymax]);
         for v in bounds {
             self.f64(v);
         }

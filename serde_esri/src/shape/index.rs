@@ -20,7 +20,8 @@ impl IndexRecord {
 
     /// Byte position just past the record's contents.
     pub(super) fn end(self) -> Result<u64, ShapeError> {
-        let content_length = u64::try_from(self.content_length).map_err(|_| ShapeError::Corrupted)?;
+        let content_length =
+            u64::try_from(self.content_length).map_err(|_| ShapeError::Corrupted)?;
         Ok(self.start()? + 8 + content_length * 2)
     }
 }
@@ -39,7 +40,10 @@ impl TryFrom<&[u8]> for ShapeIndex {
 
     fn try_from(file: &[u8]) -> Result<Self, Self::Error> {
         let header = FileHeader::try_from(file)?;
-        let entries = file.get(100..).ok_or(ShapeError::UnexpectedEof)?.chunks_exact(8);
+        let entries = file
+            .get(100..)
+            .ok_or(ShapeError::UnexpectedEof)?
+            .chunks_exact(8);
         if !entries.remainder().is_empty() {
             return Err(ShapeError::UnexpectedEof);
         }

@@ -1,11 +1,11 @@
 //! Reading and writing shape buffers: the contents of one main file record.
 
+use crate::enginex::geometry::{Envelope2D, Interval};
 use crate::shape::{
     error::ShapeError,
     types::{
-        BoundingBox, Measures, MultiPart, MultiPartM, MultiPartZ, MultiPatch, MultiPoint,
-        MultiPointM, MultiPointZ, PartType, Point, PointM, PointZ, Range, Shape, ShapeType,
-        ZValues,
+        Measures, MultiPart, MultiPartM, MultiPartZ, MultiPatch, MultiPoint, MultiPointM,
+        MultiPointZ, PartType, Point, PointM, PointZ, Shape, ShapeType, ZValues,
     },
 };
 
@@ -182,7 +182,7 @@ impl Writer {
         Ok(())
     }
 
-    pub(super) fn bbox(&mut self, bbox: &BoundingBox) {
+    pub(super) fn bbox(&mut self, bbox: &Envelope2D) {
         for v in [bbox.xmin, bbox.ymin, bbox.xmax, bbox.ymax] {
             self.f64(v);
         }
@@ -289,8 +289,8 @@ impl Reader<'_> {
         usize::try_from(self.i32()?).map_err(|_| ShapeError::Corrupted)
     }
 
-    pub(super) fn bbox(&mut self) -> Result<BoundingBox, ShapeError> {
-        Ok(BoundingBox {
+    pub(super) fn bbox(&mut self) -> Result<Envelope2D, ShapeError> {
+        Ok(Envelope2D {
             xmin: self.f64()?,
             ymin: self.f64()?,
             xmax: self.f64()?,
@@ -345,7 +345,7 @@ impl Reader<'_> {
 
     fn z_values(&mut self, count: usize) -> Result<ZValues, ShapeError> {
         Ok(ZValues {
-            range: Range {
+            range: Interval {
                 min: self.f64()?,
                 max: self.f64()?,
             },
@@ -359,7 +359,7 @@ impl Reader<'_> {
             return Ok(None);
         }
         Ok(Some(Measures {
-            range: Range {
+            range: Interval {
                 min: self.measure()?,
                 max: self.measure()?,
             },

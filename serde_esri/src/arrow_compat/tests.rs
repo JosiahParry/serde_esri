@@ -33,7 +33,11 @@ fn fields_and_geometry_become_columns() -> Result<(), String> {
     assert_eq!(batch.num_rows(), 2);
 
     let schema = batch.schema();
-    let names = schema.fields().iter().map(|f| f.name().as_str()).collect::<Vec<_>>();
+    let names = schema
+        .fields()
+        .iter()
+        .map(|f| f.name().as_str())
+        .collect::<Vec<_>>();
     assert_eq!(
         names,
         vec!["OBJECTID", "NAME", "POP", "AREA", "UPDATED", "geometry"]

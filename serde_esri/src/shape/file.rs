@@ -1,9 +1,10 @@
 //! The main file (`.shp`): its header and records, held in memory.
 
+use crate::enginex::geometry::{Envelope2D, Interval};
 use crate::shape::{
     buffer::{Reader, Writer},
     error::ShapeError,
-    types::{BoundingBox, Range, Shape, ShapeType},
+    types::{Shape, ShapeType},
 };
 
 /// The 100 byte main file (`.shp`) header.
@@ -13,9 +14,9 @@ pub struct FileHeader {
     pub file_length: i32,
     pub version: i32,
     pub shape_type: ShapeType,
-    pub bbox: BoundingBox,
-    pub z_range: Range<f64>,
-    pub m_range: Range<Option<f64>>,
+    pub bbox: Envelope2D,
+    pub z_range: Interval<f64>,
+    pub m_range: Interval<Option<f64>>,
 }
 
 /// Reads the first 100 bytes as a main file header.
@@ -34,11 +35,11 @@ impl TryFrom<&[u8]> for FileHeader {
             version: r.i32()?,
             shape_type: ShapeType::try_from(r.i32()?)?,
             bbox: r.bbox()?,
-            z_range: Range {
+            z_range: Interval {
                 min: r.f64()?,
                 max: r.f64()?,
             },
-            m_range: Range {
+            m_range: Interval {
                 min: r.measure()?,
                 max: r.measure()?,
             },
@@ -103,17 +104,19 @@ impl Iterator for ShapeFile<'_> {
             return None;
         }
         let mut r = Reader(self.records);
-        let record = r.take::<8>().and_then(RecordHeader::try_from).and_then(|header| {
-            let (contents, rest) = r
-                .0
-                .split_at_checked(header.content_len)
-                .ok_or(ShapeError::UnexpectedEof)?;
-            r.0 = rest;
-            Ok(Record {
-                number: header.number,
-                shape: Shape::try_from(contents)?,
-            })
-        });
+        let record = r
+            .take::<8>()
+            .and_then(RecordHeader::try_from)
+            .and_then(|header| {
+                let (contents, rest) =
+                    r.0.split_at_checked(header.content_len)
+                        .ok_or(ShapeError::UnexpectedEof)?;
+                r.0 = rest;
+                Ok(Record {
+                    number: header.number,
+                    shape: Shape::try_from(contents)?,
+                })
+            });
         self.records = if record.is_ok() { r.0 } else { &[] };
         Some(record)
     }

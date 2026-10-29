@@ -11,7 +11,10 @@ pub fn feature_set(features: usize, vertices: usize) -> String {
         if i > 0 {
             json.push(',');
         }
-        let (cx, cy) = ((i % 1000) as f64 * 0.01 - 5.0, (i / 1000) as f64 * 0.01 + 30.0);
+        let (cx, cy) = (
+            (i % 1000) as f64 * 0.01 - 5.0,
+            (i / 1000) as f64 * 0.01 + 30.0,
+        );
         let _ = write!(
             json,
             r#"{{"attributes":{{"OBJECTID":{i},"NAME":"feature {i}","POP":{},"AREA":{:.6},"UPDATED":{}}},"geometry":{{"rings":[["#,

@@ -15,6 +15,21 @@ pub enum GeometryType {
     Polygon = 8 + 0x40 + 0x80 + 0x200 + 0x400,
 }
 
+impl std::str::FromStr for GeometryType {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "esriGeometryPoint" => Ok(GeometryType::Point),
+            "esriGeometryMultipoint" => Ok(GeometryType::MultiPoint),
+            "esriGeometryPolyline" => Ok(GeometryType::Polyline),
+            "esriGeometryPolygon" => Ok(GeometryType::Polygon),
+            "esriGeometryEnvelope" => Ok(GeometryType::Envelope),
+            other => Err(other.to_string()),
+        }
+    }
+}
+
 /// A single path flag. Discriminants match `PathFlags`.
 #[repr(u8)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]

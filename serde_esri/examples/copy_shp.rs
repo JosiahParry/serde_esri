@@ -17,10 +17,16 @@ use std::{
 
 fn main() -> Result<(), FileError> {
     let mut args = std::env::args().skip(1);
-    let (input, output) = (args.next().unwrap_or_default(), PathBuf::from(args.next().unwrap_or_default()));
+    let (input, output) = (
+        args.next().unwrap_or_default(),
+        PathBuf::from(args.next().unwrap_or_default()),
+    );
 
     let reader = ShapeReader::new(BufReader::new(File::open(input)?))?;
-    let mut writer = ShapeWriter::new(BufWriter::new(File::create(&output)?), reader.header.shape_type)?;
+    let mut writer = ShapeWriter::new(
+        BufWriter::new(File::create(&output)?),
+        reader.header.shape_type,
+    )?;
     for record in reader {
         writer.write(&record?.shape)?;
     }

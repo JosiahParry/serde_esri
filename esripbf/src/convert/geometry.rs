@@ -1,16 +1,22 @@
-//! Decodes quantized, delta-encoded geometries into engine and Esri JSON geometries.
+//! Decodes quantized, delta-encoded geometries into engine and Esri JSON geometries, and encodes
+//! engine geometries back.
 //!
 //! Each vertex holds x and y as deltas from the previous vertex in its part, then Z and M, when
 //! present, as plain integers. The transform scales and translates them; an upper-left origin flips y.
 
 use crate::{
-    convert::FromPbfError,
-    esri_p_buffer::feature_collection_p_buffer::{self as pbf, GeometryType, QuantizeOriginPostion},
+    convert::{FromPbfError, ToPbfError},
+    esri_p_buffer::feature_collection_p_buffer::{
+        self as pbf, GeometryType, QuantizeOriginPostion,
+    },
 };
-#[cfg(feature = "geoarrow")]
-use serde_esri::enginex::geometry::{Geometry, MultiPoint, Point, Polygon, Polyline};
 use serde_esri::{
-    enginex::{geometry::MultiPath, vertex::VertexAttributes},
+    enginex::{
+        description::{Attribute, VertexDescription},
+        flags,
+        geometry::{Geometry, MultiPath, MultiPoint, Point, Polygon, Polyline},
+        vertex::{Vertex, VertexAttributes},
+    },
     geometry::{
         EsriCoord, EsriGeometry, EsriLineString, EsriMultiPoint, EsriPoint, EsriPolygon,
         EsriPolyline,
@@ -27,18 +33,48 @@ impl Axis {
     fn apply(self, quantized: i64) -> f64 {
         quantized as f64 * self.scale + self.translate
     }
+
+    fn quantize(self, value: f64) -> i64 {
+        if value.is_finite() {
+            ((value - self.translate) / self.scale).round() as i64
+        } else {
+            0
+        }
+    }
 }
 
-/// Whether a part's last vertex repeats its first to close it, which the engine leaves implicit.
+impl TryFrom<flags::GeometryType> for GeometryType {
+    type Error = FromPbfError;
+
+    fn try_from(geometry_type: flags::GeometryType) -> Result<Self, Self::Error> {
+        match geometry_type {
+            flags::GeometryType::Unknown => Ok(GeometryType::EsriGeometryTypeNone),
+            flags::GeometryType::Point => Ok(GeometryType::EsriGeometryTypePoint),
+            flags::GeometryType::MultiPoint => Ok(GeometryType::EsriGeometryTypeMultipoint),
+            flags::GeometryType::Polyline => Ok(GeometryType::EsriGeometryTypePolyline),
+            flags::GeometryType::Polygon => Ok(GeometryType::EsriGeometryTypePolygon),
+            flags::GeometryType::Envelope => Ok(GeometryType::EsriGeometryTypeEnvelope),
+            flags::GeometryType::Line => Err(FromPbfError::UnsupportedGeometry("line")),
+            flags::GeometryType::Bezier => Err(FromPbfError::UnsupportedGeometry("bezier")),
+            flags::GeometryType::EllipticArc => {
+                Err(FromPbfError::UnsupportedGeometry("elliptic arc"))
+            }
+        }
+    }
+}
+
+/// How a part holds its vertices. A ring repeats its first vertex to close, which the engine leaves
+/// implicit. The encoder keeps every point, and drops repeated and collinear path and ring vertices.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Parts {
+    Points,
     Paths,
     Rings,
 }
 
 /// The transform of one `FeatureResult`, with an axis per ordinate.
 #[derive(Clone, Debug)]
-pub(super) struct Quantization {
+pub struct Quantization {
     x: Axis,
     y: Axis,
     z: Option<Axis>,
@@ -53,13 +89,26 @@ impl TryFrom<&pbf::FeatureResult> for Quantization {
             .transform
             .as_ref()
             .ok_or(FromPbfError::MissingTransform)?;
+        let description = [
+            result.has_z.then_some(Attribute::Z),
+            result.has_m.then_some(Attribute::M),
+        ]
+        .into_iter()
+        .flatten()
+        .collect();
+        Ok(Quantization::new(transform, description))
+    }
+}
+
+impl Quantization {
+    pub fn new(transform: &pbf::Transform, description: VertexDescription) -> Self {
         let scale = transform.scale.clone().unwrap_or_default();
         let translate = transform.translate.clone().unwrap_or_default();
         let y_scale = match transform.quantize_origin_postion() {
             QuantizeOriginPostion::UpperLeft => -scale.y_scale,
             QuantizeOriginPostion::LowerLeft => scale.y_scale,
         };
-        Ok(Quantization {
+        Quantization {
             x: Axis {
                 scale: scale.x_scale,
                 translate: translate.x_translate,
@@ -68,21 +117,15 @@ impl TryFrom<&pbf::FeatureResult> for Quantization {
                 scale: y_scale,
                 translate: translate.y_translate,
             },
-            z: result.has_z.then_some(Axis {
+            z: description.has(Attribute::Z).then_some(Axis {
                 scale: scale.z_scale,
                 translate: translate.z_translate,
             }),
-            m: result.has_m.then_some(Axis {
+            m: description.has(Attribute::M).then_some(Axis {
                 scale: scale.m_scale,
                 translate: translate.m_translate,
             }),
-        })
-    }
-}
-
-impl Quantization {
-    fn width(&self) -> usize {
-        2 + usize::from(self.z.is_some()) + usize::from(self.m.is_some())
+        }
     }
 
     /// The vertices split into paths by `lengths`, one path when there are none.
@@ -91,7 +134,7 @@ impl Quantization {
         geometry: &pbf::Geometry,
         parts: Parts,
     ) -> Result<MultiPath, FromPbfError> {
-        let width = self.width();
+        let width = 2 + usize::from(self.z.is_some()) + usize::from(self.m.is_some());
         let lengths = match geometry.lengths.as_slice() {
             [] => vec![geometry.coords.len() / width],
             lengths => lengths.iter().map(|n| *n as usize).collect(),
@@ -147,8 +190,91 @@ impl Quantization {
         })
     }
 
-    #[cfg(feature = "geoarrow")]
-    pub(super) fn engine(
+    fn encode_part(
+        &self,
+        vertices: impl Iterator<Item = Vertex>,
+        parts: Parts,
+        encoded: &mut pbf::Geometry,
+    ) {
+        let flat = self.z.is_none() && self.m.is_none();
+        let mut previous = None::<[i64; 4]>;
+        let mut direction = [0_i64; 2];
+        let mut length = 0_u32;
+        for vertex in vertices {
+            let quantized = [
+                self.x.quantize(vertex.x),
+                self.y.quantize(vertex.y),
+                self.z
+                    .map_or(0, |axis| axis.quantize(vertex.z.unwrap_or(f64::NAN))),
+                self.m
+                    .map_or(0, |axis| axis.quantize(vertex.m.unwrap_or(f64::NAN))),
+            ];
+            let delta = match previous {
+                Some(last) => [quantized[0] - last[0], quantized[1] - last[1]],
+                None => [quantized[0], quantized[1]],
+            };
+            let repeated = previous == Some(quantized);
+            previous = Some(quantized);
+            if parts != Parts::Points && repeated {
+                continue;
+            }
+            let [dx, dy] = delta.map(i128::from);
+            let [px, py] = direction.map(i128::from);
+            let collinear = px * dy == dx * py && px * dx + py * dy > 0;
+            if parts != Parts::Points && flat && collinear {
+                if let [.., x, y] = encoded.coords.as_mut_slice() {
+                    *x += delta[0];
+                    *y += delta[1];
+                }
+                continue;
+            }
+            encoded.coords.extend_from_slice(&delta);
+            if self.z.is_some() {
+                encoded.coords.push(quantized[2]);
+            }
+            if self.m.is_some() {
+                encoded.coords.push(quantized[3]);
+            }
+            if length > 0 {
+                direction = delta;
+            }
+            length += 1;
+        }
+        if length > 0 {
+            encoded.lengths.push(length);
+        }
+    }
+
+    pub fn encode(&self, geometry: &Geometry) -> Result<pbf::Geometry, ToPbfError> {
+        let mut encoded = pbf::Geometry::default();
+        let (paths, parts) = match geometry {
+            Geometry::Point(Point(vertex)) => {
+                self.encode_part(vertex.iter().copied(), Parts::Points, &mut encoded);
+                return Ok(encoded);
+            }
+            Geometry::MultiPoint(points) => {
+                let vertices = (0..points.vertices.len()).filter_map(|i| points.vertices.get(i));
+                self.encode_part(vertices, Parts::Points, &mut encoded);
+                return Ok(encoded);
+            }
+            Geometry::Polyline(Polyline(paths)) => (paths, Parts::Paths),
+            Geometry::Polygon(polygon) => (&polygon.rings, Parts::Rings),
+            Geometry::Line(_) => return Err(ToPbfError::UnsupportedGeometry("line")),
+            Geometry::Envelope(_) => return Err(ToPbfError::UnsupportedGeometry("envelope")),
+        };
+        if paths.has_nonlinear_segments() {
+            return Err(ToPbfError::UnsupportedGeometry("curve"));
+        }
+        for path in 0..paths.path_count() {
+            let range = paths.path_range(path).unwrap_or_default();
+            let closing = (parts == Parts::Rings).then_some(range.start);
+            let vertices = range.chain(closing).filter_map(|i| paths.vertices.get(i));
+            self.encode_part(vertices, parts, &mut encoded);
+        }
+        Ok(encoded)
+    }
+
+    pub fn engine(
         &self,
         geometry_type: GeometryType,
         geometry: &pbf::Geometry,
@@ -182,11 +308,11 @@ impl Quantization {
         })
     }
 
-    /// Each part's coordinates as `[x, y, z?, m?]`, rings keeping their closing vertex.
-    fn parts<const N: usize>(
+    pub(super) fn geometry<const N: usize>(
         &self,
+        geometry_type: GeometryType,
         geometry: &pbf::Geometry,
-    ) -> Result<Vec<Vec<EsriCoord<N>>>, FromPbfError> {
+    ) -> Result<EsriGeometry<N>, FromPbfError> {
         let paths = self.multi_path(geometry, Parts::Paths)?;
         let coord = |i: usize| {
             let mut coord = [f64::NAN; N];
@@ -198,19 +324,15 @@ impl Quantization {
             }
             EsriCoord(coord)
         };
-        Ok(paths
+        let parts = paths
             .path_offsets
             .windows(2)
-            .map(|w| (w[0] as usize..w[1] as usize).map(coord).collect())
-            .collect())
-    }
-
-    pub(super) fn geometry<const N: usize>(
-        &self,
-        geometry_type: GeometryType,
-        geometry: &pbf::Geometry,
-    ) -> Result<EsriGeometry<N>, FromPbfError> {
-        let parts = self.parts::<N>(geometry)?;
+            .map(|w| {
+                (w[0] as usize..w[1] as usize)
+                    .map(coord)
+                    .collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>();
         let geometry = match geometry_type {
             GeometryType::EsriGeometryTypePoint => {
                 let coord = parts.first().and_then(|part| part.first());

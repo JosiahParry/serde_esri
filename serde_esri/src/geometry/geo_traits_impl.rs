@@ -79,7 +79,12 @@ impl<const N: usize> EsriPolygon<N> {
             }
         }
         let ends = starts.iter().skip(1).copied().chain([self.rings.len()]);
-        starts.iter().copied().zip(ends).map(|(s, e)| s..e).collect()
+        starts
+            .iter()
+            .copied()
+            .zip(ends)
+            .map(|(s, e)| s..e)
+            .collect()
     }
 
     fn layout(&self) -> Layout {

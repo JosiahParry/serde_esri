@@ -28,7 +28,10 @@ fn main() -> Result<(), FileError> {
             let path = entry?.path();
             if path.is_dir() {
                 dirs.push(path);
-            } else if path.extension().is_some_and(|e| e.eq_ignore_ascii_case("shp")) {
+            } else if path
+                .extension()
+                .is_some_and(|e| e.eq_ignore_ascii_case("shp"))
+            {
                 paths.push(path);
             }
         }
@@ -36,7 +39,10 @@ fn main() -> Result<(), FileError> {
     paths.sort();
 
     for path in &paths {
-        let name = path.file_name().map(|n| n.to_string_lossy()).unwrap_or_default();
+        let name = path
+            .file_name()
+            .map(|n| n.to_string_lossy())
+            .unwrap_or_default();
         println!("{name:<45} {}", check(path));
     }
     Ok(())
@@ -109,7 +115,8 @@ fn check(path: &Path) -> String {
         let read_back = buffer
             .ok()
             .and_then(|buffer| Option::<Geometry>::try_from(buffer.as_shape()).ok());
-        engine_buffers += usize::from(format!("{read_back:?}") == format!("{:?}", Some(Some(geometry))));
+        engine_buffers +=
+            usize::from(format!("{read_back:?}") == format!("{:?}", Some(Some(geometry))));
     }
     line + &format!(
         "; enginex {converted} ok, {unchanged} unchanged, {engine_buffers} engine buffers same {failures:?}"
@@ -153,7 +160,8 @@ fn random_access(
             // Compared as bytes, since NaN coordinates never compare equal.
             Some(Ok(record))
                 if record.number == expected.number
-                    && Vec::<u8>::try_from(&record.shape) == Vec::<u8>::try_from(&expected.shape) => {}
+                    && Vec::<u8>::try_from(&record.shape)
+                        == Vec::<u8>::try_from(&expected.shape) => {}
             Some(Ok(_)) => return format!("{label} MISMATCH at {i}"),
             Some(Err(e)) => return format!("{label} ERROR at {i}: {e}"),
             None => return format!("{label} MISSING {i}"),

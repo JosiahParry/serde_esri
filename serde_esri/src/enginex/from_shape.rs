@@ -46,7 +46,13 @@ impl TryFrom<Shape> for Geometry {
 
     fn try_from(shape: Shape) -> Result<Self, Self::Error> {
         let vertex = |x: f64, y: f64, z: Option<f64>, m: Option<f64>| {
-            let vertex = Vertex { x, y, z, m, id: None };
+            let vertex = Vertex {
+                x,
+                y,
+                z,
+                m,
+                id: None,
+            };
             Geometry::Point(Point((!x.is_nan()).then_some(vertex)))
         };
         Ok(match shape {
@@ -90,7 +96,9 @@ impl TryFrom<Shape> for Geometry {
                 None,
                 PathType::Polyline,
             )?)),
-            Shape::Polygon(p) => Geometry::Polygon(p.into_multi_path(None, None, PathType::Polygon)?.into()),
+            Shape::Polygon(p) => {
+                Geometry::Polygon(p.into_multi_path(None, None, PathType::Polygon)?.into())
+            }
             Shape::PolyLineM(p) => {
                 let m = Measures::engine_values(p.m, p.xy.points.len())?;
                 Geometry::Polyline(Polyline(p.xy.into_multi_path(
@@ -101,7 +109,10 @@ impl TryFrom<Shape> for Geometry {
             }
             Shape::PolygonM(p) => {
                 let m = Measures::engine_values(p.m, p.xy.points.len())?;
-                Geometry::Polygon(p.xy.into_multi_path(None, Some(m), PathType::Polygon)?.into())
+                Geometry::Polygon(
+                    p.xy.into_multi_path(None, Some(m), PathType::Polygon)?
+                        .into(),
+                )
             }
             Shape::PolyLineZ(p) => {
                 let m = Measures::engine_values(p.m, p.xy.points.len())?;
@@ -113,7 +124,10 @@ impl TryFrom<Shape> for Geometry {
             }
             Shape::PolygonZ(p) => {
                 let m = Measures::engine_values(p.m, p.xy.points.len())?;
-                Geometry::Polygon(p.xy.into_multi_path(Some(p.z.values), Some(m), PathType::Polygon)?.into())
+                Geometry::Polygon(
+                    p.xy.into_multi_path(Some(p.z.values), Some(m), PathType::Polygon)?
+                        .into(),
+                )
             }
         })
     }
@@ -125,7 +139,6 @@ impl From<shape::types::Point> for [f64; 2] {
     }
 }
 
-
 impl Measures {
     /// One M per point, with "no data" and an absent M section as `NaN`.
     fn engine_values(m: Option<Measures>, num_points: usize) -> Result<Vec<f64>, FromShapeError> {
@@ -135,7 +148,10 @@ impl Measures {
         if m.values.len() != num_points {
             return Err(FromShapeError::Corrupted);
         }
-        Ok(m.values.into_iter().map(|v| v.unwrap_or(f64::NAN)).collect())
+        Ok(m.values
+            .into_iter()
+            .map(|v| v.unwrap_or(f64::NAN))
+            .collect())
     }
 }
 
@@ -179,7 +195,11 @@ impl MultiPart {
             Some(_) => return Err(FromShapeError::Corrupted),
         }
 
-        let xy = self.points.into_iter().map(<[f64; 2]>::from).collect::<Vec<_>>();
+        let xy = self
+            .points
+            .into_iter()
+            .map(<[f64; 2]>::from)
+            .collect::<Vec<_>>();
         let ends = starts[1..].iter().copied().chain([n]);
         let mut keep = vec![true; n];
         let mut path_offsets = vec![0];

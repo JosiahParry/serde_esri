@@ -285,7 +285,6 @@ macro_rules! geometry_trait {
     };
 }
 
-
 geometry_trait!([] PathView<'_>, LineString, |p| p.vertices.description().into());
 geometry_trait!([] PolygonView<'_>, Polygon, |p| p.rings.vertices.description().into());
 geometry_trait!([] Point, Point, |p| p.0.map_or(Dimensions::Xy, |v| v.description().into()));

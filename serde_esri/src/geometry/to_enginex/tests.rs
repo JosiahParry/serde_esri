@@ -12,7 +12,8 @@ fn polygon_rings_drop_their_closing_vertex() -> Result<(), String> {
             [[1, 1, 5], [2, 1, 6], [2, 2, 7], [1, 1, 5]]
         ]}"#,
     )?;
-    let Geometry::Polygon(polygon) = Geometry::try_from(&polygon).map_err(|e| e.to_string())? else {
+    let Geometry::Polygon(polygon) = Geometry::try_from(&polygon).map_err(|e| e.to_string())?
+    else {
         return Err("expected a polygon".into());
     };
     assert_eq!(polygon.rings.path_offsets, vec![0, 4, 7]);
@@ -27,8 +28,7 @@ fn polygon_rings_drop_their_closing_vertex() -> Result<(), String> {
 
 #[test]
 fn m_sits_after_z_or_in_its_place() -> Result<(), String> {
-    let measured =
-        parse::<3>(r#"{"hasM": true, "paths": [[[0, 0, 7], [1, 1, 8]]]}"#)?;
+    let measured = parse::<3>(r#"{"hasM": true, "paths": [[[0, 0, 7], [1, 1, 8]]]}"#)?;
     let Geometry::Polyline(Polyline(path)) =
         Geometry::try_from(&measured).map_err(|e| e.to_string())?
     else {
@@ -37,12 +37,14 @@ fn m_sits_after_z_or_in_its_place() -> Result<(), String> {
     assert_eq!(path.vertices.m, Some(vec![7.0, 8.0]));
     assert_eq!(path.vertices.z, None);
 
-    let both =
-        parse::<4>(r#"{"hasZ": true, "hasM": true, "points": [[0, 0, 1, 2]]}"#)?;
+    let both = parse::<4>(r#"{"hasZ": true, "hasM": true, "points": [[0, 0, 1, 2]]}"#)?;
     let Geometry::MultiPoint(mp) = Geometry::try_from(&both).map_err(|e| e.to_string())? else {
         return Err("expected a multipoint".into());
     };
-    assert_eq!((mp.vertices.z, mp.vertices.m), (Some(vec![1.0]), Some(vec![2.0])));
+    assert_eq!(
+        (mp.vertices.z, mp.vertices.m),
+        (Some(vec![1.0]), Some(vec![2.0]))
+    );
     Ok(())
 }
 

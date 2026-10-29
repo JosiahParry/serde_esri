@@ -13,7 +13,7 @@ use crate::{
         vertex::Vertex,
     },
     features::FeatureSet,
-    geometry::{EsriCoord, EsriGeometry, EsriLineString},
+    geometry::{EsriCoord, EsriEnvelope, EsriGeometry, EsriLineString},
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -127,13 +127,22 @@ impl<const N: usize> TryFrom<&FeatureSet<N>> for Vec<Option<Geometry>> {
         feature_set
             .features
             .iter()
-            .map(|f| f.geometry.as_ref().map(|g| g.to_engine(has_z, has_m)).transpose())
+            .map(|f| {
+                f.geometry
+                    .as_ref()
+                    .map(|g| g.to_engine(has_z, has_m))
+                    .transpose()
+            })
             .collect()
     }
 }
 
 impl<const N: usize> EsriGeometry<N> {
-    fn to_engine(&self, has_z: Option<bool>, has_m: Option<bool>) -> Result<Geometry, FromEsriError> {
+    fn to_engine(
+        &self,
+        has_z: Option<bool>,
+        has_m: Option<bool>,
+    ) -> Result<Geometry, FromEsriError> {
         Ok(match self {
             EsriGeometry::Point(p) => {
                 let vertex = Vertex {
@@ -153,7 +162,11 @@ impl<const N: usize> EsriGeometry<N> {
             }
             EsriGeometry::Polyline(pl) => {
                 let layout = Layout::new::<N>(pl.has_z.or(has_z), pl.has_m.or(has_m))?;
-                Geometry::Polyline(Polyline(MultiPath::from_esri(&pl.paths, layout, PathType::Polyline)?))
+                Geometry::Polyline(Polyline(MultiPath::from_esri(
+                    &pl.paths,
+                    layout,
+                    PathType::Polyline,
+                )?))
             }
             EsriGeometry::Polygon(pg) => {
                 let layout = Layout::new::<N>(pg.has_z.or(has_z), pg.has_m.or(has_m))?;
@@ -161,20 +174,31 @@ impl<const N: usize> EsriGeometry<N> {
                 Geometry::Polygon(Polygon::from(rings))
             }
             EsriGeometry::Envelope(e) => {
-                let interval = |min: Option<f64>, max: Option<f64>| Some(Interval { min: min?, max: max? });
+                let interval = |min: Option<f64>, max: Option<f64>| {
+                    Some(Interval {
+                        min: min?,
+                        max: max?,
+                    })
+                };
                 Geometry::Envelope(Envelope {
-                    xy: Some(Envelope2D {
-                        xmin: e.xmin,
-                        ymin: e.ymin,
-                        xmax: e.xmax,
-                        ymax: e.ymax,
-                    }),
+                    xy: Some(Envelope2D::from(e)),
                     z: interval(e.zmin, e.zmax),
                     m: interval(e.mmin, e.mmax),
                     id: None,
                 })
             }
         })
+    }
+}
+
+impl From<&EsriEnvelope> for Envelope2D {
+    fn from(e: &EsriEnvelope) -> Self {
+        Envelope2D {
+            xmin: e.xmin,
+            ymin: e.ymin,
+            xmax: e.xmax,
+            ymax: e.ymax,
+        }
     }
 }
 

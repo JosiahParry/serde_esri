@@ -71,13 +71,19 @@ fn vertex_ordinates_follow_dimensions() {
         id: Some(7),
     };
     assert_eq!(xyzm.dim(), Dimensions::Xyzm);
-    assert_eq!((xyzm.nth(2), xyzm.nth(3), xyzm.nth(4)), (Some(3.0), Some(4.0), None));
+    assert_eq!(
+        (xyzm.nth(2), xyzm.nth(3), xyzm.nth(4)),
+        (Some(3.0), Some(4.0), None)
+    );
 
     let xym = Vertex { z: None, ..xyzm };
     assert_eq!(xym.dim(), Dimensions::Xym);
     assert_eq!((xym.nth(2), xym.nth(3)), (Some(4.0), None));
 
-    assert_eq!(Point(Some(xyzm)).to_point(), geo_types::Point::new(1.0, 2.0));
+    assert_eq!(
+        Point(Some(xyzm)).to_point(),
+        geo_types::Point::new(1.0, 2.0)
+    );
     assert!(Point(None).coord().is_none());
 }
 
@@ -108,17 +114,21 @@ fn geometry_dispatches_by_kind() {
 
 /// A shapefile polygon read into the engine exposes the same rings, closed again.
 #[test]
-fn shapefile_polygon_round_trips_through_the_engine() -> Result<(), crate::enginex::from_shape::FromShapeError> {
+fn shapefile_polygon_round_trips_through_the_engine(
+) -> Result<(), crate::enginex::from_shape::FromShapeError> {
     let ring = [[0.0, 0.0], [0.0, 4.0], [4.0, 4.0], [4.0, 0.0], [0.0, 0.0]];
     let shape = Shape::Polygon(MultiPart {
-        bbox: shape::types::BoundingBox {
+        bbox: crate::enginex::geometry::Envelope2D {
             xmin: 0.0,
             ymin: 0.0,
             xmax: 4.0,
             ymax: 4.0,
         },
         parts: vec![0],
-        points: ring.iter().map(|&[x, y]| shape::types::Point { x, y }).collect(),
+        points: ring
+            .iter()
+            .map(|&[x, y]| shape::types::Point { x, y })
+            .collect(),
     });
     let geometry = Geometry::try_from(shape)?;
     assert_eq!(

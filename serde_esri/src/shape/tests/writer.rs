@@ -1,8 +1,9 @@
 use super::*;
+use crate::enginex::geometry::Interval;
 use crate::shape::{
     error::FileError,
     file::ShapeFile,
-    types::{PointZ, Range, ShapeType},
+    types::{PointZ, ShapeType},
     writer::ShapeWriter,
 };
 
@@ -34,17 +35,17 @@ fn shape_writer() -> Result<(), FileError> {
     assert_eq!(file.header.file_length as usize * 2, bytes.len());
     assert_eq!(
         file.header.bbox,
-        BoundingBox {
+        Envelope2D {
             xmin: -3.0,
             ymin: 4.0,
             xmax: 1.0,
             ymax: 5.0
         }
     );
-    assert_eq!(file.header.z_range, Range { min: 2.0, max: 7.0 });
+    assert_eq!(file.header.z_range, Interval { min: 2.0, max: 7.0 });
     assert_eq!(
         file.header.m_range,
-        Range {
+        Interval {
             min: Some(9.0),
             max: Some(9.0)
         }
@@ -65,4 +66,3 @@ fn shape_writer() -> Result<(), FileError> {
     ));
     Ok(())
 }
-

@@ -19,7 +19,11 @@ impl<const N: usize> TryFrom<pbf::FeatureResult> for FeatureSet<N> {
         }
         let quantization = Quantization::try_from(&result);
         let geometry_type = result.geometry_type();
-        let names = result.fields.iter().map(|f| f.name.clone()).collect::<Vec<String>>();
+        let names = result
+            .fields
+            .iter()
+            .map(|f| f.name.clone())
+            .collect::<Vec<String>>();
 
         let features = result
             .features

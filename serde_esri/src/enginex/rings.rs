@@ -12,16 +12,7 @@ impl MultiPath {
     /// Curves count as straight segments between their end points.
     pub fn ring_area(&self, path_index: usize) -> Option<f64> {
         let ring = self.vertices.xy.get(self.path_range(path_index)?)?;
-        let Some(&[x0, y0]) = ring.first() else {
-            return Some(0.0);
-        };
-        let next = ring.iter().cycle().skip(1);
-        Some(
-            ring.iter()
-                .zip(next)
-                .map(|([x1, y1], [x2, y2])| ((x2 - x0) - (x1 - x0)) * ((y2 - y0) + (y1 - y0)) * 0.5)
-                .sum(),
-        )
+        Some(ring.iter().copied().signed_area())
     }
 
     /// Reverses a path's vertices in every attribute, keeping a closed path's first vertex
@@ -68,15 +59,13 @@ impl Polygon {
     /// start, as the engine does for simple polygons (`_updateOGCFlagsHelper`).
     pub fn update_ogc_flags(&mut self) {
         let count = self.rings.path_count();
+        let starts = (0..count)
+            .map(|i| self.rings.ring_area(i).unwrap_or(0.0))
+            .ogc_starts()
+            .collect::<Vec<_>>();
         self.rings.path_flags.resize(count, PathFlags::default());
-        let mut first_sign = 0.0;
-        for i in 0..count {
-            let area = self.rings.ring_area(i).unwrap_or(0.0);
-            if first_sign == 0.0 && area != 0.0 {
-                first_sign = area.signum();
-            }
-            let flags = &mut self.rings.path_flags[i];
-            if first_sign == 0.0 || area * first_sign > 0.0 {
+        for (flags, starts) in self.rings.path_flags.iter_mut().zip(starts) {
+            if starts {
                 flags.insert(PathFlag::OgcStartPolygon);
             } else {
                 flags.remove(PathFlag::OgcStartPolygon);
@@ -104,6 +93,37 @@ impl Polygon {
         })
     }
 }
+
+/// A ring's xy vertices.
+pub(crate) trait Ring: Iterator<Item = [f64; 2]> + Clone {
+    /// Signed area of the closed ring, positive when clockwise (`calculateRingArea2D`).
+    fn signed_area(self) -> f64 {
+        let Some([x0, y0]) = self.clone().next() else {
+            return 0.0;
+        };
+        let next = self.clone().skip(1).chain(self.clone().take(1));
+        self.zip(next)
+            .map(|([x1, y1], [x2, y2])| ((x2 - x0) - (x1 - x0)) * ((y2 - y0) + (y1 - y0)) * 0.5)
+            .sum()
+    }
+}
+
+impl<I: Iterator<Item = [f64; 2]> + Clone> Ring for I {}
+
+/// The signed areas of a polygon's rings, in order.
+pub(crate) trait RingAreas: Iterator<Item = f64> + Sized {
+    /// Whether each ring starts an OGC polygon: rings with the sign of the first non-zero ring do.
+    fn ogc_starts(self) -> impl Iterator<Item = bool> {
+        self.scan(0.0, |first_sign, area| {
+            if *first_sign == 0.0 && area != 0.0 {
+                *first_sign = area.signum();
+            }
+            Some(*first_sign == 0.0 || area * *first_sign > 0.0)
+        })
+    }
+}
+
+impl<I: Iterator<Item = f64>> RingAreas for I {}
 
 #[cfg(test)]
 mod tests;

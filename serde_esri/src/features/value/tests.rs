@@ -7,7 +7,11 @@ fn values_round_trip() -> Result<(), serde_json::Error> {
     let feature = serde_json::from_str::<Feature<2>>(&format!(r#"{{"attributes":{json}}}"#))?;
     let attributes = feature.attributes.unwrap_or_default();
     let keys = attributes.keys().map(String::as_str).collect::<Vec<_>>();
-    assert_eq!(keys, ["OWNER", "VALUE", "APPROVED", "LASTUPDATE", "NOTE"], "field order is kept");
+    assert_eq!(
+        keys,
+        ["OWNER", "VALUE", "APPROVED", "LASTUPDATE", "NOTE"],
+        "field order is kept"
+    );
     assert_eq!(attributes["LASTUPDATE"], EsriValue::Int(1_227_663_551_096));
     assert_eq!(attributes["VALUE"].as_f64(), Some(94820.37));
     assert!(attributes["NOTE"].is_null());

@@ -1,8 +1,9 @@
 //! Tests for [`crate::shape`], sharing buffer-building fixtures.
 
+use crate::enginex::geometry::Envelope2D;
 use crate::shape::{
     error::ShapeError,
-    types::{BoundingBox, Point, Shape},
+    types::{Point, Shape},
 };
 
 mod buffer;
@@ -38,8 +39,8 @@ impl Buf {
 
 const BBOX: [f64; 4] = [0.0, 0.0, 10.0, 10.0];
 
-fn bbox() -> BoundingBox {
-    BoundingBox {
+fn bbox() -> Envelope2D {
+    Envelope2D {
         xmin: 0.0,
         ymin: 0.0,
         xmax: 10.0,

@@ -1,9 +1,10 @@
 use super::*;
+use crate::enginex::geometry::Interval;
 use crate::shape::{
     error::FileError,
     file::{FileHeader, ShapeFile},
     reader::ShapeReader,
-    types::{Range, ShapeType},
+    types::ShapeType,
 };
 
 #[test]
@@ -25,7 +26,13 @@ fn shape_file() -> Result<(), FileError> {
     let shapes = ShapeFile::try_from(file.0.as_slice())?;
     assert_eq!(shapes.header.version, 1000);
     assert_eq!(shapes.header.shape_type, ShapeType::Point);
-    assert_eq!(shapes.header.m_range, Range { min: None, max: None });
+    assert_eq!(
+        shapes.header.m_range,
+        Interval {
+            min: None,
+            max: None
+        }
+    );
 
     let records = shapes.collect::<Result<Vec<_>, _>>()?;
     let numbers = records.iter().map(|r| r.number).collect::<Vec<_>>();
@@ -47,4 +54,3 @@ fn shape_file() -> Result<(), FileError> {
     ));
     Ok(())
 }
-

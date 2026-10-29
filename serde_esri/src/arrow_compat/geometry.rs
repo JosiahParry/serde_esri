@@ -8,7 +8,9 @@
 use crate::{
     arrow_compat::ToArrowError,
     enginex::{
+        flags::GeometryType,
         geometry::{Envelope, Envelope2D, Interval},
+        rings::{Ring, RingAreas},
         to_geoarrow::GeometryColumn,
     },
 };
@@ -26,31 +28,6 @@ use geoarrow_schema::{Dimension, Metadata};
 use serde::de::{self, DeserializeSeed, Deserializer, IgnoredAny, MapAccess, SeqAccess, Visitor};
 use serde::Deserialize;
 use std::{fmt, sync::Arc};
-
-/// The geometry types a FeatureSet column can hold.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(super) enum GeometryType {
-    Point,
-    MultiPoint,
-    Polyline,
-    Polygon,
-    Envelope,
-}
-
-impl TryFrom<&str> for GeometryType {
-    type Error = ToArrowError;
-
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        match value {
-            "esriGeometryPoint" => Ok(GeometryType::Point),
-            "esriGeometryMultipoint" => Ok(GeometryType::MultiPoint),
-            "esriGeometryPolyline" => Ok(GeometryType::Polyline),
-            "esriGeometryPolygon" => Ok(GeometryType::Polygon),
-            "esriGeometryEnvelope" => Ok(GeometryType::Envelope),
-            other => Err(ToArrowError::UnsupportedGeometryType(other.to_string())),
-        }
-    }
-}
 
 /// Interleaved coordinates and offsets for one geometry column. Offsets are cumulative:
 /// `geom_offsets` counts points, lines, or polygons per geometry, `part_offsets` coordinates per
@@ -94,7 +71,9 @@ impl GeometryBuilder {
     pub(super) fn append_null(&mut self) {
         self.validity.push(false);
         match self.geometry_type {
-            GeometryType::Point => self.coords.extend(std::iter::repeat_n(f64::NAN, self.width)),
+            GeometryType::Point => self
+                .coords
+                .extend(std::iter::repeat_n(f64::NAN, self.width)),
             GeometryType::Envelope => self.envelopes.push(None),
             _ => {
                 let last = self.geom_offsets.last().copied().unwrap_or(0);
@@ -103,52 +82,13 @@ impl GeometryBuilder {
         }
     }
 
-    fn coord_count(&self) -> usize {
-        self.coords.len() / self.width
-    }
-
-    /// Groups the rings from `first_ring` on into polygons: a ring with the orientation of the
-    /// first non-zero ring starts a polygon (`_updateOGCFlagsHelper`).
-    fn group_rings<E: de::Error>(&mut self, first_ring: usize) -> Result<(), E> {
-        let ring_count = self.ring_offsets.len() - 1;
-        let (coords, width) = (&self.coords, self.width);
-        let xy = |i: usize| {
-            let at = |j: usize| coords.get(i * width + j).copied().unwrap_or(f64::NAN);
-            (at(0), at(1))
-        };
-        let bounds = |ring: usize| {
-            let at = |i: usize| self.ring_offsets.get(i).map_or(0, |&o| o as usize);
-            (at(ring), at(ring + 1))
-        };
-        let mut first_sign = 0.0;
-        for ring in first_ring..ring_count {
-            let (start, end) = bounds(ring);
-            let (x0, y0) = xy(start);
-            let area = (start..end)
-                .map(|i| {
-                    let (x1, y1) = xy(i);
-                    let (x2, y2) = xy(if i + 1 < end { i + 1 } else { start });
-                    ((x2 - x0) - (x1 - x0)) * ((y2 - y0) + (y1 - y0)) * 0.5
-                })
-                .sum::<f64>();
-            if first_sign == 0.0 && area != 0.0 {
-                first_sign = area.signum();
-            }
-            let starts_polygon = first_sign == 0.0 || area * first_sign > 0.0;
-            if ring > first_ring && starts_polygon {
-                self.part_offsets.push(offset(ring)?);
-            }
-        }
-        if ring_count > first_ring {
-            self.part_offsets.push(offset(ring_count)?);
-        }
-        Ok(())
-    }
-
     /// The finished column with its GeoArrow extension field.
     pub(super) fn finish(self, metadata: Arc<Metadata>) -> Result<(Field, ArrayRef), ToArrowError> {
         fn column(array: impl GeoArrowArray) -> (Field, ArrayRef) {
-            (array.data_type().to_field("geometry", true), array.to_array_ref())
+            (
+                array.data_type().to_field("geometry", true),
+                array.to_array_ref(),
+            )
         }
         let envelopes = self.envelopes;
         let offsets = |values: Vec<i32>| OffsetBuffer::new(ScalarBuffer::from(values));
@@ -184,6 +124,7 @@ impl GeometryBuilder {
                 let array = RectArray::try_from(GeometryColumn(&envelopes))?;
                 column(array.with_metadata(metadata))
             }
+            other => return Err(ToArrowError::UnsupportedGeometryType(format!("{other:?}"))),
         })
     }
 }
@@ -425,10 +366,18 @@ impl<'de> Visitor<'de> for GeometrySeed<'_> {
                         *bound = value;
                     }
                 }
-                (GeometryType::Point, GeometryKey::X) => point[0] = map.next_value_seed(Ordinate)?,
-                (GeometryType::Point, GeometryKey::Y) => point[1] = map.next_value_seed(Ordinate)?,
-                (GeometryType::Point, GeometryKey::Z) => point[2] = map.next_value_seed(Ordinate)?,
-                (GeometryType::Point, GeometryKey::M) => point[3] = map.next_value_seed(Ordinate)?,
+                (GeometryType::Point, GeometryKey::X) => {
+                    point[0] = map.next_value_seed(Ordinate)?
+                }
+                (GeometryType::Point, GeometryKey::Y) => {
+                    point[1] = map.next_value_seed(Ordinate)?
+                }
+                (GeometryType::Point, GeometryKey::Z) => {
+                    point[2] = map.next_value_seed(Ordinate)?
+                }
+                (GeometryType::Point, GeometryKey::M) => {
+                    point[3] = map.next_value_seed(Ordinate)?
+                }
                 (GeometryType::MultiPoint, GeometryKey::Points) => {
                     map.next_value_seed(PathSeed {
                         coords: &mut b.coords,
@@ -466,7 +415,7 @@ impl<'de> Visitor<'de> for GeometrySeed<'_> {
                 }
             }
             GeometryType::MultiPoint => {
-                let count = offset(b.coord_count())?;
+                let count = offset(b.coords.len() / width)?;
                 b.geom_offsets.push(count);
             }
             GeometryType::Polyline => {
@@ -474,7 +423,27 @@ impl<'de> Visitor<'de> for GeometrySeed<'_> {
                 b.geom_offsets.push(count);
             }
             GeometryType::Polygon => {
-                b.group_rings(first_ring)?;
+                let ring_count = b.ring_offsets.len() - 1;
+                let ring = |r: usize| {
+                    let at = |i: usize| b.ring_offsets.get(i).map_or(0, |&o| o as usize);
+                    (at(r)..at(r + 1)).map(|i| {
+                        let at =
+                            |j: usize| b.coords.get(i * width + j).copied().unwrap_or(f64::NAN);
+                        [at(0), at(1)]
+                    })
+                };
+                let starts = (first_ring..ring_count)
+                    .map(|r| ring(r).signed_area())
+                    .ogc_starts()
+                    .collect::<Vec<_>>();
+                for (r, starts) in (first_ring..ring_count).zip(starts) {
+                    if r > first_ring && starts {
+                        b.part_offsets.push(offset(r)?);
+                    }
+                }
+                if ring_count > first_ring {
+                    b.part_offsets.push(offset(ring_count)?);
+                }
                 let count = offset(b.part_offsets.len() - 1)?;
                 b.geom_offsets.push(count);
             }
@@ -494,6 +463,11 @@ impl<'de> Visitor<'de> for GeometrySeed<'_> {
                     m: interval(mmin, mmax),
                     id: None,
                 }));
+            }
+            other => {
+                return Err(de::Error::custom(format!(
+                    "unsupported geometry type {other:?}"
+                )))
             }
         }
         b.validity.push(true);

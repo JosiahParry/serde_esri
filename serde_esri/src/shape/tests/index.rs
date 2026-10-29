@@ -57,4 +57,3 @@ fn shape_index_and_random_access() -> Result<(), FileError> {
     }
     Ok(())
 }
-
